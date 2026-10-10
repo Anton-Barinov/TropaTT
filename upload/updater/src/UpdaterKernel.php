@@ -85,6 +85,7 @@ final class UpdaterKernel
                 'resume' => $this->resume($safeInput),
                 'rollback' => $this->rollback($safeInput),
                 'force-unlock' => $this->forceUnlock(),
+                'recover' => $this->recover($safeInput),
                 'log' => $this->log((string)($safeInput['job_id'] ?? '')),
                 default => JsonResponse::error('UNKNOWN_ACTION', 'Unknown updater action', 404),
             };
@@ -1547,6 +1548,87 @@ final class UpdaterKernel
             'message' => $removed
                 ? 'The update lock has been removed.'
                 : 'No lock was present — nothing to remove.',
+        ]);
+    }
+
+    /**
+     * Self-healing path for an update the installation cannot continue.
+     *
+     * A job interrupted by a closed tab, a dropped connection or a killed PHP
+     * process normally resumes on the next request, but a job left by an older
+     * kernel (can_resume=false), one whose progress was lost, or one whose
+     * stored state no longer matches its progress cannot be continued. Until
+     * now that stranded the installation behind maintenance mode and only a
+     * server administrator could clear it.
+     *
+     * The caller vouches that the job is not making progress (the admin page
+     * retries a continuation first and only then asks for recovery). This
+     * action stops the job, releases the update lock, clears maintenance mode
+     * when the flag belongs to that job, and records the failure so the normal
+     * "prepare a fresh update" flow works again. It never touches files or the
+     * database: rollback stays an explicit, separate decision.
+     */
+    private function recover(array $input): JsonResponse
+    {
+        $jobId = (string)($input['job_id'] ?? '');
+        if (preg_match('/\A[A-Za-z0-9._-]{1,128}\z/D', $jobId) !== 1) {
+            return JsonResponse::error('RECOVERY_JOB_ID_INVALID', 'A valid job_id is required for recovery.', 400);
+        }
+        $state = new JobState($this->storageDir, $jobId);
+        $stored = $state->readFile('state.json');
+        if (!is_array($stored) || ($stored['job_id'] ?? null) !== $jobId) {
+            return JsonResponse::error('RECOVERY_JOB_NOT_FOUND', 'The requested updater job is unavailable.', 404);
+        }
+        // Refuse to disturb a job that already reached a terminal state: there
+        // is nothing to recover and the caller would be retrying a stale tab.
+        $terminal = ['applied', 'rolled_back', 'failed'];
+        if (in_array((string)($stored['state'] ?? ''), $terminal, true)
+            && ($stored['state'] ?? '') !== 'failed') {
+            return JsonResponse::success([
+                'recovered' => false,
+                'reason' => 'job_already_terminal',
+                'state' => (string)$stored['state'],
+            ]);
+        }
+
+        (new LockManager($this->storageDir, (int)($this->stepConfig()['lock_ttl_seconds'] ?? 600)))->release($jobId);
+
+        $maintenanceCleared = false;
+        $maintenance = new MaintenanceMode($this->basePath);
+        if (is_file($this->basePath . '/storage_api/maintenance.flag')) {
+            try {
+                // disable() verifies the flag belongs to this job before
+                // unlinking it; a flag owned by another operation stays.
+                $maintenance->disable($jobId);
+                $maintenanceCleared = true;
+            } catch (\Throwable) {
+                // Another operation owns maintenance mode; leave it alone.
+            }
+        }
+
+        $previousState = (string)($stored['state'] ?? '');
+        $state->write([
+            'state' => 'failed',
+            'can_resume' => false,
+            'can_rollback' => (bool)($stored['can_rollback'] ?? false),
+            'error' => 'Recovered from an interrupted update.',
+            'error_code' => 'RECOVERED_INTERRUPTED',
+            'maintenance_held' => false,
+            'recovered_at' => gmdate('c'),
+        ]);
+        (new UpdateLogger($this->storageDir, $jobId))
+            ->warning('recovered', 'Interrupted update closed by the self-healing path', [
+                'previous_state' => $previousState,
+                'maintenance_cleared' => $maintenanceCleared,
+            ]);
+
+        return JsonResponse::success([
+            'recovered' => true,
+            'job_id' => $jobId,
+            'previous_state' => $previousState,
+            'maintenance_cleared' => $maintenanceCleared,
+            'can_rollback' => (bool)($stored['can_rollback'] ?? false),
+            'message' => 'The interrupted update was closed; a fresh update can be prepared.',
         ]);
     }
 

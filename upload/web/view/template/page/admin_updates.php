@@ -55,7 +55,10 @@ $auJs = [
   'primaryResume' => $au('btn_resume', 'Продолжить обновление'),
   'autoResumeRunning' => $au('auto_resume_running', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…'),
   'autoResumeDone' => $au('auto_resume_done', 'Прерванное обновление завершено автоматически.'),
-  'autoResumeFailed' => $au('auto_resume_failed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз, откатитесь из backup или обратитесь в поддержку.'),
+  'autoResumeFailed' => $au('auto_resume_failed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз или откатитесь из backup.'),
+  'autoRecoverRunning' => $au('auto_recover_running', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'),
+  'autoRecoverDone' => $au('auto_recover_done', 'Прерванное обновление очищено автоматически; обновление запущено заново.'),
+  'recoverFailed' => $au('recover_failed', 'Не удалось очистить прерванное обновление.'),
   'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
   'preflightForbidden' => $au('preflight_forbidden', 'запрещённые пути в пакете: {list}'),
   'recommendFailedTitle' => $au('recommend_failed_title', 'Последняя операция завершилась ошибкой'),
@@ -502,6 +505,8 @@ $auJs = [
   // Remembers which interrupted job the page already tried to finish, so a
   // reload cannot loop on the same failing job; a new job id retries once.
   let autoResumeAttempted = '';
+  // Set once recovery closed the stranded job, so the page stops offering it.
+  let latestStateCleared = false;
   let crmSessionPromise = null;
   const $ = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
@@ -803,6 +808,25 @@ $auJs = [
     if (latest.state !== 'applying' && latest.state !== 'backup_created') return false;
     const phase = String((latest.progress || {}).phase || '');
     return phase !== '' && phase !== 'finalized';
+  }
+
+  // An interrupted job the installation can no longer continue: it was left by
+  // an older kernel (can_resume=false) or its progress was lost, so the page's
+  // continuation keeps failing. The updater's `recover` action closes such a
+  // job, releases the lock and clears maintenance mode so a fresh update can be
+  // prepared — without a server administrator touching any files.
+  function latestJobNeedsRecovery() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || !latest.job_id) return false;
+    if (latestStateCleared) return false;
+    if (latest.state === 'failed' && latest.error_code === 'RECOVERED_INTERRUPTED') return false;
+    if (latest.state === 'applying' || latest.state === 'backup_created') {
+      const phase = String((latest.progress || {}).phase || '');
+      return phase !== '' && phase !== 'finalized';
+    }
+    // A failed apply that still holds maintenance mode or a rollback point is
+    // the other shape that used to need a server administrator.
+    return latest.state === 'failed' && (latest.can_rollback === true || latest.maintenance_held === true);
   }
 
   function updateAvailable() {
@@ -1650,30 +1674,69 @@ $auJs = [
     if (bar) bar.remove();
   }
 
+  // Ask the updater to close a job the installation can no longer continue
+  // (releases the lock, clears maintenance mode when this job owns it). Never
+  // touches files or the database.
+  async function recoverInterrupted(jobId) {
+    const token = await updaterSession();
+    const result = await api('/updater/index.php?action=recover', {method: 'POST', body: JSON.stringify({job_id: jobId, token}), timeoutMs: 60000});
+    ensureSuccess(result, tr('recoverFailed', 'Не удалось очистить прерванное обновление.'));
+    return result.data || result;
+  }
+
   // Self-healing for an interrupted apply. A closed tab, a reload, a dropped
   // connection or a proxy timeout leaves the job half-applied with maintenance
   // mode still held; the admin used to have to clear that state from the
   // server. The step machine is resumable, so opening this page is enough:
-  // continue the same job to completion and report what happened.
+  // continue the same job, and when that is genuinely impossible close the job
+  // automatically and prepare a fresh update instead of stranding the CRM.
   async function autoResumeInterrupted() {
+    if (!latestJobNeedsRecovery()) return false;
     const latest = state.status && state.status.latest_job;
-    if (!latestJobInterrupted()) return false;
     const jobId = String(latest.job_id || '');
     if (jobId === '' || autoResumeAttempted === jobId) return false;
     autoResumeAttempted = jobId;
     const phase = phaseLabels[String((latest.progress || {}).phase || '')] || String((latest.progress || {}).phase || '');
     showNotice(tr('autoResumeRunning', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…', {phase}), 'info');
+    if (latestJobInterrupted()) {
+      try {
+        state.lastJobId = jobId;
+        await applyUpdate();
+        clearNotice();
+        showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
+        return true;
+      } catch (_resumeError) {
+        // Fall through to recovery: the job cannot be continued.
+      }
+    }
     try {
-      state.lastJobId = jobId;
-      await applyUpdate();
-      clearNotice();
-      showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
+      showNotice(tr('autoRecoverRunning', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'), 'info');
+      await recoverInterrupted(jobId);
+      latestStateCleared = true;
+      await loadStatus();
+      await autoInstallFresh(tr('autoRecoverDone', 'Прерванное обновление очищено автоматически; обновление запущено заново.'));
       return true;
     } catch (err) {
       const message = String(err && err.message ? err.message : err);
-      showNotice(tr('autoResumeFailed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз, откатитесь из backup или обратитесь в поддержку.', {message}), 'danger');
+      showNotice(tr('autoResumeFailed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз или откатитесь из backup.', {message}), 'danger');
       return false;
     }
+  }
+
+  // Prepare and apply a fresh update after the stranded job was cleared. The
+  // steps are the same ones the install button runs; only the entry differs.
+  async function autoInstallFresh(doneMessage) {
+    await check();
+    if (!updateAvailable()) {
+      clearNotice();
+      showNotice(doneMessage, 'success');
+      return;
+    }
+    await preflight();
+    await download();
+    await applyUpdate();
+    clearNotice();
+    showNotice(doneMessage, 'success');
   }
 
   withAction('initial load', async () => {
