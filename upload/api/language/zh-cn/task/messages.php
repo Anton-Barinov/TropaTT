@@ -76,4 +76,5 @@ return [
     'too_many_tasks' => '任务过多。每次批量操作最多 %d 个。',
     'too_many_ids' => '每个请求最多 %d 个任务 ID',
     'cyclic_dependency' => '在任务层次结构中检测到循环依赖',
+    'lease_conflict' => '该任务当前已被其他更改锁定。请刷新数据后重试。',
 ];

@@ -178,6 +178,8 @@ $expectedExternalRoutes = [
     // Read-only, stripped of internal metadata, access checked via ProjectService::get().
     'GET /api/v1/knowledge/project/{project_public_id}/client-pages',
     'GET /api/v1/knowledge/client-page/{public_id}',
+    // Visual editor image viewing (embedded in descriptions/pages for authenticated users including client portal)
+    'GET /api/v1/visual-editor/image/{year}/{month}/{name}',
 ];
 
 $actualExternalRoutes = [];
