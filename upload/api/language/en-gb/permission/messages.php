@@ -54,4 +54,6 @@ return [
     'perm_finance_rate_view_bill' => 'Finance: view bill rates and margin',
     'perm_finance_rate_manage' => 'Finance: manage rates, recalculate, lock periods',
     'perm_finance_ratecard_manage' => 'Finance: manage rate cards and assignments',
+    'perm_language_pack_install' => 'Install language packs from admin',
+    'perm_module_install' => 'Install modules (marketplace, URL, file, register)',
 ];

@@ -100,7 +100,8 @@ window.CRM.api = (function () {
     'admin-logs': ['logs.view'],
     'admin-api-clients': ['api_client.view', 'api_client.manage', 'webhook.manage'],
     'admin-settings': ['settings.manage'],
-    'admin-languages': ['settings.manage'],
+    // SEC (2026-10): language-pack install is its own grantable permission.
+    'admin-languages': ['settings.manage', 'language_pack.install'],
     'admin-jobs': ['import.manage', 'export.manage', 'ai.admin', 'ai.view_cron_results', 'ai.manage_cron_jobs'],
     'admin-ai': ['ai.admin']
   };

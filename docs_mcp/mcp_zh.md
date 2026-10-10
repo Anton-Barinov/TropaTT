@@ -966,7 +966,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `crm_update_feature_flag` | 更新功能标志 | settings.manage | 更新 |
 | `crm_list_modules` | 列出模块 | settings.manage | 无 |
 | `crm_get_module` | 获取模块 | settings.manage | 无 |
-| `crm_install_module` | 安装模块 | settings.manage | 安装 |
+| `crm_install_module` | 安装模块 | module.install | 安装 |
 | `crm_activate_module` | 激活模块 | settings.manage | 更新 |
 | `crm_deactivate_module` | 停用模块 | settings.manage | 更新 |
 | `crm_uninstall_module` | 卸载模块 | settings.manage | 删除 |

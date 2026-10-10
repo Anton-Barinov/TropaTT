@@ -227,6 +227,18 @@ final class LanguagePackInstaller
             }
             if ($supplementalPrefix !== null) {
                 $relative = substr($norm, strlen($supplementalPrefix));
+                // SEC (audit 2026-10, finding #6): the runtime loads exactly
+                // web/language/supplemental/packs/<locale>.php — a single path
+                // segment. Allowing slashes here let a pack create arbitrary
+                // nesting under that directory (e.g. common/messages.php — the
+                // exact shape the X-Locale inclusion sink consumed). One safe
+                // segment only.
+                if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $relative)
+                    || str_contains($relative, '..')) {
+                    throw new InvalidArgumentException(
+                        'Language pack validation failed: supplemental entries must be a single file name'
+                    );
+                }
                 $targetFile = dirname($this->basePath) . '/web/language/supplemental/packs/' . $relative;
                 $targetDir = dirname($targetFile);
                 if (!is_dir($targetDir)) {

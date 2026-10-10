@@ -37,7 +37,11 @@ final class CoreUpdateStatusService
             'deployment_busy' => \Updater\State\DeploymentMutex::isBusy(
                 dirname($this->storageDir, 2)
             ),
-            'storage_dir' => $this->storageDir,
+            // SEC (audit 2026-10, finding #13): storage_dir (an absolute
+            // filesystem path) is no longer returned. It is reconnaissance
+            // material for building traversal payloads and nothing in the web
+            // UI reads it. The value stays available internally — the
+            // constructor argument and CoreUpdateController still use it.
             'installed_core' => $this->version?->current(),
         ];
     }

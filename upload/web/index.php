@@ -918,7 +918,11 @@ $adminRoutePermissions = [
     'admin-logs' => ['logs.view'],
     'admin-api-clients' => ['api_client.view'],
     'admin-settings' => ['settings.manage'],
-    'admin-languages' => ['settings.manage'],
+    // SEC (2026-10 audit): installing a language pack is its own grantable
+    // permission (language_pack.install), so the page opens for that holder
+    // too; toggle/default/export/delete stay gated by settings.manage on the
+    // API side.
+    'admin-languages' => ['settings.manage', 'language_pack.install'],
     // Finance / rates (TZ 8.1, 8.2): page shell mirrors the API permission gate.
     'my-earnings' => ['finance.rate.view_own_payout'],
     'rate-cards' => ['finance.ratecard.manage'],
@@ -936,9 +940,9 @@ $adminRoutePermissions = [
     'admin-webhooks' => ['webhook.manage'],
     // Recurring task templates live in the admin hub; their API is task-scoped.
     'recurring' => ['task.manage'],
-    'admin-modules' => ['settings.manage'],
-    'admin-modules-install' => ['settings.manage'],
-    'admin-module-detail' => ['settings.manage'],
+    'admin-modules' => ['settings.manage', 'module.install'],
+    'admin-modules-install' => ['settings.manage', 'module.install'],
+    'admin-module-detail' => ['settings.manage', 'module.install'],
     'admin-updates' => ['settings.manage'],
     // Estimate sets/options are project-scoped: /api/v1/estimate-sets etc.
     // require project.manage (there is no estimate.* permission code).

@@ -117,23 +117,43 @@ final class PluginManager
 
         $moduleDir = $this->modulesDir . '/' . $manifest->name;
 
-        if ($manifest->apiRoutes !== null) {
+        // SEC (audit 2026-10, finding #2): api_routes/web_routes are manifest
+        // strings that become filesystem paths (and later require() targets).
+        // Traversal is refused here so a malicious manifest fails validation
+        // instead of being probed further, and error messages report only the
+        // manifest value — never the resolved absolute path (reconnaissance
+        // leak noted by the audit).
+        if ($manifest->apiRoutes !== null && $this->isUnsafeRelativePath($manifest->apiRoutes)) {
+            $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_INVALID', 'api_routes',
+                'API routes path contains directory traversal or is not a relative file path',
+                $manifest->apiRoutes, 'path_traversal');
+        } elseif ($manifest->apiRoutes !== null) {
             $apiRoutesPath = $moduleDir . '/' . $manifest->apiRoutes;
             if (!is_file($apiRoutesPath)) {
                 $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_NOT_FOUND', 'api_routes',
-                    "API routes file not found: {$apiRoutesPath}",
+                    "API routes file not found: {$manifest->apiRoutes}",
                     $manifest->apiRoutes, 'file_exists');
             }
         }
 
-        if ($manifest->webRoutes !== null) {
+        if ($manifest->webRoutes !== null && $this->isUnsafeRelativePath($manifest->webRoutes)) {
+            $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_INVALID', 'web_routes',
+                'Web routes path contains directory traversal or is not a relative file path',
+                $manifest->webRoutes, 'path_traversal');
+        } elseif ($manifest->webRoutes !== null) {
             $webRoutesPath = $moduleDir . '/' . $manifest->webRoutes;
             if (!is_file($webRoutesPath)) {
                 $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_NOT_FOUND', 'web_routes',
-                    "Web routes file not found: {$webRoutesPath}",
+                    "Web routes file not found: {$manifest->webRoutes}",
                     $manifest->webRoutes, 'file_exists');
             }
-        }        if ($manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
+        }        if ($errors === [] && $manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
+            // SEC (audit 2026-10, finding #3): this used to require_once the
+            // provider even when the manifest already failed validation above —
+            // during installFromFile the archive was already extracted at that
+            // point, so module code ran before the caller learned the manifest
+            // was invalid (and before the cleanup that follows). Provider code
+            // is now loaded only for a manifest that has passed every check.
             $spClass = $manifest->serviceProvider;
             if (!class_exists($spClass)) {
                 $spFile = $moduleDir . '/api/' . str_replace('\\', '/', substr($spClass, strrpos($spClass, '\\') + 1)) . '.php';
@@ -387,6 +407,21 @@ final class PluginManager
         }
 
         return true;
+    }
+
+    /**
+     * SEC: manifest-provided relative paths (api_routes/web_routes) must stay
+     * inside the module directory: no traversal, no absolute path, no NUL or
+     * control bytes, no backslashes.
+     */
+    private function isUnsafeRelativePath(string $path): bool
+    {
+        if ($path === '' || str_contains($path, "\0") || str_contains($path, '..')
+            || str_contains($path, '\\') || preg_match('/[\x00-\x1F\x7F]/', $path)) {
+            return true;
+        }
+
+        return str_starts_with($path, '/');
     }
 
     private function isValidVersion(string $version): bool

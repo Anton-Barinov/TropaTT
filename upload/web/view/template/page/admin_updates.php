@@ -39,6 +39,16 @@ $auJs = [
   'statusPrepared' => $au('status_prepared', 'Архив подготовлен'),
   'statusFailed' => $au('status_failed', 'Есть ошибка'),
   'statusApplied' => $au('status_applied', 'Обновление установлено'),
+  'statusRollingBack' => $au('status_rolling_back', 'Обновление откатывается'),
+  'statusRollbackFailed' => $au('status_rollback_failed', 'Откат не удался'),
+  'stateApplied' => $au('state_applied', 'установлено'),
+  'stateRolledBack' => $au('state_rolled_back', 'откачено'),
+  'stateRollingBack' => $au('state_rolling_back', 'авто-откат'),
+  'stateRollbackFailed' => $au('state_rollback_failed', 'откат не удался'),
+  'recommendRollingBackTitle' => $au('recommend_rolling_back_title', 'Идёт автоматический откат'),
+  'recommendRollingBackText' => $au('recommend_rolling_back_text', 'Обновление не удалось завершить, поэтому CRM восстанавливается из backup этого обновления. Не выключайте вкладку и не запускайте другие операции — статус обновляется автоматически.'),
+  'autoRollbackRunning' => $au('auto_rollback_running', 'Обновление не удалось завершить — CRM автоматически восстанавливается из backup (фаза: {phase}). Не выключайте вкладку…'),
+  'autoRollbackFailed' => $au('auto_rollback_failed', 'Автоматический откат не удался: {message}. CRM остаётся в режиме обслуживания — используйте ручное восстановление из backup.'),
   'statusUnknown' => $au('status_unknown', 'Неизвестно'),
   'recommendCheckTitle' => $au('recommend_check_title', 'Проверьте наличие обновлений'),
   'recommendCheckText' => $au('recommend_check_text', 'Проверка безопасна: она только сравнит вашу CRM с готовыми архивами на сервере обновлений.'),
@@ -886,9 +896,28 @@ $auJs = [
     return planTarget !== '' && applied === planTarget;
   }
 
+  // The updater kernel can report more states than `failed`. Rendering an
+  // unrecognised one as a healthy green badge is actively misleading — during
+  // an automatic rollback the job is neither applied nor safe. Anything that is
+  // not a known-good terminal state therefore never renders as `ok`.
+  function jobStateTone(name) {
+    if (name === 'failed' || name === 'rollback_failed') return 'danger';
+    if (name === 'rolling_back') return 'warn';
+    return name ? 'ok' : 'neutral';
+  }
+
+  function jobStateLabel(name) {
+    if (name === 'rolling_back') return tr('stateRollingBack', 'авто-откат');
+    if (name === 'rollback_failed') return tr('stateRollbackFailed', 'откат не удался');
+    if (name === 'rolled_back') return tr('stateRolledBack', 'откачено');
+    if (name === 'applied') return tr('stateApplied', 'установлено');
+    return name || '';
+  }
+
   function pipelineKind() {
     const latest = state.status && state.status.latest_job;
-    if (latest && latest.state === 'failed') return 'danger';
+    if (latest && (latest.state === 'failed' || latest.state === 'rollback_failed')) return 'danger';
+    if (latest && latest.state === 'rolling_back') return 'warn';
     if (updateCenterUnavailable()) return 'danger';
     if (centerChannelEmpty()) return 'warn';
     if (updateInstalledIsCurrent()) return 'ok';
@@ -899,6 +928,10 @@ $auJs = [
 
   function pipelineText() {
     const latest = state.status && state.status.latest_job;
+    // Keep these above the "center unavailable" branch so the text always
+    // matches the tone pipelineKind() already chose for the same job.
+    if (latest && latest.state === 'rolling_back') return tr('statusRollingBack', 'Обновление откатывается');
+    if (latest && latest.state === 'rollback_failed') return tr('statusRollbackFailed', 'Откат не удался');
     if (updateCenterUnavailable()) return tr('statusCenterDown', 'Сервер обновлений недоступен');
     if (latest && latest.state === 'failed') return tr('statusFailed', 'Есть ошибка');
     if (centerChannelEmpty()) return tr('statusChannelEmpty', 'Сервер обновлений не отдал ни одной сборки');
@@ -912,7 +945,7 @@ $auJs = [
   }
 
   function failedJobBlocksNewUpdate(latest) {
-    if (!latest || latest.state !== 'failed') return false;
+    if (!latest || (latest.state !== 'failed' && latest.state !== 'rollback_failed')) return false;
     if (state.status && state.status.maintenance) return true;
     if (String(latest.backup_id || '').trim() !== '') return true;
     // `can_rollback` may be true on a failed apply even when the failure
@@ -931,12 +964,21 @@ $auJs = [
     const latest = state.status && state.status.latest_job;
     const plan = state.plan;
     const failedBlocksNewUpdate = failedJobBlocksNewUpdate(latest);
-    if (updateCenterUnavailable()) {
+    if (latest && latest.state === 'rolling_back') {
+      // An automatic rollback is in flight: nothing may be started or cleared
+      // until the kernel finishes restoring the previous build. This outranks
+      // "center unavailable" — a dead update center must not offer a refresh
+      // that could race the rollback. The progress notice itself is owned by
+      // renderStatus(), which already renders it from the same job state.
+      $('nextTitle').textContent = tr('recommendRollingBackTitle', 'Идёт автоматический откат');
+      $('nextText').textContent = tr('recommendRollingBackText', 'Обновление не удалось завершить, поэтому CRM восстанавливается из backup этого обновления. Не выключайте вкладку и не запускайте другие операции — статус обновляется автоматически.');
+      setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
+    } else if (updateCenterUnavailable()) {
       const url = updateCenterUrl();
       $('nextTitle').textContent = tr('recommendCenterDownTitle', 'Сервер обновлений недоступен');
       $('nextText').textContent = tr('recommendCenterDownText', 'CRM не может проверить обновления, потому что сервер {url} сейчас не отвечает или еще не настроен.', {url});
       setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
-    } else if (latest && latest.state === 'failed' && failedBlocksNewUpdate) {
+    } else if (latest && (latest.state === 'failed' || latest.state === 'rollback_failed') && failedBlocksNewUpdate) {
       const heldMaintenance = !!(state.status && state.status.maintenance);
       if (heldMaintenance) {
         $('nextTitle').textContent = tr('maintenanceHeldTitle', 'Обновление не завершено: CRM в режиме обслуживания');
@@ -1030,6 +1072,86 @@ $auJs = [
     });
   }
 
+  // An automatic rollback spans several HTTP requests: the kernel answers
+  // {continue:true} whenever its per-request budget runs out, and nothing but
+  // this page drives the next chunk — shared hosting has no daemon or cron.
+  // GET /updates/status is read-only, so polling it would freeze the restore
+  // mid-way with nobody advancing the step machine. Drive it exactly like the
+  // manual rollback button does: keep POSTing the same job through
+  // runUpdaterSteps(), which already loops while the server answers `continue`.
+  const AUTO_ROLLBACK_DRIVE_MS = 400;
+  const AUTO_ROLLBACK_DRIVE_BACKOFF_MS = 4000; // used when a drive attempt made no server-side progress
+  const AUTO_ROLLBACK_DRIVE_MAX = 2000; // same guard bound runUpdaterSteps() uses
+  let autoRollbackDriving = false;
+  let autoRollbackDriveTimer = null;
+  let autoRollbackDrives = 0;
+  let autoRollbackStalls = 0;
+
+  function scheduleAutoRollbackDrive() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || latest.state !== 'rolling_back') {
+      autoRollbackDrives = 0;
+      autoRollbackStalls = 0;
+      return;
+    }
+    if (autoRollbackDriving || autoRollbackDriveTimer) return;
+    if (autoRollbackDrives >= AUTO_ROLLBACK_DRIVE_MAX) return;
+    // A drive that could not reach the updater (unreachable session endpoint on
+    // an old install, held proxy, rate limit) would otherwise hammer it once per
+    // tick. Back off while the server makes no progress, and recover to the fast
+    // cadence as soon as a chunk lands.
+    const delay = autoRollbackStalls > 0 ? AUTO_ROLLBACK_DRIVE_BACKOFF_MS : AUTO_ROLLBACK_DRIVE_MS;
+    autoRollbackDriveTimer = setTimeout(() => {
+      autoRollbackDriveTimer = null;
+      driveAutoRollback();
+    }, delay);
+  }
+
+  async function driveAutoRollback() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || latest.state !== 'rolling_back') return;
+    if (autoRollbackDriving) return;
+    autoRollbackDriving = true;
+    autoRollbackDrives++;
+    const progressBefore = String((latest.progress || {}).phase || '') + '|' + String((latest.progress || {}).cursor ?? '') + '|' + String((latest.progress || {}).done ?? '');
+    try {
+      state.lastJobId = String(latest.job_id || state.lastJobId || '');
+      let token = '';
+      try {
+        token = await updaterSession();
+      } catch (_sessionErr) {
+        // The session endpoint can be unreachable while maintenance is held on
+        // very old installs. Proceed with an empty token: the kernel rejects
+        // it and the status reload below renders the authoritative state.
+      }
+      // One call drives the whole restore across request budgets; runUpdaterSteps
+      // only returns when the kernel stops answering {continue:true}.
+      await runUpdaterSteps('apply', {job_id: state.lastJobId, confirm_apply: true, token});
+    } catch (_) {
+      // AUTO_ROLLBACK_FAILED and transient network errors both land here. The
+      // reload below is what renders the real state and its notice, so this
+      // path must not report success or throw into the page.
+    } finally {
+      autoRollbackDriving = false;
+    }
+    try {
+      await loadStatus();
+    } catch (_) {
+      // renderStatus already ran for whatever state we have; a failed reload
+      // just leaves the current view in place until the next drive tick.
+    }
+    // Compare the real cursor rather than progress.at: the stamp has a
+    // one-second resolution, so two healthy chunks inside the same second must
+    // not be mistaken for a stall.
+    const after = state.status && state.status.latest_job;
+    const progressAfter = after ? String((after.progress || {}).phase || '') + '|' + String((after.progress || {}).cursor ?? '') + '|' + String((after.progress || {}).done ?? '') : '';
+    if (after && after.state === 'rolling_back' && progressAfter === progressBefore) {
+      autoRollbackStalls++;
+    } else {
+      autoRollbackStalls = 0;
+    }
+  }
+
   function renderStatus() {
     const status = state.status || {};
     const version = state.version || {};
@@ -1046,8 +1168,8 @@ $auJs = [
     $('pillCenterText').textContent = centerDown ? tr('centerUnavailableWithUrl', 'Сервер обновлений недоступен: {url}', {url: centerUrl}) : ((centerOk || auditOk) ? tr('centerOk', 'Сервер обновлений доступен') : (auditExists ? tr('centerWarn', 'Сервер обновлений требует проверки') : tr('centerMissing', 'Сервер обновлений еще не проверен')));
     $('pillVersion').className = dotClass(installed.core_build ? 'ok' : 'warn');
     $('pillVersionText').textContent = installed.core_build ? tr('versionKnown', 'Текущая сборка: {build}', {build: installed.core_build}) : tr('versionUnknown', 'Текущая сборка не принята updater');
-    $('pillJob').className = dotClass(latest && latest.state === 'failed' ? 'danger' : latest ? 'ok' : 'warn');
-    $('pillJobText').textContent = latest ? tr('jobKnown', 'Последняя операция: {state}', {state: latest.state}) : tr('jobEmpty', 'Операций еще не было');
+    $('pillJob').className = dotClass(latest ? jobStateTone(latest.state) : 'warn');
+    $('pillJobText').textContent = latest ? tr('jobKnown', 'Последняя операция: {state}', {state: jobStateLabel(latest.state)}) : tr('jobEmpty', 'Операций еще не было');
     $('pillMaintenance').className = dotClass(maintenance ? 'danger' : 'ok');
     $('pillMaintenanceText').textContent = maintenance ? tr('maintenanceOn', 'Maintenance включен') : tr('maintenanceOff', 'CRM работает штатно');
     // Guard 3 (maintenance hold): a failed update that left maintenance ON
@@ -1061,8 +1183,15 @@ $auJs = [
     // the admin should see the mismatch instead of identical-looking build
     // numbers from two different streams.
     const devStreamOnProduction = !isTestStand && String(installed.product || '') === 'tropatt-core-dev';
-    if (maintenance && latest && latest.state === 'failed') {
-      showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
+    if (maintenance && latest && latest.state === 'rolling_back') {
+      // An automatic rollback holds maintenance on purpose; the admin must see
+      // that this is expected and that the page is driving the step machine.
+      const autoPhase = phaseLabels[String((latest.progress || {}).phase || '')] || String((latest.progress || {}).phase || '');
+      showNotice(tr('autoRollbackRunning', 'Обновление не удалось завершить — CRM автоматически восстанавливается из backup (фаза: {phase}). Не выключайте вкладку…', {phase: autoPhase}), 'info');
+    } else if (maintenance && latest && (latest.state === 'failed' || latest.state === 'rollback_failed')) {
+      showNotice(latest.state === 'rollback_failed'
+        ? tr('autoRollbackFailed', 'Автоматический откат не удался: {message}. CRM остаётся в режиме обслуживания — используйте ручное восстановление из backup.', {message: jobErrorMessage(latest)})
+        : tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
     } else if (devStreamOnProduction) {
       showNotice(tr('devStreamOnProduction', 'Эта установка создана из потока разработки ({product}). Домен установки обслуживается из стабильного потока, поэтому следующее обновление переведёт её на стабильный поток.', {product: installed.product}), 'warn');
     } else if (!maintenance || (latest && (latest.state === 'applied' || latest.state === 'rolled_back'))) {
@@ -1079,10 +1208,10 @@ $auJs = [
       ? `SHA ${String(installed.source_sha).slice(0, 12)}...` + (installedProduct !== '' ? ` · ${installedProduct}` : '')
       : tr('kpiInstalledMetaUnknown', 'Локальная сборка еще не принята updater.');
     $('updatesStatusRaw').textContent = pretty(status);
-    setBadge('jobBadge', latest ? (latest.state === 'failed' ? 'danger' : 'ok') : 'neutral', latest ? latest.state : tr('no_job', 'Нет операции'));
+    setBadge('jobBadge', jobStateTone(latest && latest.state), latest ? jobStateLabel(latest.state) : tr('no_job', 'Нет операции'));
     $('jobContent').innerHTML = latest ? list({
       [tr('field_job_id', 'Job ID')]: latest.job_id || 'n/a',
-      [tr('field_state', 'Состояние')]: latest.state || 'n/a',
+      [tr('field_state', 'Состояние')]: jobStateLabel(latest.state) || 'n/a',
       [tr('field_backup', 'Backup')]: latest.backup_id || tr('none', 'нет'),
       [tr('field_files', 'Файлов подготовлено')]: latest.staged_file_count || 0,
       [tr('field_updated', 'Обновлено')]: latest.updated_at || 'n/a',
@@ -1090,6 +1219,7 @@ $auJs = [
       ...(Array.isArray(latest.failed_checks) && latest.failed_checks.length ? {[tr('field_failed_checks', 'Не пройдены проверки')]: latest.failed_checks.join(', ')} : {}),
     }) : `<div class="updates-empty">${esc(tr('history_empty', 'История появится после первой операции.'))}</div>`;
     updateRecommendation();
+    scheduleAutoRollbackDrive();
   }
 
   function renderPlan() {
@@ -1257,8 +1387,11 @@ $auJs = [
   async function loadStatus() {
     // Clear any stale progress notice immediately on page load —
     // if the update already completed, the notice from the previous
-    // session must not persist.
-    clearNotice();
+    // session must not persist. The one exception is the auto-rollback drive:
+    // wiping the notice here would flash it off before renderStatus puts the
+    // same rollback notice straight back on the next tick.
+    const wasRollingBack = !!(state.status && state.status.latest_job && state.status.latest_job.state === 'rolling_back');
+    if (!wasRollingBack) clearNotice();
     const [version, status] = await Promise.all([
       api('/api/index.php?route=api/v1/core/version', {noCache: true}),
       api('/api/index.php?route=api/v1/core/updates/status', {noCache: true})

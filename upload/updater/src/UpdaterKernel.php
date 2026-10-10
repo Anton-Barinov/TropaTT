@@ -564,6 +564,24 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'apply_step');
                 return $this->applyFinalResponse($state, $jobId);
             }
+            // An automatic rollback (auto_rollback.enabled) is continued
+            // through the APPLY endpoint, because that is the driver loop the
+            // client is already polling. Delegating here keeps the rollback on
+            // the proven step machine and the same bounded request budget.
+            if (($stored['state'] ?? '') === 'rolling_back') {
+                $this->verifyTokenIfPresent($input, 'apply_step');
+                return $this->continueAutoRollback($state, $logger, $steps);
+            }
+            // Re-post after an automatic rollback already finished: return the
+            // stored rollback result instead of falling into the fresh-apply
+            // path, which would only answer CONFIRM_APPLY_REQUIRED.
+            if ($progress !== null
+                && ($progress['phase'] ?? '') === 'finalized'
+                && (($stored['state'] ?? '') === 'rolled_back')
+            ) {
+                $this->verifyTokenIfPresent($input, 'apply_step');
+                return $this->rollbackFinalResponse($state, $jobId, (new LocalState($this->storageDir))->read());
+            }
             // A job is an apply continuation only while it is inside the apply
             // flow (or a failed apply being retried). A download or a finished
             // job must start apply() fresh, never resume as a continuation.
@@ -705,12 +723,21 @@ final class UpdaterKernel
             $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
             $phase = (string)($progress['phase'] ?? '');
             $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'migrate', 'finalize'], true);
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            // Auto-rollback: when enabled, a failure that left the
+            // installation mutated is restored from THIS job's own backup
+            // instead of waiting for an operator. The job keeps its lock and
+            // maintenance stays held while the rollback step machine runs; the
+            // one-shot marker makes a failing rollback stop instead of looping.
+            $auto = $this->beginAutoRollback($state, $logger, $phase, $safeMessage);
+            if ($auto !== null) {
+                return $auto;
+            }
             $maintenanceHeld = $maintenanceWasOn || $systemMutated;
             if (!$maintenanceHeld) {
                 (new MaintenanceMode($this->basePath))->disable($jobId);
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
-            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
             $state->write(['state' => 'failed', 'error' => $safeMessage, 'error_code' => 'APPLY_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('APPLY_FAILED', $safeMessage, 500);
@@ -1519,6 +1546,160 @@ final class UpdaterKernel
         }
         $state->write(['progress' => ['phase' => 'finalize', 'cursor' => [], 'done' => 0, 'total' => 1]]);
         return ['next' => true];
+    }
+
+    /**
+     * Start an automatic rollback after a post-mutation apply failure, or
+     * return null when auto_rollback is off or not applicable.
+     *
+     * Returns null (so the ordinary failed-job path runs) for every case where
+     * an automatic restore would be unsafe or pointless: the option is off,
+     * the job already tried, the failing phase never mutated anything, or the
+     * job's own backup is missing or unusable.
+     */
+    private function beginAutoRollback(JobState $state, UpdateLogger $logger, string $phase, string $reason): ?JsonResponse
+    {
+        $config = is_array($this->config['auto_rollback'] ?? null) ? $this->config['auto_rollback'] : [];
+        if (($config['enabled'] ?? false) !== true) {
+            return null;
+        }
+        $stored = $state->readFile('state.json') ?: [];
+        // One attempt per job: a rollback that itself fails must stop here and
+        // wait for the operator instead of trying (and failing) forever.
+        if (($stored['auto_rollback']['attempted'] ?? false) === true) {
+            return null;
+        }
+        // Only failures that left the installed tree or the database mutated.
+        $phases = is_array($config['phases'] ?? null) ? array_values($config['phases']) : [];
+        if (!in_array($phase, $phases, true)) {
+            return null;
+        }
+        $backup = $state->readFile('backup.json') ?: [];
+        $backupId = (string)($backup['backup_id'] ?? '');
+        // backup.json is the assembled backup MANIFEST (backup_id, job_id,
+        // created_at, items) - it carries no `ok` flag. An empty `items` list
+        // is still a valid restore point (files-only candidates, or a package
+        // that adds no files), so only require that a manifest was written.
+        if ($backupId === '' || !is_array($backup['items'] ?? null)) {
+            return null;
+        }
+        // The restore point must actually exist on disk. basename() keeps a
+        // job-file backup_id from escaping the backups directory.
+        if (!is_file($this->storageDir . '/backups/' . basename($backupId) . '/manifest.json')) {
+            return null;
+        }
+        $jobId = (string)($stored['job_id'] ?? '');
+        $logger->error('auto_rollback_started', 'Apply failed; starting automatic rollback', [
+            'phase' => $phase,
+            'backup_id' => $backupId,
+            'error' => $reason,
+        ]);
+        // The lock acquired by this apply is kept: the rollback must not
+        // interleave with another update, and rollbackPhaseFinalize() releases
+        // it on success. Maintenance stays held for the same reason.
+        $state->write([
+            'state' => 'rolling_back',
+            'can_resume' => false,
+            'can_rollback' => false,
+            'error' => null,
+            'error_code' => null,
+            'auto_rollback' => [
+                'attempted' => true,
+                'triggered_at' => gmdate('c'),
+                'phase' => $phase,
+                'backup_id' => $backupId,
+                'reason' => $reason,
+            ],
+            'progress' => ['phase' => 'restore_db', 'cursor' => [], 'done' => 0, 'total' => 0],
+        ]);
+
+        return $this->runAutoRollbackLoop($state, $logger, $this->stepConfig());
+    }
+
+    /**
+     * Continue an automatic rollback that is already in flight. Reached from
+     * the apply() step driver the client is already polling.
+     */
+    private function continueAutoRollback(JobState $state, UpdateLogger $logger, array $steps): JsonResponse
+    {
+        return $this->runAutoRollbackLoop($state, $logger, $steps);
+    }
+
+    /**
+     * Drive the bounded rollback step machine for an automatic rollback.
+     *
+     * Deliberately reuses rollbackPhase() with the manual rollback endpoint so
+     * both paths restore the database before the files and both stay inside
+     * the per-request work budget. The lock and the maintenance flag are
+     * already held by the failed apply and are released by
+     * rollbackPhaseFinalize() on success.
+     */
+    private function runAutoRollbackLoop(JobState $state, UpdateLogger $logger, array $steps): JsonResponse
+    {
+        $stored = $state->readFile('state.json') ?: [];
+        $jobId = (string)($stored['job_id'] ?? '');
+        $backupId = (string)($stored['auto_rollback']['backup_id'] ?? '');
+        if ($backupId === '') {
+            $backupId = (string)(($state->readFile('backup.json') ?: [])['backup_id'] ?? '');
+        }
+        if ($backupId === '') {
+            throw new \RuntimeException('Automatic rollback requires a backup id.');
+        }
+        try {
+            $budget = WorkBudget::forSeconds((float)$steps['max_seconds_per_request']);
+            for ($guard = 0; $guard < 1000; $guard++) {
+                $stored = $state->readFile('state.json') ?: [];
+                $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : null;
+                if (!is_array($progress)) {
+                    throw new \RuntimeException('Automatic rollback progress is missing.');
+                }
+                $phase = (string)($progress['phase'] ?? '');
+                $result = $this->rollbackPhase($phase, $state, $progress, $budget, $steps, $logger, $backupId);
+                if (($result['stop'] ?? false) === true) {
+                    break;
+                }
+                if (($result['finished'] ?? false) === true) {
+                    $logger->info('auto_rollback_complete', 'Automatic rollback completed', ['backup_id' => $backupId]);
+                    return $result['response'];
+                }
+                if (($result['next'] ?? false) === true) {
+                    $stored = $state->readFile('state.json') ?: [];
+                    $newPhase = (string)(is_array($stored['progress'] ?? null) ? ($stored['progress']['phase'] ?? '') : '');
+                    if ($newPhase === $phase) {
+                        throw new \RuntimeException('Automatic rollback phase did not advance: ' . $phase);
+                    }
+                }
+                if ($budget->exhausted()) {
+                    break;
+                }
+            }
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+
+            return JsonResponse::success([
+                'job_id' => $jobId,
+                'continue' => true,
+                'auto_rollback' => true,
+                'progress' => $progress,
+            ]);
+        } catch (\Throwable $e) {
+            $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
+            // A half-restored tree is always worse than a failed update:
+            // maintenance stays held and the operator keeps the manual
+            // rollback button. The lock is released so that retry is possible.
+            (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
+            $state->write([
+                'state' => 'rollback_failed',
+                'error' => $safeMessage,
+                'error_code' => 'AUTO_ROLLBACK_FAILED',
+                'can_rollback' => true,
+                'can_resume' => false,
+                'maintenance_held' => true,
+            ]);
+            $logger->error('auto_rollback_failed', 'Automatic rollback failed', ['error' => $e->getMessage()]);
+
+            return JsonResponse::error('AUTO_ROLLBACK_FAILED', $safeMessage, 500);
+        }
     }
 
     private function rollbackFinalResponse(JobState $state, string $jobId, array $installedCore): JsonResponse

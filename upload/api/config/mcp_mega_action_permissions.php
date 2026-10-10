@@ -53,7 +53,7 @@ return [
         'get_ops_metrics' => ['mode' => 'all', 'permissions' => ['settings.manage']],
         'get_ops_system' => ['mode' => 'all', 'permissions' => ['settings.manage']],
         'get_setting' => ['mode' => 'all', 'permissions' => ['settings.manage']],
-        'install_module' => ['mode' => 'all', 'permissions' => ['settings.manage']],
+        'install_module' => ['mode' => 'all', 'permissions' => ['module.install']],
         'issue_api_client_key' => ['mode' => 'all', 'permissions' => ['api_client.manage']],
         'list_analytics_projects' => ['mode' => 'any', 'permissions' => ['analytics.view', 'task.manage']],
         'list_analytics_users' => ['mode' => 'any', 'permissions' => ['analytics.view', 'task.manage']],

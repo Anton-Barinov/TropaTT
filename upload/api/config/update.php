@@ -149,6 +149,31 @@ return [
         'timeout_sec' => max(1, (int)(getenv('TROPATT_MARKETPLACE_TIMEOUT_SEC') ?: 8)),
         'catalog_cache_ttl' => max(0, (int)(getenv('TROPATT_MARKETPLACE_CACHE_TTL') ?: 300)),
     ],
+    // Automatic rollback when an apply fails AFTER the installation was mutated.
+    //
+    // OFF by default: an automatic rollback restores files and, when a
+    // database snapshot exists, the whole database. That is the right
+    // behaviour for an unattended/headless update, but a site owner may prefer
+    // to inspect a failed update first - the job stays resumable and the
+    // manual rollback button stays available, so nothing is lost by leaving
+    // this disabled.
+    //
+    // When enabled, an apply that fails in one of `phases` restores THIS
+    // job's own backup through the existing bounded rollback step machine, so
+    // the rollback still spans as many requests as a shared host needs and
+    // still restores the database before the files. A pre-mutation failure
+    // (package download, preflight, file backup) never triggers it: there is
+    // nothing to undo and that untouched backup remains the rollback point.
+    //
+    // A job is rolled back automatically at most ONCE. If the automatic
+    // rollback itself fails, the job is left in `rollback_failed` with
+    // maintenance held for the operator; the updater never loops.
+    'auto_rollback' => [
+        'enabled' => false,
+        // Only failures AFTER the installed tree or the database was mutated.
+        // `backup_files` and `backup_db` are deliberately absent.
+        'phases' => ['apply_files', 'health', 'migrate', 'finalize'],
+    ],
     'endpoints' => [
         'health' => '/api/v1/health',
         'product' => '/api/v1/products/{product}',

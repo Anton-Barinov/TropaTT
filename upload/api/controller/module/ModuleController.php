@@ -97,8 +97,17 @@ final class ModuleController
             $pageRoutes = [];
             if ($manifest->webRoutes !== null) {
                 $routeFile = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->webRoutes;
-                if (is_file($routeFile)) {
-                    $moduleRoutes = require $routeFile;
+                // SEC (audit 2026-10, finding #2): web_routes comes from the
+                // manifest and is concatenated into a path that gets require()d
+                // inside api/index.php, bypassing .htaccess protection of
+                // storage_api. "../../../api/.env" used to be required and
+                // printed verbatim (no PHP open tag = inline HTML output).
+                // The resolved file must stay inside the module directory.
+                $moduleDir = realpath($pm->getModulesDir() . '/' . $manifest->name);
+                $realRouteFile = realpath($routeFile);
+                if ($moduleDir !== false && $realRouteFile !== false
+                    && str_starts_with($realRouteFile, $moduleDir . DIRECTORY_SEPARATOR)) {
+                    $moduleRoutes = require $realRouteFile;
                     if (is_array($moduleRoutes)) {
                         foreach (array_keys($moduleRoutes) as $routeKey) {
                             $routeKey = (string)$routeKey;
@@ -552,7 +561,6 @@ final class ModuleController
         if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $input = $this->request()->allInput();
         $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
-        $fileName = trim((string)($input['file_name'] ?? $params['file_name'] ?? 'module.zip'));
         if ($fileData === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_data_required'), 400);
         }
@@ -571,11 +579,15 @@ final class ModuleController
                 return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.invalid_base64'), 400);
             }
 
-            $safeFileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($fileName));
-            if ($safeFileName === '' || $safeFileName === '.' || $safeFileName === '..') {
-                $safeFileName = 'module.zip';
-            }
-            $archivePath = $tmpDir . '/' . $safeFileName;
+            // SEC (audit 2026-10, finding #5): the archive is written before
+            // its HMAC signature is verified, and both content and file name
+            // were attacker controlled. The extension is no longer taken from
+            // the request — the temp file is always module.zip, so an arbitrary
+            // suffix can never land on disk ahead of verification. (The proper
+            // validate-then-write reorder is not possible here: the signature
+            // covers the manifest inside the archive, which requires reading
+            // the archive first.)
+            $archivePath = $tmpDir . '/module.zip';
             file_put_contents($archivePath, $decoded);
             @chmod($archivePath, 0600);
 
@@ -593,8 +605,11 @@ final class ModuleController
             AppLog::error('[ModuleController::unknown] ' . $e->getMessage());
             return JsonResponse::error('INSTALL_FAILED', $this->t('module/messages.install_failed'), 500);
         } finally {
-            foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
-            foreach (glob($tmpDir . '/*') ?: [] as $d) { if (is_dir($d)) { $this->cleanDir($d); } }
+            // SEC: glob('*') does not match dotfiles, so a crafted name could
+            // survive the cleanup and rmdir then failed silently on a
+            // non-empty directory. cleanDir() walks scandir() and removes
+            // everything, including dotfiles and subdirectories.
+            $this->cleanDir($tmpDir);
             @rmdir($tmpDir);
         }
     }
