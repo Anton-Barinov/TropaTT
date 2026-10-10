@@ -607,7 +607,16 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'apply');
                 (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
                 (new MaintenanceMode($this->basePath))->enable($jobId);
-                $state->write(['state' => 'applying', 'can_resume' => false, 'can_rollback' => false]);
+                // The whole apply is a resumable step machine: the file, DB
+                // backup, apply and migration phases all persist their cursor
+                // (apply_files even trims its journal back to the committed
+                // cursor), so a browser that closes, a dropped connection or a
+                // reload during the apply must be able to continue the SAME
+                // job. Marking it can_resume=false made an interrupted apply
+                // look finished-and-dead: maintenance stayed held and the page
+                // offered a fresh preflight instead of a continuation, which
+                // then collided with the lock the interrupted job still held.
+                $state->write(['state' => 'applying', 'can_resume' => true, 'can_rollback' => false]);
                 $logger->info('maintenance_enabled', 'Maintenance mode enabled');
 
                 $applier = new FileApplier($this->basePath, $this->storageDir, $this->effectiveProtectedPaths($manifest));

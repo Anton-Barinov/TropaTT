@@ -50,6 +50,11 @@ $auJs = [
   'recommendPreflightText' => $au('recommend_preflight_text', 'Теперь можно подготовить архив во временной папке. Рабочие файлы CRM еще не меняются.'),
   'recommendReadyTitle' => $au('recommend_ready_title', 'Можно устанавливать'),
   'recommendReadyText' => $au('recommend_ready_text', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.'),
+  'recommendResumeTitle' => $au('recommend_resume_title', 'Обновление было прервано'),
+  'recommendResumeText' => $au('recommend_resume_text', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.'),
+  'primaryResume' => $au('btn_resume', 'Продолжить обновление'),
+  'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
+  'preflightForbidden' => $au('preflight_forbidden', 'запрещённые пути в пакете: {list}'),
   'recommendFailedTitle' => $au('recommend_failed_title', 'Последняя операция завершилась ошибкой'),
   'recommendFailedText' => $au('recommend_failed_text', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.'),
   'primaryCheck' => $au('btn_check', 'Проверить обновления'),
@@ -780,6 +785,20 @@ $auJs = [
     return true;
   }
 
+  // An apply that was interrupted (tab closed, reload, dropped connection,
+  // proxy timeout) leaves the job in `applying`/`backup_created` with a
+  // non-final phase. Every apply phase keeps a cursor, so the same job can be
+  // continued with the same job_id; without this the page started a fresh
+  // preflight, which collided with the lock the interrupted job still held and
+  // left maintenance mode on.
+  function latestJobInterrupted() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || !latest.job_id) return false;
+    if (latest.state !== 'applying' && latest.state !== 'backup_created') return false;
+    const phase = String((latest.progress || {}).phase || '');
+    return phase !== '' && phase !== 'finalized';
+  }
+
   function updateAvailable() {
     return !!(state.plan && state.plan.update_available === true);
   }
@@ -894,6 +913,13 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendLatestTitle', 'CRM уже актуальна');
       $('nextText').textContent = tr('recommendLatestText', 'Устанавливать ничего не нужно. Архив обновления не требуется, рисков для текущей версии нет.');
       setPrimary('check', tr('primaryCheckAgain', 'Проверить еще раз'));
+    } else if (latestJobInterrupted()) {
+      // The apply stopped mid-way (browser closed, connection dropped). The
+      // job still owns the lock and maintenance mode, and every phase keeps a
+      // cursor, so offer to continue it instead of starting over.
+      $('nextTitle').textContent = tr('recommendResumeTitle', 'Обновление было прервано');
+      $('nextText').textContent = tr('recommendResumeText', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.');
+      setPrimary('install', tr('primaryResume', 'Продолжить обновление'));
     } else if (state.download || latestJobIsStaged()) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
@@ -1226,6 +1252,28 @@ $auJs = [
     state.preflight = data.preflight || data;
     state.lastJobId = extractJobId(result) || state.lastJobId;
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
+    // A failed safety check used to reach the admin as the single sentence
+    // "The security check failed", with the actual verdict (which check, and
+    // which package paths) stored only in the job's preflight.json. Surface it
+    // inline: when the update *package* is at fault the checks are green and
+    // manifest_report.forbidden_paths names the offending paths, which tells
+    // the admin (and support) immediately that the update center is to blame.
+    if (state.preflight && state.preflight.ok === false) {
+      const failedChecks = Object.entries(state.preflight.checks || {})
+        .filter(([, value]) => value === false).map(([name]) => name);
+      const forbidden = ((state.preflight.manifest_report || {}).forbidden_paths || [])
+        .slice(0, 5).map((path) => String(path));
+      const details = [];
+      if (failedChecks.length) details.push(tr('preflightFailedChecks', 'не пройдены проверки: {list}', {list: failedChecks.join(', ')}));
+      if (forbidden.length) details.push(tr('preflightForbidden', 'запрещённые пути в пакете: {list}', {list: forbidden.join(', ')}));
+      if (state.preflight.error) details.push(String(state.preflight.error).slice(0, 240));
+      showNotice(
+        tr('errPreflight', 'Не удалось выполнить безопасную проверку.')
+        + (details.length ? ' — ' + details.join('; ') : '')
+        + (state.lastJobId ? ' (' + tr('field_job_id', 'Job ID') + ': ' + state.lastJobId + ')' : ''),
+        'danger'
+      );
+    }
     renderPreflight();
     await loadStatus();
   }
@@ -1415,6 +1463,16 @@ $auJs = [
     // instead of re-running preflight/download (which on tricky hostings can
     // fail again and leave the update stuck at 'staging_ready').
     if (latestJobIsStaged()) {
+      state.lastJobId = String(state.status.latest_job.job_id || '');
+      await applyUpdate();
+      return;
+    }
+    // An apply that was interrupted mid-way (closed tab, reload, dropped
+    // connection) is continued, not restarted: the step machine keeps a cursor
+    // per phase and the job still owns the update lock and maintenance mode.
+    // Starting a fresh preflight here used to collide with that lock and leave
+    // the installation stranded in maintenance mode.
+    if (latestJobInterrupted()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
       await applyUpdate();
       return;
