@@ -59,6 +59,8 @@ $auJs = [
   'autoRecoverRunning' => $au('auto_recover_running', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'),
   'autoRecoverDone' => $au('auto_recover_done', 'Прерванное обновление очищено автоматически; обновление запущено заново.'),
   'recoverFailed' => $au('recover_failed', 'Не удалось очистить прерванное обновление.'),
+  'progressTables' => $au('progress_tables', 'таблиц {done} из {total}'),
+  'progressRows' => $au('progress_rows', 'строк {done}'),
   'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
   'preflightForbidden' => $au('preflight_forbidden', 'запрещённые пути в пакете: {list}'),
   'recommendFailedTitle' => $au('recommend_failed_title', 'Последняя операция завершилась ошибкой'),
@@ -1326,7 +1328,17 @@ $auJs = [
     const label = phaseLabels[phase] || phase || tr('stepWorking', 'выполняется...');
     const done = Number(progress && progress.done || 0);
     const total = Number(progress && progress.total || 0);
-    if (phase === 'backup_db' && done > 0 && !total) return `${label}: ${done}`;
+    // The database dump resumes table by table: report how many tables are done
+    // first, because "N of N" there would be the running row count, not a limit.
+    if (phase === 'backup_db') {
+      const tablesTotal = Number(progress && progress.tables_total || 0);
+      const tablesDone = Number(progress && progress.tables_done || 0);
+      if (tablesTotal > 0) {
+        return `${label} — ${tr('progressTables', 'таблиц {done} из {total}', {done: tablesDone, total: tablesTotal})}`;
+      }
+      if (done > 0) return `${label}: ${tr('progressRows', 'строк {done}', {done})}`;
+      return label;
+    }
     if (total > 0) return `${label} — ${tr('progressStep', 'шаг {done} из {total}', {done, total})}`;
     return label;
   }
@@ -1344,7 +1356,16 @@ $auJs = [
     if (phaseLabel) noticeParts.push(phaseLabel);
     const done = Number(progress && progress.done || 0);
     const total = Number(progress && progress.total || 0);
-    if (total > 0) noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
+    // Same rule as progressText(): during the database dump only the running
+    // row count is known, so never present it as "N of N".
+    if (phase === 'backup_db') {
+      const tablesTotal = Number(progress && progress.tables_total || 0);
+      const tablesDone = Number(progress && progress.tables_done || 0);
+      if (tablesTotal > 0) noticeParts.push(tr('progressTables', 'таблиц {done} из {total}', {done: tablesDone, total: tablesTotal}));
+      else if (done > 0) noticeParts.push(tr('progressRows', 'строк {done}', {done}));
+    } else if (total > 0) {
+      noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
+    }
     showNotice(noticeParts.join(' — '), 'info');
     if ($('applyContent')) {
       $('applyContent').innerHTML = `<div class="updates-empty">${esc(text)}…</div>`;

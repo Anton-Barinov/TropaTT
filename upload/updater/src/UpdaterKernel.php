@@ -1035,12 +1035,25 @@ final class UpdaterKernel
         $backupDir = $this->storageDir . '/backups/' . basename($backupId);
         $report = $manager->backup($backupDir, $jobId, $cursor, $budget, (int)$steps['max_rows_per_request']);
         if (($report['done'] ?? false) !== true) {
-            $state->write(['progress' => [
+            // The DB dump resumes per table, so only the completed-row count is
+            // known while it runs. Do NOT mirror it into `total`: the admin page
+            // reads a present `total` as a known step count and would print
+            // "step 150000 of 150000" at every step (150000 being the running
+            // total, not a limit). `total` stays absent until the dump finishes.
+            $progress = [
                 'phase' => 'backup_db',
                 'cursor' => $report['cursor'] ?? [],
                 'done' => (int)($report['rows_done'] ?? 0),
-                'total' => (int)($report['rows_done'] ?? 0),
-            ]]);
+            ];
+            // When the manager can cheaply report the exact total, show real
+            // progress instead: tables already dumped out of all tables.
+            $tablesTotal = (int)($report['tables_total'] ?? 0);
+            $tablesDone = (int)($report['tables_done'] ?? 0);
+            if ($tablesTotal > 0) {
+                $progress['tables_done'] = $tablesDone;
+                $progress['tables_total'] = $tablesTotal;
+            }
+            $state->write(['progress' => $progress]);
             return ['stop' => true];
         }
         $state->writeFile('db_backup.json', $report);
