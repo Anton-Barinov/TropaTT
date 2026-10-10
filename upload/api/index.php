@@ -106,46 +106,15 @@ $maintenanceFlag = dirname(__DIR__) . '/storage_api/maintenance.flag';
 if (is_file($maintenanceFlag)) {
     // Guard 3 (maintenance hold): keep the update-center API reachable during
     // held maintenance so the admin-updates page can roll back or retry a
-    // failed update. These routes are still auth + RBAC protected.
+    // failed update. These routes are still auth + RBAC protected. The list of
+    // reachable routes lives in one shared policy (MaintenancePolicy.php) so
+    // this entry point and web/index.php can never drift again.
+    require_once __DIR__ . '/system/library/support/MaintenancePolicy.php';
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
     $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
     $strictDeploymentMaintenance = is_array($maintenanceState)
         && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
-    $maintenanceMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-    if ($strictDeploymentMaintenance) {
-        // A release snapshot spans multiple bounded steps. Permit only
-        // read-only recovery/status pages; login, telemetry, notifications,
-        // updater preparation and all ordinary API routes remain closed so
-        // they cannot write application data between snapshot chunks.
-        $maintenanceRecoveryAllowed = ($maintenanceMethod === 'GET'
-            && in_array($maintenanceRoute, [
-                'api/v1/auth/me',
-                'api/v1/core/version',
-                'api/v1/core/updates/status',
-                'api/v1/core/updates/changes',
-                'api/v1/core/updates/history',
-            ], true))
-            || ($maintenanceMethod === 'GET'
-                && preg_match('#\\Aapi/v1/core/updates/log/[A-Za-z0-9._-]+\\z#D', $maintenanceRoute) === 1);
-    } else {
-        $maintenanceRecoveryAllowed = str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-            || $maintenanceRoute === 'api/v1/auth/me'
-            // Allow login during held updater maintenance, but never during a
-            // release snapshot where it could write application data.
-            || $maintenanceRoute === 'api/v1/auth/login'
-            || $maintenanceRoute === 'api/v1/core/version'
-            // Preserve existing updater maintenance polling behavior.
-            || $maintenanceRoute === 'api/v1/notifications/counters'
-            || str_starts_with($maintenanceRoute, 'api/v1/notifications')
-            // The navigation badge poller keeps calling the chat unread
-            // counter alongside the notification counters. It is a
-            // self-scoped read (chat.use, caller-only), so it must stay
-            // reachable during held maintenance; otherwise the badge poller
-            // floods the console with 503s while an update is being applied.
-            || $maintenanceRoute === 'api/v1/chats/unread-count'
-            || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
-            || $maintenanceRoute === 'api/v1/modules';
-    }
+    $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: application/json; charset=utf-8');

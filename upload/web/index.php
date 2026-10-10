@@ -110,25 +110,14 @@ if (is_file($maintenanceFlag)) {
     // leaves maintenance ON so the CRM is not served in a broken state. The
     // admin-updates page and its core/updates API must stay reachable so the
     // admin can roll back or retry. Everything else stays behind maintenance.
+    // The list of reachable routes is shared with api/index.php through
+    // MaintenancePolicy.php so the two entry points cannot drift.
+    require_once dirname(__DIR__) . '/api/system/library/support/MaintenancePolicy.php';
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
     $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
     $strictDeploymentMaintenance = is_array($maintenanceState)
         && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
-    if ($strictDeploymentMaintenance) {
-        $maintenanceRecoveryAllowed = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
-            && in_array($maintenanceRoute, ['admin-updates', 'login'], true);
-    } else {
-        // 'login' stays reachable during ordinary updater maintenance so an
-        // admin can recover after an interrupted update.
-        $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
-            || $maintenanceRoute === 'login'
-            || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-            || $maintenanceRoute === 'api/v1/notifications/counters'
-            || str_starts_with($maintenanceRoute, 'api/v1/notifications')
-            || $maintenanceRoute === 'api/v1/chats/unread-count'
-            || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
-            || $maintenanceRoute === 'api/v1/modules';
-    }
+    $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');

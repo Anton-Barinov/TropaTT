@@ -19,6 +19,14 @@ final class DurableHostReleaseLease
     private const TTL_MIN = 30;
     private const TTL_MAX = 900;
 
+    /**
+     * How long after a lease expires the manual (admin-page) path refuses to
+     * take over. Comfortably above TTL_MAX so a coordinator that renews on its
+     * normal cadence is never overridden, while a dead one stops blocking the
+     * installation after about an hour.
+     */
+    private const MANUAL_TAKEOVER_GRACE = 3600;
+
     /** @var callable():int */
     private $clock;
     private string $directory;
@@ -139,10 +147,23 @@ final class DurableHostReleaseLease
     }
 
     /**
-     * Fence a session-authenticated updater request against release coordinators.
-     * The same permanent inode stays locked through the bounded updater action.
-     * An expired lease is not equivalent to no lease: only an explicit, completed
-     * release (or a never-created record) permits the manual path.
+     * Fence a session-authenticated updater request (the CRM admin page)
+     * against release coordinators, and keep manual updates possible when the
+     * coordinator that owned the lease is gone.
+     *
+     * The permanent inode stays locked through the bounded action. A live lease
+     * still refuses the manual path, and a record that expired moments ago is
+     * left alone for a safety window (a coordinator may be between two
+     * requests). Past that window the record can only belong to a coordinator
+     * that died without releasing: a crashed bootstrap, a killed process, a
+     * lost hosting account.
+     *
+     * Refusing the manual path forever in that case left a shared-hosting
+     * installation unable to update without a server administrator deleting
+     * files by hand. Instead the manual takeover is permitted, the lease is
+     * marked superseded, and the fact is recorded in the lease JSON so the
+     * event stays auditable. The lock inode is still held for the whole action,
+     * so a late coordinator cannot interleave with it.
      */
     public function withNoLease(array $input, callable $work): mixed
     {
@@ -153,11 +174,23 @@ final class DurableHostReleaseLease
                 if ($record['expires_at'] > $now) {
                     throw new \RuntimeException('HOST_RELEASE_BUSY');
                 }
-                if (($record['takeover_pending'] ?? false) === true
-                    || !is_int($record['released_at'] ?? null)
-                    || $record['released_at'] < $record['expires_at']) {
+                if ($now < $record['expires_at'] + self::MANUAL_TAKEOVER_GRACE) {
+                    // Too recent to assume the owner is gone: a two-request
+                    // release may still be running. Ask for reconciliation.
                     throw new \RuntimeException('HOST_LEASE_RECONCILIATION_REQUIRED');
                 }
+                // Retain the audit trail but hand the installation back to the
+                // manual (session-authenticated) path.
+                $record['takeover_pending'] = false;
+                $record['continuation_mode'] = 'manually_superseded';
+                $record['manually_superseded_at'] = $now;
+                $record['manually_superseded_previous'] = [
+                    'run_id' => $record['run_id'] ?? null,
+                    'generation' => $record['generation'] ?? null,
+                    'expires_at' => $record['expires_at'] ?? null,
+                ];
+                $record['released_at'] = $now;
+                $this->writeRecord($handle, $record);
             }
             return $work($input);
         });

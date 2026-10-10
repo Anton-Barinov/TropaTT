@@ -831,6 +831,21 @@ $auJs = [
     return latest.state === 'failed' && (latest.can_rollback === true || latest.maintenance_held === true);
   }
 
+  // True when the last write of the job's progress is old enough that no
+  // browser is driving it any more. Shared hosting has no daemon or cron to
+  // finish the step machine, so an abandoned apply looks exactly like this:
+  // the phase timestamp stops moving. Completing one more step here would just
+  // repeat the interruption that started it.
+  function latestJobStalled(thresholdMs = 5 * 60 * 1000) {
+    const latest = state.status && state.status.latest_job;
+    if (!latest) return false;
+    const at = (latest.progress || {}).at;
+    if (!at) return false;
+    const written = Date.parse(at);
+    if (!Number.isFinite(written)) return false;
+    return (Date.now() - written) >= thresholdMs;
+  }
+
   function updateAvailable() {
     return !!(state.plan && state.plan.update_available === true);
   }
@@ -1718,8 +1733,12 @@ $auJs = [
     if (jobId === '' || autoResumeAttempted === jobId) return false;
     autoResumeAttempted = jobId;
     const phase = phaseLabels[String((latest.progress || {}).phase || '')] || String((latest.progress || {}).phase || '');
+    // A stall means nothing is driving the step machine any more: skip the
+    // doomed continuation and go straight to recovery, so the installation is
+    // handed back within one page load instead of after another failed resume.
+    const stalled = latestJobStalled();
     showNotice(tr('autoResumeRunning', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…', {phase}), 'info');
-    if (latestJobInterrupted()) {
+    if (latestJobInterrupted() && !stalled) {
       try {
         state.lastJobId = jobId;
         await applyUpdate();
