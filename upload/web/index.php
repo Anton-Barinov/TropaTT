@@ -113,16 +113,21 @@ if (is_file($maintenanceFlag)) {
     // The list of reachable routes is shared with api/index.php through
     // MaintenancePolicy.php so the two entry points cannot drift.
     require_once dirname(__DIR__) . '/api/system/library/support/MaintenancePolicy.php';
-    $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
-    $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
-    $strictDeploymentMaintenance = is_array($maintenanceState)
-        && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
-    $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
-    if (!$maintenanceRecoveryAllowed) {
-        http_response_code(503);
-        header('Content-Type: text/html; charset=utf-8');
-        echo \Web\System\I18n\EarlyResponse::maintenancePage($baseDir);
-        exit;
+    if (function_exists('tropatt_maintenance_auto_recover_if_abandoned')) {
+        tropatt_maintenance_auto_recover_if_abandoned(dirname(__DIR__));
+    }
+    if (is_file($maintenanceFlag)) {
+        $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
+        $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
+        $strictDeploymentMaintenance = is_array($maintenanceState)
+            && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
+        $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
+        if (!$maintenanceRecoveryAllowed) {
+            http_response_code(503);
+            header('Content-Type: text/html; charset=utf-8');
+            echo \Web\System\I18n\EarlyResponse::maintenancePage($baseDir);
+            exit;
+        }
     }
 }
 

@@ -45,12 +45,19 @@ final class MaintenanceMode
     }
 
     /** Caller holds the installation EX mutex for the whole state transition. */
-    public function disable(string $jobId): void
+    public function disable(string $jobId, bool $force = false): void
     {
         $this->validateJob($jobId);
         $flag = $this->flagPath();
         if (file_exists($flag)) {
-            $this->assertOwner($flag, $jobId);
+            if (!$force) {
+                $this->assertOwner($flag, $jobId);
+            } else {
+                clearstatcache(true, $flag);
+                if (is_link($flag)) {
+                    throw new \RuntimeException('Unsafe maintenance symlink.');
+                }
+            }
             if (!unlink($flag)) {
                 throw new \RuntimeException('Maintenance flag removal failed.');
             }

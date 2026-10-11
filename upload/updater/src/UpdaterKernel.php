@@ -179,6 +179,13 @@ final class UpdaterKernel
 
     private function status(): JsonResponse
     {
+        $policyPath = $this->basePath . '/api/system/library/support/MaintenancePolicy.php';
+        if (is_file($policyPath)) {
+            require_once $policyPath;
+            if (function_exists('tropatt_maintenance_auto_recover_if_abandoned')) {
+                tropatt_maintenance_auto_recover_if_abandoned($this->basePath);
+            }
+        }
         $local = new LocalState($this->storageDir);
         return JsonResponse::success([
             'ok' => true,
@@ -1834,9 +1841,23 @@ final class UpdaterKernel
         // A job this very action already closed (RECOVERED_INTERRUPTED) is
         // reported the same way, so a repeated call is idempotent.
         $stateName = (string)($stored['state'] ?? '');
-        $alreadyRecovered = $stateName === 'failed'
-            && (string)($stored['error_code'] ?? '') === 'RECOVERED_INTERRUPTED';
-        if ($alreadyRecovered || in_array($stateName, ['applied', 'rolled_back', 'failed'], true)) {
+        $errorCode = (string)($stored['error_code'] ?? '');
+        $maintenanceHeld = (bool)($stored['maintenance_held'] ?? false);
+        $flagExists = is_file($this->basePath . '/storage_api/maintenance.flag');
+        $lockMgr = new LockManager($this->storageDir, (int)($this->stepConfig()['lock_ttl_seconds'] ?? 600));
+        $lockHeld = $lockMgr->ownerJobId() === $jobId || ($lockMgr->isLocked() && !$lockMgr->isStale());
+
+        $alreadyRecovered = $stateName === 'failed' && $errorCode === 'RECOVERED_INTERRUPTED';
+        // A job that has already been cleanly recovered (and neither maintenance nor lock is held) is terminal.
+        if ($alreadyRecovered && !$maintenanceHeld && !$flagExists && !$lockHeld) {
+            return JsonResponse::success([
+                'recovered' => false,
+                'reason' => 'job_already_terminal',
+                'state' => $stateName,
+            ]);
+        }
+        // A job that reached applied or rolled_back cleanly (no leftover maintenance or lock) is terminal.
+        if (in_array($stateName, ['applied', 'rolled_back'], true) && !$maintenanceHeld && !$flagExists && !$lockHeld) {
             return JsonResponse::success([
                 'recovered' => false,
                 'reason' => 'job_already_terminal',
@@ -1844,33 +1865,51 @@ final class UpdaterKernel
             ]);
         }
 
-        (new LockManager($this->storageDir, (int)($this->stepConfig()['lock_ttl_seconds'] ?? 600)))->release($jobId);
+        $lockMgr->release($jobId);
+        if ($lockMgr->ownerJobId() === $jobId || $lockMgr->isStale()) {
+            $lockMgr->forceRelease();
+        }
 
         $maintenanceCleared = false;
-        $maintenance = new MaintenanceMode($this->basePath);
-        if (is_file($this->basePath . '/storage_api/maintenance.flag')) {
+        $flagPath = $this->basePath . '/storage_api/maintenance.flag';
+        if (is_file($flagPath)) {
+            $maintenance = new MaintenanceMode($this->basePath);
             try {
-                // disable() verifies the flag belongs to this job before
-                // unlinking it; a flag owned by another operation stays.
+                // disable() verifies the flag belongs to this job before unlinking it;
+                // a flag owned by another operation stays unless it is a core_update_apply flag.
                 $maintenance->disable($jobId);
                 $maintenanceCleared = true;
             } catch (\Throwable) {
-                // Another operation owns maintenance mode; leave it alone.
+                // Fallback: if the flag belongs to core_update_apply, this job, or is corrupted
+                $flagRaw = @file_get_contents($flagPath);
+                $flagData = is_string($flagRaw) ? json_decode($flagRaw, true) : null;
+                $reason = is_array($flagData) ? ($flagData['reason'] ?? '') : '';
+                $ownerJob = is_array($flagData) ? ($flagData['job_id'] ?? '') : '';
+                if (!is_array($flagData) || $reason === 'core_update_apply' || $ownerJob === $jobId || $ownerJob === '') {
+                    try {
+                        $maintenance->disable($jobId, true);
+                        $maintenanceCleared = true;
+                    } catch (\Throwable) {
+                        if (@unlink($flagPath)) {
+                            $maintenanceCleared = true;
+                        }
+                    }
+                }
             }
         }
 
-        $previousState = (string)($stored['state'] ?? '');
+        $previousState = $stateName;
         $state->write([
             'state' => 'failed',
             'can_resume' => false,
             'can_rollback' => (bool)($stored['can_rollback'] ?? false),
-            'error' => 'Recovered from an interrupted update.',
+            'error' => 'Recovered from an interrupted or failed update.',
             'error_code' => 'RECOVERED_INTERRUPTED',
             'maintenance_held' => false,
             'recovered_at' => gmdate('c'),
         ]);
         (new UpdateLogger($this->storageDir, $jobId))
-            ->error('recovered', 'Interrupted update closed by the self-healing path', [
+            ->error('recovered', 'Interrupted or failed update closed by the self-healing path', [
                 'previous_state' => $previousState,
                 'maintenance_cleared' => $maintenanceCleared,
             ]);
