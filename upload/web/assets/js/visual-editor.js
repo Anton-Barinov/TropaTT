@@ -157,7 +157,8 @@ window.CRM.VisualEditor = (function () {
   // unwrapped: their children are untrusted code, not readable text.
   var DANGEROUS_TAGS = {
     SCRIPT: true, STYLE: true, IFRAME: true, OBJECT: true, EMBED: true,
-    FORM: true, SVG: true, MATH: true, TEMPLATE: true, NOSCRIPT: true
+    FORM: true, SVG: true, MATH: true, TEMPLATE: true, NOSCRIPT: true,
+    APPLET: true, FRAME: true, FRAMESET: true, BASE: true, META: true, LINK: true
   };
 
   var BLOCK_TAGS = {
@@ -171,169 +172,214 @@ window.CRM.VisualEditor = (function () {
     var template = document.createElement('template');
     template.innerHTML = String(rawHtml);
 
-    function walk(node) {
-      var children = Array.prototype.slice.call(node.childNodes || []);
-      children.forEach(function (child) {
-        if (child.nodeType === Node.ELEMENT_NODE) {
-          var tag = child.tagName.toUpperCase();
-          if (DANGEROUS_TAGS[tag]) {
-            // Remove the whole subtree: script/style/iframe/svg content is
-            // untrusted code, not readable text to keep.
-            node.removeChild(child);
+    function sanitizeAttributes(el, tag) {
+      var attrs = Array.prototype.slice.call(el.attributes || []);
+      attrs.forEach(function (attr) {
+        var name = String(attr.name || '').toLowerCase();
+        if (name.indexOf('on') === 0) {
+          el.removeAttribute(attr.name);
+          return;
+        }
+
+        // Never allow foreign contenteditable attributes inside the editor.
+        if (name === 'contenteditable') {
+          var isMention = tag === 'SPAN' && (el.getAttribute('class') || '').indexOf('crm-ve-mention') !== -1;
+          var isFigcaption = tag === 'FIGCAPTION';
+          if (!isMention && !isFigcaption) {
+            el.removeAttribute(attr.name);
             return;
-          }
-          if (!ALLOWED_TAGS[tag]) {
-            var parent = child.parentNode;
-            var moved = [];
-            while (child.firstChild) {
-              var lifted = child.firstChild;
-              parent.insertBefore(lifted, child);
-              moved.push(lifted);
-            }
-            parent.removeChild(child);
-            // The walk iterates a pre-unwrap snapshot, so children moved up
-            // here are never visited again — check each one directly so a
-            // nested <script> (e.g. inside <div>) cannot survive.
-            moved.forEach(function (n) {
-              if (n.nodeType === Node.ELEMENT_NODE && DANGEROUS_TAGS[n.tagName.toUpperCase()]) {
-                parent.removeChild(n);
-              } else {
-                walk(n);
-              }
-            });
-            return;
-          }
-
-          // Unwrap spans that contain only whitespace (paste artifacts)
-          if (tag === 'SPAN' && (child.textContent || '').trim() === '') {
-            var spanParent = child.parentNode;
-            while (child.firstChild) {
-              spanParent.insertBefore(child.firstChild, child);
-            }
-            spanParent.removeChild(child);
-            return;
-          }
-
-          var attrs = Array.prototype.slice.call(child.attributes || []);
-          attrs.forEach(function (attr) {
-            var name = String(attr.name || '').toLowerCase();
-            if (name.indexOf('on') === 0) {
-              child.removeAttribute(attr.name);
-              return;
-            }
-            if (tag === 'A') {
-              if (name !== 'href' && name !== 'title' && name !== 'target' && name !== 'rel') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'IMG') {
-              if (name !== 'src' && name !== 'alt') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'FIGURE') {
-              if (name !== 'data-align' && name !== 'data-width' && name !== 'style') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'FIGCAPTION') {
-              if (name !== 'contenteditable') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'DETAILS' || tag === 'SUMMARY') {
-              if (name !== 'class') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'INPUT') {
-              if (name !== 'type' && name !== 'disabled' && name !== 'data-checked') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'TABLE' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR' || tag === 'TD' || tag === 'TH' || tag === 'COLGROUP' || tag === 'COL' || tag === 'CAPTION') {
-              // Table elements: allow class and colspan/rowspan
-              if (name !== 'class' && name !== 'colspan' && name !== 'rowspan') {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'SPAN') {
-              // Allow mention spans and general formatting
-              var cls = child.getAttribute('class') || '';
-              if (cls.indexOf('crm-ve-mention') !== -1) {
-                // Mention: allow data-mention-type, data-mention-id, contenteditable, class
-                if (name !== 'class' && name !== 'data-mention-type' && name !== 'data-mention-id' && name !== 'contenteditable') {
-                  child.removeAttribute(attr.name);
-                }
-              } else {
-                child.removeAttribute(attr.name);
-              }
-            } else if (tag === 'HR') {
-              // HR: allow style for custom styling
-              if (name !== 'style' && name !== 'class') {
-                child.removeAttribute(attr.name);
-              }
-            } else {
-              child.removeAttribute(attr.name);
-            }
-          });
-
-          if (tag === 'FIGURE' && child.hasAttribute('style')) {
-            var styleVal = child.getAttribute('style') || '';
-            var safeStyles = [];
-            styleVal.split(';').forEach(function (s) {
-              var parts = s.split(':');
-              var prop = String(parts.shift() || '').trim().toLowerCase();
-              var val = String(parts.join(':') || '').trim();
-              var match = val.match(/^(\d+(?:\.\d+)?)%$/);
-              if ((prop === 'width' || prop === '--crm-ve-image-width') && match) {
-                var pct = clamp(parseFloat(match[1]), 10, 100);
-                safeStyles.push(prop + ':' + pct + '%');
-              }
-            });
-            if (safeStyles.length) {
-              child.setAttribute('style', safeStyles.join(';'));
-            } else {
-              child.removeAttribute('style');
-            }
-          }
-
-          if (tag === 'A') {
-            var safeHref = sanitizeLinkHref(child.getAttribute('href'));
-            if (!safeHref) {
-              child.removeAttribute('href');
-            } else {
-              child.setAttribute('href', safeHref);
-              var isExternal = /^https?:\/\//i.test(safeHref);
-              if (isExternal) {
-                child.setAttribute('target', '_blank');
-                child.setAttribute('rel', 'noopener noreferrer');
-              } else {
-                child.removeAttribute('target');
-                child.removeAttribute('rel');
-              }
-            }
-          }
-
-          if (tag === 'IMG') {
-            var src = child.getAttribute('src') || '';
-            if (!src || src.indexOf('data:') === 0 || /^blob:/i.test(src)) {
-              node.removeChild(child);
-              return;
-            }
-          }
-
-          walk(child);
-
-        } else if (child.nodeType === Node.COMMENT_NODE) {
-          node.removeChild(child);
-        } else if (child.nodeType === Node.TEXT_NODE) {
-          if (child.textContent === '\u200B' || child.textContent === '\uFEFF') {
-            node.removeChild(child);
           }
         }
+
+        if (tag === 'A') {
+          if (name !== 'href' && name !== 'title' && name !== 'target' && name !== 'rel') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'IMG') {
+          if (name !== 'src' && name !== 'alt' && name !== 'title') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'FIGURE') {
+          if (name !== 'data-align' && name !== 'data-width' && name !== 'style') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'FIGCAPTION') {
+          if (name !== 'contenteditable') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'DETAILS' || tag === 'SUMMARY') {
+          if (name !== 'class') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'INPUT') {
+          if (name !== 'type' && name !== 'disabled' && name !== 'data-checked') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'TABLE' || tag === 'THEAD' || tag === 'TBODY' || tag === 'TR' || tag === 'TD' || tag === 'TH' || tag === 'COLGROUP' || tag === 'COL' || tag === 'CAPTION') {
+          // Table elements: allow class and colspan/rowspan
+          if (name !== 'class' && name !== 'colspan' && name !== 'rowspan') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'OL') {
+          // Preserve list start index (e.g. continuing numbered lists from Jira/Word) and type
+          if (name !== 'start' && name !== 'type' && name !== 'class') {
+            el.removeAttribute(attr.name);
+          } else if (name === 'start') {
+            var startVal = parseInt(el.getAttribute('start'), 10);
+            if (isNaN(startVal) || startVal < 1) {
+              el.removeAttribute('start');
+            } else {
+              el.setAttribute('start', String(startVal));
+            }
+          }
+        } else if (tag === 'UL' || tag === 'LI' || tag === 'CODE' || tag === 'PRE') {
+          if (name !== 'class') {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'SPAN') {
+          // Allow mention spans and general formatting
+          var cls = el.getAttribute('class') || '';
+          if (cls.indexOf('crm-ve-mention') !== -1) {
+            // Mention: allow data-mention-type, data-mention-id, contenteditable, class
+            if (name !== 'class' && name !== 'data-mention-type' && name !== 'data-mention-id' && name !== 'contenteditable') {
+              el.removeAttribute(attr.name);
+            }
+          } else {
+            el.removeAttribute(attr.name);
+          }
+        } else if (tag === 'HR') {
+          // HR: allow style for custom styling
+          if (name !== 'style' && name !== 'class') {
+            el.removeAttribute(attr.name);
+          }
+        } else {
+          el.removeAttribute(attr.name);
+        }
       });
+
+      if (tag === 'FIGURE' && el.hasAttribute('style')) {
+        var styleVal = el.getAttribute('style') || '';
+        var safeStyles = [];
+        styleVal.split(';').forEach(function (s) {
+          var parts = s.split(':');
+          var prop = String(parts.shift() || '').trim().toLowerCase();
+          var val = String(parts.join(':') || '').trim();
+          var match = val.match(/^(\d+(?:\.\d+)?)%$/);
+          if ((prop === 'width' || prop === '--crm-ve-image-width') && match) {
+            var pct = clamp(parseFloat(match[1]), 10, 100);
+            safeStyles.push(prop + ':' + pct + '%');
+          }
+        });
+        if (safeStyles.length) {
+          el.setAttribute('style', safeStyles.join(';'));
+        } else {
+          el.removeAttribute('style');
+        }
+      }
+
+      if (tag === 'A') {
+        var safeHref = sanitizeLinkHref(el.getAttribute('href'));
+        if (!safeHref) {
+          el.removeAttribute('href');
+        } else {
+          el.setAttribute('href', safeHref);
+          var isExternal = /^https?:\/\//i.test(safeHref);
+          if (isExternal) {
+            el.setAttribute('target', '_blank');
+            el.setAttribute('rel', 'noopener noreferrer');
+          } else {
+            el.removeAttribute('target');
+            el.removeAttribute('rel');
+          }
+        }
+      }
+
+      if (tag === 'IMG') {
+        var src = el.getAttribute('src') || '';
+        if (!src || src.indexOf('data:') === 0 || /^blob:/i.test(src)) {
+          if (el.parentNode) el.parentNode.removeChild(el);
+          return;
+        }
+      }
     }
 
-    walk(template.content);
+    function cleanNode(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        var tag = node.tagName.toUpperCase();
+        if (DANGEROUS_TAGS[tag]) {
+          if (node.parentNode) node.parentNode.removeChild(node);
+          return;
+        }
+        if (!ALLOWED_TAGS[tag]) {
+          var parent = node.parentNode;
+          if (!parent) return;
+          var moved = [];
+          while (node.firstChild) {
+            var lifted = node.firstChild;
+            parent.insertBefore(lifted, node);
+            moved.push(lifted);
+          }
+          parent.removeChild(node);
+          // Recursively clean all lifted nodes so nested non-allowed tags (e.g. nested <div>)
+          // are also unwrapped and their attributes sanitized.
+          moved.forEach(function (n) {
+            cleanNode(n);
+          });
+          return;
+        }
+
+        // Unwrap spans that contain only whitespace (paste artifacts)
+        if (tag === 'SPAN') {
+          var spanCls = node.getAttribute('class') || '';
+          if (spanCls.indexOf('crm-ve-mention') === -1 && (node.textContent || '').trim() === '') {
+            var spanParent = node.parentNode;
+            if (spanParent) {
+              var spanMoved = [];
+              while (node.firstChild) {
+                var sLifted = node.firstChild;
+                spanParent.insertBefore(sLifted, node);
+                spanMoved.push(sLifted);
+              }
+              spanParent.removeChild(node);
+              spanMoved.forEach(function (sm) {
+                cleanNode(sm);
+              });
+              return;
+            }
+          }
+        }
+
+        sanitizeAttributes(node, tag);
+
+        // Recursively clean all children of allowed node
+        var children = Array.prototype.slice.call(node.childNodes || []);
+        children.forEach(function (child) {
+          cleanNode(child);
+        });
+        return;
+      }
+
+      if (node.nodeType === Node.COMMENT_NODE) {
+        if (node.parentNode) node.parentNode.removeChild(node);
+        return;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (node.textContent === '\u200B' || node.textContent === '\uFEFF') {
+          if (node.parentNode) node.parentNode.removeChild(node);
+        }
+      }
+    }
+
+    var rootChildren = Array.prototype.slice.call(template.content.childNodes || []);
+    rootChildren.forEach(function (child) {
+      cleanNode(child);
+    });
 
     // Leftover dangerous blocks pasted from Word/other apps (e.g. a <script>
     // moved up by an unwrap) must not survive as text either.
     var result = template.innerHTML.trim();
-    result = result.replace(/<\/?(?:script|style|iframe|object|embed|form|svg|math|template|noscript)\b[^>]*>/gi, '');
+    result = result.replace(/<\/?(?:script|style|iframe|object|embed|form|svg|math|template|noscript|applet|frame|frameset|base|meta|link)\b[^>]*>/gi, '');
     result = result.replace(/\u200B/g, '');
     result = result.replace(/\uFEFF/g, '');
     result = result.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '<br>');
@@ -1132,6 +1178,7 @@ window.CRM.VisualEditor = (function () {
     this._build();
     this._bindEvents();
     this._syncEditorFromTextarea();
+    this._cleanPastedArtifacts();
     this._updateEmptyState();
 
     this._history.push(this._content.innerHTML, true);
@@ -2559,6 +2606,23 @@ window.CRM.VisualEditor = (function () {
       }
       deselectImage(self);
       self._updateActiveButtons();
+
+      if (e.target === content) {
+        var lastChild = content.lastElementChild;
+        if (lastChild) {
+          var rect = lastChild.getBoundingClientRect();
+          if (e.clientY > rect.bottom) {
+            var range = document.createRange();
+            var sel = window.getSelection();
+            if (sel) {
+              range.selectNodeContents(lastChild);
+              range.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          }
+        }
+      }
     });
 
     content.addEventListener('paste', function (e) {
@@ -2744,6 +2808,7 @@ window.CRM.VisualEditor = (function () {
       if (sanitized) {
         document.execCommand('insertHTML', false, sanitized);
         self._convertOrphanedImages();
+        self._cleanPastedArtifacts();
         self._sync();
         self._history.push(self._content.innerHTML, true);
         return;
@@ -2754,6 +2819,7 @@ window.CRM.VisualEditor = (function () {
       var paragraphs = htmlToParagraphs(text);
       document.execCommand('insertHTML', false, paragraphs);
       self._convertOrphanedImages();
+      self._cleanPastedArtifacts();
       self._sync();
       self._history.push(self._content.innerHTML, true);
     }
@@ -2835,6 +2901,7 @@ window.CRM.VisualEditor = (function () {
       this._content.innerHTML = '<p><br></p>';
     } else if (/<[a-z][\s\S]*>/i.test(value)) {
       this._content.innerHTML = this._fromOutputHtml(value);
+      this._cleanPastedArtifacts();
     } else {
       this._content.innerHTML = htmlToParagraphs(value);
     }
@@ -2892,7 +2959,67 @@ window.CRM.VisualEditor = (function () {
       }
       var alt = img.getAttribute('alt') || '';
       var block = createImageBlock(src, alt, 75, generateId(), this._options.readonly);
-      img.parentNode.replaceChild(block, img);
+      var parent = img.parentNode;
+      if (parent && parent.tagName === 'P' && parent !== this._content) {
+        var otherText = (parent.textContent || '').trim();
+        var otherElements = Array.prototype.slice.call(parent.children).filter(function (c) {
+          return c !== img && c.tagName !== 'BR';
+        });
+        if (!otherText && otherElements.length === 0) {
+          parent.parentNode.replaceChild(block, parent);
+        } else {
+          parent.parentNode.insertBefore(block, parent.nextSibling);
+          img.parentNode.removeChild(img);
+        }
+      } else if (parent) {
+        parent.replaceChild(block, img);
+      }
+    }
+  };
+
+  Editor.prototype._cleanPastedArtifacts = function () {
+    if (!this._content) return;
+
+    // 1. Ensure no unauthorized elements have contenteditable inside the editor
+    var editables = this._content.querySelectorAll('[contenteditable]');
+    for (var i = 0; i < editables.length; i++) {
+      var el = editables[i];
+      if (el === this._content) continue;
+      var isMention = el.classList.contains('crm-ve-mention');
+      var isCaption = el.classList.contains('crm-ve-image-caption');
+      if (!isMention && !isCaption) {
+        el.removeAttribute('contenteditable');
+      }
+    }
+
+    // 2. Unwrap any rogue <div> elements not belonging to internal editor blocks
+    var strayDivs = this._content.querySelectorAll('div:not(.crm-ve-block):not(.crm-ve-image-frame):not(.crm-ve-upload-progress):not(.crm-ve-upload-bar)');
+    for (var d = strayDivs.length - 1; d >= 0; d--) {
+      var div = strayDivs[d];
+      if (div === this._content) continue;
+      if (div.closest('.crm-ve-image-block')) continue;
+      var divParent = div.parentNode;
+      if (divParent) {
+        while (div.firstChild) {
+          divParent.insertBefore(div.firstChild, div);
+        }
+        divParent.removeChild(div);
+      }
+    }
+
+    // 3. Strip any styles that block interaction / selection
+    var styled = this._content.querySelectorAll('[style]');
+    for (var s = 0; s < styled.length; s++) {
+      var sel = styled[s];
+      if (sel.classList.contains('crm-ve-image-figure') || sel.tagName === 'FIGURE') continue;
+      var styleStr = sel.getAttribute('style') || '';
+      if (/user-select|pointer-events|display\s*:\s*none|visibility\s*:\s*hidden/i.test(styleStr)) {
+        sel.style.userSelect = '';
+        sel.style.pointerEvents = '';
+        if (/display\s*:\s*none/i.test(styleStr)) sel.style.display = '';
+        if (/visibility\s*:\s*hidden/i.test(styleStr)) sel.style.visibility = '';
+        if (!sel.getAttribute('style')) sel.removeAttribute('style');
+      }
     }
   };
 
