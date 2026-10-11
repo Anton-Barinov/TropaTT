@@ -110,21 +110,26 @@ if (is_file($maintenanceFlag)) {
     // reachable routes lives in one shared policy (MaintenancePolicy.php) so
     // this entry point and web/index.php can never drift again.
     require_once __DIR__ . '/system/library/support/MaintenancePolicy.php';
-    $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
-    $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
-    $strictDeploymentMaintenance = is_array($maintenanceState)
-        && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
-    $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
-    if (!$maintenanceRecoveryAllowed) {
-        http_response_code(503);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'success' => false,
-            'code' => 'MAINTENANCE_MODE',
-            'message' => $earlyLanguage->get('common/messages.maintenance_mode', 'Core update maintenance mode is active'),
-            'data' => is_array($maintenanceState) ? $maintenanceState : ['enabled' => true],
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        exit;
+    if (function_exists('tropatt_maintenance_auto_recover_if_abandoned')) {
+        tropatt_maintenance_auto_recover_if_abandoned(dirname(__DIR__));
+    }
+    if (is_file($maintenanceFlag)) {
+        $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
+        $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
+        $strictDeploymentMaintenance = is_array($maintenanceState)
+            && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
+        $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
+        if (!$maintenanceRecoveryAllowed) {
+            http_response_code(503);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'code' => 'MAINTENANCE_MODE',
+                'message' => $earlyLanguage->get('common/messages.maintenance_mode', 'Core update maintenance mode is active'),
+                'data' => is_array($maintenanceState) ? $maintenanceState : ['enabled' => true],
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 }
 

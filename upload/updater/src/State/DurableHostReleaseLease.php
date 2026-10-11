@@ -174,7 +174,10 @@ final class DurableHostReleaseLease
                 if ($record['expires_at'] > $now) {
                     throw new \RuntimeException('HOST_RELEASE_BUSY');
                 }
-                if ($now < $record['expires_at'] + self::MANUAL_TAKEOVER_GRACE) {
+                $alreadySuperseded = ($record['continuation_mode'] ?? '') === 'manually_superseded';
+                $action = $input['_host_lease_action'] ?? ($input['action'] ?? null);
+                $isRecoveryAction = in_array($action, ['recover', 'force-unlock'], true);
+                if (!$alreadySuperseded && !$isRecoveryAction && $now < $record['expires_at'] + self::MANUAL_TAKEOVER_GRACE) {
                     // Too recent to assume the owner is gone: a two-request
                     // release may still be running. Ask for reconciliation.
                     throw new \RuntimeException('HOST_LEASE_RECONCILIATION_REQUIRED');

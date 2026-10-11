@@ -37,6 +37,15 @@ if (class_exists(Api\System\Library\Support\EnvLoader::class)) {
     ]);
 }
 
+// Self-healing watchdog: clear any abandoned update maintenance mode before running periodic jobs.
+$maintenancePolicyFile = $apiRoot . '/system/library/support/MaintenancePolicy.php';
+if (is_file($maintenancePolicyFile)) {
+    require_once $maintenancePolicyFile;
+    if (function_exists('tropatt_maintenance_auto_recover_if_abandoned')) {
+        tropatt_maintenance_auto_recover_if_abandoned($projectRoot);
+    }
+}
+
 $secretKey = trim((string)(getenv('CRON_SECRET_KEY') ?: ''));
 if ($secretKey === '') {
     http_response_code(503);
