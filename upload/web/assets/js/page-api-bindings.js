@@ -28231,6 +28231,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var countBadge = document.getElementById('adminLanguagesCountBadge');
     if (!tableBody) return;
 
+    var canInstallLang = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('language_pack.install'));
+    var canManageLang = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('settings.manage'));
+    if (!canInstallLang && uploadBtn) {
+      uploadBtn.style.display = 'none';
+    }
+
     var flags = {
       'ru-ru': '🇷🇺',
       'en-gb': '🇬🇧',
@@ -28303,7 +28309,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           var tdDefault = document.createElement('td');
           if (isDefault) {
             tdDefault.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-star text-warning me-1"></i>' + tp('admin_languages.badge_default', 'Основной') + '</span>';
-          } else if (isEnabled) {
+          } else if (isEnabled && canManageLang) {
             var makeDefaultBtn = document.createElement('button');
             makeDefaultBtn.type = 'button';
             makeDefaultBtn.className = 'btn btn-sm crm-btn-secondary py-0 px-2 set-default-btn';
@@ -28331,9 +28337,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           toggleInput.checked = isEnabled;
           toggleInput.setAttribute('data-code', lang.code);
 
-          if (isDefault) {
+          if (isDefault || !canManageLang) {
             toggleInput.disabled = true;
-            toggleInput.title = tp('admin_languages.cannot_disable_default', 'Нельзя отключить основной язык системы');
+            toggleInput.title = !canManageLang
+              ? tp('admin_languages.manage_required', 'Требуются права управления настройками')
+              : tp('admin_languages.cannot_disable_default', 'Нельзя отключить основной язык системы');
           } else {
             toggleInput.addEventListener('change', function () {
               toggleLanguageStatus(lang.code, this.checked, this);
@@ -28355,7 +28363,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           exportLink.innerHTML = '<i class="fa-solid fa-file-zipper" aria-hidden="true"></i>';
           tdActions.appendChild(exportLink);
 
-          if (!lang.is_builtin && !isDefault) {
+          if (!lang.is_builtin && !isDefault && canManageLang) {
             var deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
             deleteBtn.className = 'btn btn-sm btn-outline-danger py-0 px-2 ms-1';
@@ -28415,6 +28423,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     }
 
     async function installLanguagePack(file) {
+      if (!canInstallLang) {
+        notify(tp('admin_languages.install_denied', 'Недостаточно прав для установки языковых пакетов'), 'error');
+        return;
+      }
       var formData = new FormData();
       formData.append('package', file);
       notify(tp('admin_languages.uploading', 'Загрузка и проверка пакета...'));
