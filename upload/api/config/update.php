@@ -76,6 +76,25 @@ return [
     'db_backup' => [
         'enabled' => true,
     ],
+    // Bounded retention of updater artefacts under storage_api/updates.
+    //
+    // The updater used to keep every job forever: a staged extraction is
+    // thousands of files, a package is tens of megabytes and each job keeps a
+    // file + database backup. On a shared-hosting quota that eventually fills
+    // the account, and a full disk breaks the NEXT update half-way.
+    //
+    // After a successful apply the staged extraction and the archive are
+    // deleted at once; finished jobs beyond `keep_jobs` (and older than
+    // `max_age_days`) are pruned, while the job LocalState points at is always
+    // protected so the rollback point is never removed.
+    'retention' => [
+        'keep_jobs' => 3,
+        'max_age_days' => 30,
+        // How long the rollback point keeps its file/DB backup. Long enough to
+        // undo a bad update, short enough that the largest single artefact on
+        // the account does not sit there forever on a small quota.
+        'rollback_grace_days' => 14,
+    ],
     // Rate limits for preflight/download requests per client IP. These actions
     // are allowed without a one-time token when dry_run=true so the
     // admin-updates page can drive them straight from the browser, which on
@@ -129,6 +148,31 @@ return [
         'base_url' => rtrim(trim((string)(getenv('TROPATT_MARKETPLACE_URL') ?: 'https://marketplace.tropatt.com')), '/'),
         'timeout_sec' => max(1, (int)(getenv('TROPATT_MARKETPLACE_TIMEOUT_SEC') ?: 8)),
         'catalog_cache_ttl' => max(0, (int)(getenv('TROPATT_MARKETPLACE_CACHE_TTL') ?: 300)),
+    ],
+    // Automatic rollback when an apply fails AFTER the installation was mutated.
+    //
+    // OFF by default: an automatic rollback restores files and, when a
+    // database snapshot exists, the whole database. That is the right
+    // behaviour for an unattended/headless update, but a site owner may prefer
+    // to inspect a failed update first - the job stays resumable and the
+    // manual rollback button stays available, so nothing is lost by leaving
+    // this disabled.
+    //
+    // When enabled, an apply that fails in one of `phases` restores THIS
+    // job's own backup through the existing bounded rollback step machine, so
+    // the rollback still spans as many requests as a shared host needs and
+    // still restores the database before the files. A pre-mutation failure
+    // (package download, preflight, file backup) never triggers it: there is
+    // nothing to undo and that untouched backup remains the rollback point.
+    //
+    // A job is rolled back automatically at most ONCE. If the automatic
+    // rollback itself fails, the job is left in `rollback_failed` with
+    // maintenance held for the operator; the updater never loops.
+    'auto_rollback' => [
+        'enabled' => false,
+        // Only failures AFTER the installed tree or the database was mutated.
+        // `backup_files` and `backup_db` are deliberately absent.
+        'phases' => ['apply_files', 'health', 'migrate', 'finalize'],
     ],
     'endpoints' => [
         'health' => '/api/v1/health',

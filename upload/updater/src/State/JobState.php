@@ -12,6 +12,15 @@ final class JobState
     public function write(array $patch): void
     {
         $current = $this->readFile('state.json') ?: [];
+        // Stamp every progress update with the wall-clock time of the write.
+        // The admin page uses it to tell "the update is working" from "the job
+        // is stranded because the browser/connection was lost", which is the
+        // shared-hosting failure mode: no daemon, no cron, nothing else runs
+        // between requests. Doing it here keeps every phase transition honest
+        // without each one having to remember.
+        if (is_array($patch['progress'] ?? null) && !isset($patch['progress']['at'])) {
+            $patch['progress']['at'] = gmdate('c');
+        }
         $data = array_merge($current, $patch, [
             'job_id' => $this->jobId,
             'updated_at' => gmdate('c'),

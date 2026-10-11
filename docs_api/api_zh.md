@@ -1102,6 +1102,12 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/admin/widgets/system` 🔄 | 系统小组件 | 是 | `logs.view` | — |
 | GET | `/api/v1/admin/cache` | 缓存统计 | 是 | `settings.manage` | — |
 | POST | `/api/v1/admin/cache/clear` | 清除缓存 | 是 | `settings.manage` | — |
+| GET | `/api/v1/admin/languages` | 管理面板语言列表 | 是 | `settings.manage` | 列出所有已安装的语言及其状态 |
+| POST | `/api/v1/admin/languages/toggle` | 切换语言启用状态 | 是 | `settings.manage` | 启用或禁用区域设置 |
+| POST | `/api/v1/admin/languages/default` | 设置默认语言 | 是 | `settings.manage` | 更改 CRM 默认区域设置 |
+| POST | `/api/v1/admin/languages/install` | 安装语言包 | 是 | `language_pack.install` | 从 ZIP 上传或市场 URL 安装 |
+| GET | `/api/v1/admin/languages/{code}/export` | 导出语言包 | 是 | `settings.manage` | 下载本地化包 ZIP |
+| DELETE | `/api/v1/admin/languages/{code}` | 删除语言包 | 是 | `settings.manage` | 删除自定义语言包 |
 
 ### 文档与事件
 
@@ -1243,7 +1249,7 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | 模块列表 | 是 | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}` | 模块信息 | 是 | `settings.manage` | — |
-| POST | `/api/v1/modules/{name}/install` | 设置模块 | 是 | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/install` | 设置模块 | 是 | `module.install` | — |
 | POST | `/api/v1/modules/{name}/activate` | 激活模块 | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | 停用模块 | 是 | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | 删除模块 | 是 | `settings.manage` | — |
@@ -1255,8 +1261,8 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/modules/{name}/migrations` | 模块迁移 | 是 | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}/errors` | 模块错误 | 是 | `settings.manage` | — |
 | DELETE | `/api/v1/modules/{name}/errors` | 清除错误 | 是 | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-url` | 设置从 URL | 是 | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-file` | 设置从文件 | 是 | `settings.manage` | `multipart/form-data` |
+| POST | `/api/v1/modules/install-from-url` | 设置从 URL | 是 | `module.install` | — |
+| POST | `/api/v1/modules/install-from-file` | 设置从文件 | 是 | `module.install` | — |
 
 ### 模块市场
 
@@ -1267,7 +1273,7 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/marketplace/catalog` | 市场目录 | 是 | `settings.manage` | 过滤器：`q`、`category`、`page`、`limit` |
 | GET | `/api/v1/marketplace/categories` | 市场分类 | 是 | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | 市场模块详情 | 是 | `settings.manage` | 包含已发布版本 |
-| POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `settings.manage` | 仅 root。Body：`full_code`、`activate` |
+| POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `module.install` | 仅 root。Body：`full_code`、`activate` |
 
 安装接口会明确返回安装状态：`ALREADY_INSTALLED`（409）表示模块已注册，`MODULE_DISCOVERED_LOCALLY`（409）表示模块文件已在 CRM 中但未注册（请安装本地副本：`POST /api/v1/modules/{code}/install`，远程安装器不会覆盖已存在的目录），`MARKETPLACE_PACKAGE_MISMATCH`（502）表示市场包声明的模块代码与目录不一致，`INVALID_PARAM`（400）表示 `full_code` 不是 `<vendor>.<module>` 形式的代码。
 

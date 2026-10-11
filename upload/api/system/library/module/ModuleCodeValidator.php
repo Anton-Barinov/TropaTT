@@ -27,6 +27,15 @@ final class ModuleCodeValidator
         'popen', 'proc_open', 'pcntl_exec', 'assert',
         'create_function',
         'dl', 'ffi',
+        // SEC (audit 2026-10, finding #7): the indirect-invocation escape
+        // hatches. call_user_func/call_user_func_array("system", ...) was a
+        // working bypass because only the invoked name was checked; these two
+        // are call-site-level and can be detected the same way as direct
+        // calls. This is still a blocklist — SECURITY.md is explicit that
+        // modules are trusted code and there is no runtime sandbox — but the
+        // trivial named-indirection bypass is closed.
+        'call_user_func',
+        'call_user_func_array',
     ];
 
     /**

@@ -227,6 +227,18 @@ final class LanguagePackInstaller
             }
             if ($supplementalPrefix !== null) {
                 $relative = substr($norm, strlen($supplementalPrefix));
+                // SEC (audit 2026-10, finding #6): the runtime loads exactly
+                // web/language/supplemental/packs/<locale>.php — a single path
+                // segment. Allowing slashes here let a pack create arbitrary
+                // nesting under that directory (e.g. common/messages.php — the
+                // exact shape the X-Locale inclusion sink consumed). One safe
+                // segment only.
+                if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $relative)
+                    || str_contains($relative, '..')) {
+                    throw new InvalidArgumentException(
+                        'Language pack validation failed: supplemental entries must be a single file name'
+                    );
+                }
                 $targetFile = dirname($this->basePath) . '/web/language/supplemental/packs/' . $relative;
                 $targetDir = dirname($targetFile);
                 if (!is_dir($targetDir)) {
@@ -290,8 +302,22 @@ final class LanguagePackInstaller
     public function installFromUrl(string $url, ?string $expectedHash = null): array
     {
         $trimmed = trim($url);
+        // SEC-001: an unpinned package must be fetched over TLS. Cleartext HTTP
+        // is accepted only when the caller also pins the expected SHA-256, so a
+        // network attacker cannot substitute the archive that gets installed.
+        // The scheme check is applied unconditionally, before the SSRF check, so
+        // it still fails closed when no UrlSafetyValidator was injected.
+        $pinned = $expectedHash !== null && $expectedHash !== '';
+        $allowedSchemes = $pinned ? ['https', 'http'] : ['https'];
+        $parts = parse_url($trimmed);
+        $scheme = is_array($parts) ? strtolower((string)($parts['scheme'] ?? '')) : '';
+        if (!in_array($scheme, $allowedSchemes, true)) {
+            throw new InvalidArgumentException(
+                'Package download URL is not allowed: AI_PROVIDER_URL_SCHEME_NOT_ALLOWED'
+            );
+        }
         if ($this->urlValidator !== null) {
-            $validation = $this->urlValidator->validateProviderUrl($trimmed, true, ['https', 'http']);
+            $validation = $this->urlValidator->validateProviderUrl($trimmed, true, $allowedSchemes);
             if (!$validation['ok']) {
                 throw new InvalidArgumentException('Package download URL is not allowed: ' . $validation['code']);
             }

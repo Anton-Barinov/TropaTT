@@ -968,7 +968,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_update_feature_flag` | Обновить flag | settings.manage | изменение |
 | `crm_list_modules` | Список модулей | settings.manage | нет |
 | `crm_get_module` | Получить модуль | settings.manage | нет |
-| `crm_install_module` | Установить модуль | settings.manage | установка |
+| `crm_install_module` | Установить модуль | module.install | установка |
 | `crm_activate_module` | Активировать модуль | settings.manage | изменение |
 | `crm_deactivate_module` | Деактивировать модуль | settings.manage | изменение |
 | `crm_uninstall_module` | Удалить модуль | settings.manage | удаление |

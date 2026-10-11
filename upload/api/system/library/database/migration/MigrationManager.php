@@ -53,12 +53,17 @@ final class MigrationManager
             new OrganizationKnowledgeScopeMigration(),
             new OrganizationIdeasScopeMigration(),
             new CoreUpdateSystemMigration(),
+            // SEC/fix (audit 2026-10, finding #12): KnowledgeSpacesHierarchy
+            // ALTERs knowledge_spaces, which KnowledgeBaseMigration CREATEs.
+            // The list is executed in registration order, so the hierarchy
+            // migration used to run first and a fresh install died with
+            // "table doesn't exist". Base schema always comes first.
+            new KnowledgeBaseMigration(),
             new KnowledgeSpacesHierarchyMigration(),
             new RecurringProcessorMigration(),
             new RecurringRuleTitleMigration(),
             new GanttPerformanceIndexesMigration(),
             new TaskStartAtRangeIndexMigration(),
-            new KnowledgeBaseMigration(),
             new KnowledgeEntityLinkUniquenessMigration(),
             new KnowledgeCommentsRepairMigration(),
             new IntakeItemsMigration(),
@@ -115,6 +120,7 @@ final class MigrationManager
             new ModuleJobContextMigration(),
             new ConnectorPrimitivesMigration(),
             new AiAgentNameCleanupMigration(),
+            new InstallGranularPermissionsMigration(),
         ];
     }
 

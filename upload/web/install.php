@@ -2944,6 +2944,8 @@ function seedDictionaries(PDO $pdo): void
         'finance.rate.manage' => 'Finance: manage rates, recalculate, lock periods',
         'finance.ratecard.manage' => 'Finance: manage rate cards and assignments',
         'system.update' => 'System: manage core updates',
+        'language_pack.install' => 'Install language packs from admin',
+        'module.install' => 'Install modules (marketplace, URL, file, register)',
     ];
 
     $permInsert = $pdo->prepare(

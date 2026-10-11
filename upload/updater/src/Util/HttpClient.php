@@ -29,14 +29,30 @@ final class HttpClient
         $noBody = (bool)($options['no_body'] ?? false);
         $headers = is_array($options['headers'] ?? null) ? $options['headers'] : [];
         $maxBodyBytes = max(0, (int)($options['max_body_bytes'] ?? 0));
+        // Resume an interrupted streamed download: ask for the rest of the file.
+        // The caller keeps the partial file and passes its current size, so a
+        // dropped connection costs one request, not the whole transfer.
+        $rangeFrom = max(0, (int)($options['stream_range_from'] ?? 0));
+        if ($rangeFrom > 0 && $streamTo !== '' && $method === 'GET') {
+            $hasRange = false;
+            foreach (array_keys($headers) as $name) {
+                if (strtolower((string)$name) === 'range') {
+                    $hasRange = true;
+                    break;
+                }
+            }
+            if (!$hasRange) {
+                $headers['Range'] = 'bytes=' . $rangeFrom . '-';
+            }
+        }
         if ($maxBodyBytes > 0 && ($streamTo !== '' || $noBody)) {
             return ['ok' => false, 'status' => 0, 'headers' => [], 'body' => false, 'error' => 'bounded response mode is incompatible with streaming', 'bytes' => null];
         }
 
         if (function_exists('curl_init')) {
-            return self::requestViaCurl($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes);
+            return self::requestViaCurl($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes, $rangeFrom);
         }
-        return self::requestViaStreams($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes);
+        return self::requestViaStreams($url, $method, $headers, $options, $timeout, $streamTo, $noBody, $maxBodyBytes, $rangeFrom);
     }
 
     /**
@@ -60,7 +76,7 @@ final class HttpClient
     /**
      * @return array<int,string>
      */
-    private static function requestViaCurl(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes): array
+    private static function requestViaCurl(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes, int $rangeFrom = 0): array
     {
         $ch = curl_init($url);
         if ($ch === false) {
@@ -73,7 +89,12 @@ final class HttpClient
         }
 
         $curlOpts = [
-            CURLOPT_RETURNTRANSFER => $maxBodyBytes === 0,
+            // Never combine RETURNTRANSFER with a destination file: cURL then
+            // returns the body to PHP and does NOT write it to CURLOPT_FILE,
+            // so a streamed download silently produced an empty/partial file.
+            // When a destination or a bounded body is in play the body is
+            // written by CURLOPT_FILE / CURLOPT_WRITEFUNCTION instead.
+            CURLOPT_RETURNTRANSFER => $maxBodyBytes === 0 && $streamTo === '' && !$noBody,
             // Never capture headers into the same buffer as the body: binary
             // bodies (package ZIPs) can contain the header terminator sequence
             // (\r\n\r\n), which would corrupt the split and truncate the body.
@@ -101,7 +122,8 @@ final class HttpClient
         }
         $fileHandle = null;
         if ($streamTo !== '') {
-            $fileHandle = @fopen($streamTo, 'wb');
+            // Append when resuming a partial download, otherwise truncate.
+            $fileHandle = @fopen($streamTo, $rangeFrom > 0 ? 'ab' : 'wb');
             if ($fileHandle === false) {
                 // PHP 8.0+ frees handles automatically; curl_close() is deprecated on 8.5.
                 if (PHP_VERSION_ID < 80000) {
@@ -109,7 +131,18 @@ final class HttpClient
                 }
                 return ['ok' => false, 'status' => 0, 'headers' => [], 'body' => false, 'error' => 'unable to open stream target', 'bytes' => null];
             }
-            $curlOpts[CURLOPT_FILE] = $fileHandle;
+            // Write the body through an explicit callback instead of CURLOPT_FILE:
+            // a short fwrite() (disk full, stream policy on a cheap host) must
+            // abort the transfer and be reported, never silently truncate the
+            // file. Returning the written length keeps cURL's contract.
+            $curlOpts[CURLOPT_WRITEFUNCTION] = static function ($handle, string $chunk) use ($fileHandle): int {
+                $length = strlen($chunk);
+                $written = @fwrite($fileHandle, $chunk);
+                if ($written === false || $written !== $length) {
+                    return 0; // cURL aborts with a write error
+                }
+                return $length;
+            };
         }
 
         if ($method === 'HEAD' || $noBody) {
@@ -148,7 +181,15 @@ final class HttpClient
         }
         if ($output === false) {
             if ($streamTo !== '') {
-                @unlink($streamTo);
+                // Keep a partial transfer that made progress so the caller can
+                // resume it (the whole point of a Range request). Only a file
+                // that did not grow past its starting offset is removed, so a
+                // connect failure does not throw away earlier work.
+                clearstatcache(true, $streamTo);
+                $current = is_file($streamTo) ? (int)filesize($streamTo) : 0;
+                if ($current <= $rangeFrom) {
+                    @unlink($streamTo);
+                }
             }
             return ['ok' => false, 'status' => 0, 'headers' => [], 'body' => false, 'error' => $error !== '' ? $error : 'curl error ' . $errno, 'bytes' => null];
         }
@@ -178,7 +219,7 @@ final class HttpClient
     /**
      * @return array<int,string>
      */
-    private static function requestViaStreams(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes): array
+    private static function requestViaStreams(string $url, string $method, array $headers, array $options, int $timeout, string $streamTo, bool $noBody, int $maxBodyBytes, int $rangeFrom = 0): array
     {
         $headerLines = [];
         foreach ($headers as $name => $value) {
@@ -204,7 +245,7 @@ final class HttpClient
                 return ['ok' => false, 'status' => 0, 'headers' => [], 'body' => false, 'error' => 'unable to open remote', 'bytes' => null];
             }
             $status = self::statusFromHeaders($http_response_header ?? []);
-            $local = @fopen($streamTo, 'wb');
+            $local = @fopen($streamTo, $rangeFrom > 0 ? 'ab' : 'wb');
             if ($local === false) {
                 fclose($remote);
                 return ['ok' => false, 'status' => $status, 'headers' => [], 'body' => false, 'error' => 'unable to open stream target', 'bytes' => null];
@@ -213,7 +254,13 @@ final class HttpClient
             fclose($remote);
             fclose($local);
             if ($copied === false) {
-                @unlink($streamTo);
+                // Same rule as the cURL path: keep bytes that did arrive so the
+                // caller can resume instead of starting the transfer over.
+                clearstatcache(true, $streamTo);
+                $current = is_file($streamTo) ? (int)filesize($streamTo) : 0;
+                if ($current <= $rangeFrom) {
+                    @unlink($streamTo);
+                }
                 return ['ok' => false, 'status' => $status, 'headers' => [], 'body' => false, 'error' => 'stream copy failed', 'bytes' => null];
             }
             return [

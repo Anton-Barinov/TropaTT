@@ -110,25 +110,14 @@ if (is_file($maintenanceFlag)) {
     // leaves maintenance ON so the CRM is not served in a broken state. The
     // admin-updates page and its core/updates API must stay reachable so the
     // admin can roll back or retry. Everything else stays behind maintenance.
+    // The list of reachable routes is shared with api/index.php through
+    // MaintenancePolicy.php so the two entry points cannot drift.
+    require_once dirname(__DIR__) . '/api/system/library/support/MaintenancePolicy.php';
     $maintenanceRoute = trim((string)($_GET['route'] ?? ''), '/');
     $maintenanceState = json_decode((string)@file_get_contents($maintenanceFlag), true);
     $strictDeploymentMaintenance = is_array($maintenanceState)
         && ($maintenanceState['reason'] ?? null) === 'deployment_pipeline';
-    if ($strictDeploymentMaintenance) {
-        $maintenanceRecoveryAllowed = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET'
-            && in_array($maintenanceRoute, ['admin-updates', 'login'], true);
-    } else {
-        // 'login' stays reachable during ordinary updater maintenance so an
-        // admin can recover after an interrupted update.
-        $maintenanceRecoveryAllowed = $maintenanceRoute === 'admin-updates'
-            || $maintenanceRoute === 'login'
-            || str_starts_with($maintenanceRoute, 'api/v1/core/updates')
-            || $maintenanceRoute === 'api/v1/notifications/counters'
-            || str_starts_with($maintenanceRoute, 'api/v1/notifications')
-            || $maintenanceRoute === 'api/v1/chats/unread-count'
-            || str_starts_with($maintenanceRoute, 'api/v1/telemetry')
-            || $maintenanceRoute === 'api/v1/modules';
-    }
+    $maintenanceRecoveryAllowed = tropatt_maintenance_policy_allows_request($strictDeploymentMaintenance);
     if (!$maintenanceRecoveryAllowed) {
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');
@@ -808,8 +797,12 @@ function crmWebInitModuleSystem(string $webBaseDir, Web\System\Core\Router $rout
         if ($manifest->webRoutes !== null) {
             $moduleDir = $pluginManager->getModulesDir() . '/' . $manifest->name;
             $routeFile = $moduleDir . '/' . $manifest->webRoutes;
-            if (is_file($routeFile)) {
-                $moduleRoutes = require $routeFile;
+            $realModuleDir = realpath($moduleDir);
+            $realRouteFile = realpath($routeFile);
+            if ($realModuleDir !== false && $realRouteFile !== false
+                && str_starts_with($realRouteFile, $realModuleDir . DIRECTORY_SEPARATOR)
+                && is_file($realRouteFile)) {
+                $moduleRoutes = require $realRouteFile;
                 if (is_array($moduleRoutes) && $moduleRoutes !== []) {
                     $router->addRoutes($moduleRoutes);
                 }
@@ -929,7 +922,11 @@ $adminRoutePermissions = [
     'admin-logs' => ['logs.view'],
     'admin-api-clients' => ['api_client.view'],
     'admin-settings' => ['settings.manage'],
-    'admin-languages' => ['settings.manage'],
+    // SEC (2026-10 audit): installing a language pack is its own grantable
+    // permission (language_pack.install), so the page opens for that holder
+    // too; toggle/default/export/delete stay gated by settings.manage on the
+    // API side.
+    'admin-languages' => ['settings.manage', 'language_pack.install'],
     // Finance / rates (TZ 8.1, 8.2): page shell mirrors the API permission gate.
     'my-earnings' => ['finance.rate.view_own_payout'],
     'rate-cards' => ['finance.ratecard.manage'],
@@ -947,9 +944,9 @@ $adminRoutePermissions = [
     'admin-webhooks' => ['webhook.manage'],
     // Recurring task templates live in the admin hub; their API is task-scoped.
     'recurring' => ['task.manage'],
-    'admin-modules' => ['settings.manage'],
-    'admin-modules-install' => ['settings.manage'],
-    'admin-module-detail' => ['settings.manage'],
+    'admin-modules' => ['settings.manage', 'module.install'],
+    'admin-modules-install' => ['module.install'],
+    'admin-module-detail' => ['settings.manage', 'module.install'],
     'admin-updates' => ['settings.manage'],
     // Estimate sets/options are project-scoped: /api/v1/estimate-sets etc.
     // require project.manage (there is no estimate.* permission code).

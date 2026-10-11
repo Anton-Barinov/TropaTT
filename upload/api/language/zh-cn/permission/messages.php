@@ -54,4 +54,6 @@ return [
     'perm_finance_rate_view_bill' => '财务：查看销售费率和利润',
     'perm_finance_rate_manage' => '财务：管理费率、重新计算、锁定周期',
     'perm_finance_ratecard_manage' => '财务：管理价格表',
+    'perm_language_pack_install' => '从管理后台安装语言包',
+    'perm_module_install' => '安装模块（市场、URL、文件、注册）',
 ];

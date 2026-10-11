@@ -79,6 +79,11 @@ final class PermissionService
             'finance.rate.view_bill' => $this->t('permission/messages.perm_finance_rate_view_bill', 'Finance: view bill rates and margin'),
             'finance.rate.manage' => $this->t('permission/messages.perm_finance_rate_manage', 'Finance: manage rates, recalculate, lock periods'),
             'finance.ratecard.manage' => $this->t('permission/messages.perm_finance_ratecard_manage', 'Finance: manage rate cards and assignments'),
+            // Granular install permissions (2026-10 security audit): installing
+            // a language pack or a module is its own capability, no longer
+            // implied by the broad settings.manage code.
+            'language_pack.install' => $this->t('permission/messages.perm_language_pack_install', 'Install language packs from admin'),
+            'module.install' => $this->t('permission/messages.perm_module_install', 'Install modules (marketplace, URL, file, register)'),
         ];
 
         $this->permissions->ensureRegistry($registry);

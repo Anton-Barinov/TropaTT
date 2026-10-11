@@ -54,4 +54,6 @@ return [
     'perm_finance_rate_view_bill' => 'Финансы: видеть ставки продажи и маржу',
     'perm_finance_rate_manage' => 'Финансы: управлять ставками, пересчётом и блокировкой',
     'perm_finance_ratecard_manage' => 'Финансы: управлять прайс-листами',
+    'perm_language_pack_install' => 'Устанавливать языковые пакеты из админки',
+    'perm_module_install' => 'Устанавливать модули (маркетплейс, URL, файл, регистрация)',
 ];

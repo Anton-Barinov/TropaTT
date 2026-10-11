@@ -10822,5 +10822,7 @@ return array (
     'install_failed' => '语言包安装失败',
     'delete_success' => '语言包删除成功',
     'delete_failed' => '语言包删除失败',
+    'manage_required' => '需要管理设置的权限',
+    'install_denied' => '权限不足，无法安装语言包',
   ),
 );

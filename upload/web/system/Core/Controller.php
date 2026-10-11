@@ -175,13 +175,30 @@ abstract class Controller
         } else {
             $viewFile = $this->baseDir . '/view/template/' . $template . '.php';
         }
-        $i18n = I18n::fromRequest($this->baseDir);
 
-        if (!is_file($viewFile)) {
+        $realViewFile = realpath($viewFile);
+        $webTemplatesDir = realpath($this->baseDir . '/view/template');
+        $modulesDir = realpath(dirname($this->baseDir) . '/modules');
+        $fixtureModulesDir = realpath(dirname($this->baseDir) . '/api/tests/fixtures/modules');
+
+        $isAllowed = false;
+        if ($realViewFile !== false && str_ends_with($realViewFile, '.php')) {
+            if ($webTemplatesDir !== false && str_starts_with($realViewFile, $webTemplatesDir . DIRECTORY_SEPARATOR)) {
+                $isAllowed = true;
+            } elseif ($modulesDir !== false && str_starts_with($realViewFile, $modulesDir . DIRECTORY_SEPARATOR)) {
+                $isAllowed = true;
+            } elseif ($fixtureModulesDir !== false && str_starts_with($realViewFile, $fixtureModulesDir . DIRECTORY_SEPARATOR)) {
+                $isAllowed = true;
+            }
+        }
+
+        if (!$isAllowed || !is_file($realViewFile)) {
             http_response_code(500);
             echo 'Template not found: ' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8');
             return;
         }
+        $viewFile = $realViewFile;
+        $i18n = I18n::fromRequest($this->baseDir);
 
         $data['route'] = $data['route'] ?? '';
         $routeKey = str_replace('-', '_', (string)$data['route']);

@@ -19,14 +19,29 @@ final class LanguageManager
     public function setLocale(string $locale): void
     {
         $normalized = $this->normalizeLocaleCode($locale);
-        if ($normalized === '' || !is_dir($this->basePath . '/' . $normalized)) {
+        // SEC (audit 2026-10, findings #1/#6): the X-Locale header reaches this
+        // method verbatim from the request. Without an allowlist a value like
+        // "../../web/language" passed the is_dir() check and load() then
+        // require()d a file outside api/language. A locale code can only be a
+        // short language tag — the same shape the language-pack manifest
+        // validator enforces — so anything with dots, slashes or long segments
+        // is rejected before it can touch the filesystem.
+        if (!$this->isAllowedLocaleCode($normalized) || !is_dir($this->basePath . '/' . $normalized)) {
             $this->locale = $this->fallbackLocale;
             return;
         }
 
-        $cacheFile = dirname($this->basePath) . '/storage_api/cache/languages.json';
+        // SEC: this reads the registry-written cache. LanguageRegistryService
+        // writes it to <project>/storage_api/cache and <project>/storage/cache
+        // (basePath + "/../storage_api/cache"); this manager lives one level
+        // deeper (upload/api/language), so the previous dirname(...) path
+        // pointed at upload/api/storage_api/cache — a directory nothing ever
+        // wrote. The enabled-locale gate below was therefore dead code and any
+        // well-formed directory name was accepted. Both readers now resolve to
+        // the directory the registry actually writes.
+        $cacheFile = dirname($this->basePath, 2) . '/storage_api/cache/languages.json';
         if (!is_file($cacheFile)) {
-            $cacheFile = dirname($this->basePath) . '/storage/cache/languages.json';
+            $cacheFile = dirname($this->basePath, 2) . '/storage/cache/languages.json';
         }
         if (is_file($cacheFile)) {
             $raw = @file_get_contents($cacheFile);
@@ -69,9 +84,27 @@ final class LanguageManager
         };
     }
 
+    /**
+     * SEC: structural allowlist for locale codes used as path segments.
+     * Mirrors LanguagePackInstaller's manifest "code" rule: 2-3 letter language
+     * tag with an optional -xxx region/variant segment. Dots, slashes, ".." and
+     * any other traversal shape cannot match.
+     */
+    private function isAllowedLocaleCode(string $code): bool
+    {
+        return preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code) === 1;
+    }
+
     public function load(string $group): void
     {
         $group = trim($group, '/');
+        // SEC: the group is a path segment under the locale directory. Keys are
+        // normally compile-time literals, but several call sites interpolate
+        // request-derived fragments, so ".." and backslashes are refused here
+        // as defense in depth (locale is already allowlisted by setLocale()).
+        if ($group === '' || str_contains($group, '..') || str_contains($group, "\\") || preg_match('/[\x00-\x1F\x7F]/', $group)) {
+            return;
+        }
         foreach ([$this->fallbackLocale, $this->locale] as $locale) {
             $path = $this->basePath . '/' . $locale . '/' . $group . '.php';
             if (!is_file($path)) {

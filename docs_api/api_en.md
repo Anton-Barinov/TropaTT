@@ -1143,7 +1143,7 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | GET | `/api/v1/admin/languages` | Admin languages list | Yes | `settings.manage` | List all installed languages with enabled status |
 | POST | `/api/v1/admin/languages/toggle` | Toggle language enabled status | Yes | `settings.manage` | Enable or disable locale |
 | POST | `/api/v1/admin/languages/default` | Set default system language | Yes | `settings.manage` | Change system default locale |
-| POST | `/api/v1/admin/languages/install` | Install language pack | Yes | `settings.manage` | Install from ZIP upload or marketplace URL |
+| POST | `/api/v1/admin/languages/install` | Install language pack | Yes | `language_pack.install` | Install from ZIP upload or marketplace URL |
 | GET | `/api/v1/admin/languages/{code}/export` | Export language pack | Yes | `settings.manage` | Download language pack as ZIP archive |
 | DELETE | `/api/v1/admin/languages/{code}` | Delete language pack | Yes | `settings.manage` | Delete custom language pack |
 
@@ -1288,7 +1288,7 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | List modules | Yes | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}` | Module info | Yes | `settings.manage` | — |
-| POST | `/api/v1/modules/{name}/install` | Set module | Yes | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/install` | Set module | Yes | `module.install` | — |
 | POST | `/api/v1/modules/{name}/activate` | Activate module | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | Deactivate module | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | Delete module | Yes | `settings.manage` | — |
@@ -1302,8 +1302,8 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 | DELETE | `/api/v1/modules/{name}/errors` | Clear errors | Yes | `settings.manage` | — |
 | POST | `/api/v1/modules/queue/tick` | Process module jobs queue batch | Yes | `settings.manage` | Body: `limit`, `max_seconds` |
 | GET | `/api/v1/modules/diagnostics` | System diagnostics for all modules | Yes | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-url` | Set from URL | Yes | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-file` | Set from file | Yes | `settings.manage` | `multipart/form-data` |
+| POST | `/api/v1/modules/install-from-url` | Set from URL | Yes | `module.install` | — |
+| POST | `/api/v1/modules/install-from-file` | Set from file | Yes | `module.install` | — |
 
 ### Module marketplace
 
@@ -1314,7 +1314,7 @@ Read-only proxy to the official module marketplace (`https://marketplace.tropatt
 | GET | `/api/v1/marketplace/catalog` | Marketplace catalog | Yes | `settings.manage` | Filters: `q`, `category`, `page`, `limit` |
 | GET | `/api/v1/marketplace/categories` | Marketplace categories | Yes | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Marketplace module details | Yes | `settings.manage` | Includes published releases |
-| POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `settings.manage` | Root only. Body: `full_code`, `activate` |
+| POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `module.install` | Root only. Body: `full_code`, `activate` |
 
 Install answers are explicit about the state of the installation: `ALREADY_INSTALLED` (409) when the module is registered, `MODULE_DISCOVERED_LOCALLY` (409) when its files are present but it is not registered (install it from the local copy, `POST /api/v1/modules/{code}/install` — the remote installer refuses an existing target directory), `MARKETPLACE_PACKAGE_MISMATCH` (502) when the published package declares a different module code than the catalog, and `INVALID_PARAM` (400) when `full_code` is not a `<vendor>.<module>` code.
 

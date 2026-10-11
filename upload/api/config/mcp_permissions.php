@@ -331,7 +331,7 @@ return [
     'crm_get_worklog_summary' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_get_worklog_task_summary' => ['mode' => 'all', 'permissions' => ['task.manage']],
     'crm_import_knowledge_pages' => ['mode' => 'all', 'permissions' => ['knowledge.create']],
-    'crm_install_module' => ['mode' => 'all', 'permissions' => ['settings.manage']],
+    'crm_install_module' => ['mode' => 'all', 'permissions' => ['module.install']],
     // crm_install_module_from_file / crm_install_module_from_url removed from
     // MCP surface (C-2): these accept base64/ZIP payloads from an LLM reading
     // untrusted text — prompt-injection vector. Install URL/file remain

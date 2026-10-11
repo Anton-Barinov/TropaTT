@@ -1139,7 +1139,7 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/admin/languages` | Список языков в панели | Да | `settings.manage` | Список всех установленных языков и их статус |
 | POST | `/api/v1/admin/languages/toggle` | Переключение активности языка | Да | `settings.manage` | Включение или отключение локали |
 | POST | `/api/v1/admin/languages/default` | Установка языка по умолчанию | Да | `settings.manage` | Смена дефолтной локали CRM |
-| POST | `/api/v1/admin/languages/install` | Установка языкового пакета | Да | `settings.manage` | Установка из ZIP-файла или по URL маркетплейса |
+| POST | `/api/v1/admin/languages/install` | Установка языкового пакета | Да | `language_pack.install` | Установка из ZIP-файла или по URL маркетплейса |
 | GET | `/api/v1/admin/languages/{code}/export` | Экспорт языкового пакета | Да | `settings.manage` | Выгрузка пакета локализации в ZIP-архив |
 | DELETE | `/api/v1/admin/languages/{code}` | Удаление языкового пакета | Да | `settings.manage` | Удаление пользовательского языкового пакета |
 
@@ -1284,7 +1284,7 @@ TropaTT реализует унифицированный протокол ве�
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/modules` | Список модулей | Да | `settings.manage` | — |
 | GET | `/api/v1/modules/{name}` | Информация о модуле | Да | `settings.manage` | — |
-| POST | `/api/v1/modules/{name}/install` | Установка модуля | Да | `settings.manage` | — |
+| POST | `/api/v1/modules/{name}/install` | Установка модуля | Да | `module.install` | — |
 | POST | `/api/v1/modules/{name}/activate` | Активация модуля | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/deactivate` | Деактивация модуля | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/{name}/uninstall` | Удаление модуля | Да | `settings.manage` | — |
@@ -1298,8 +1298,8 @@ TropaTT реализует унифицированный протокол ве�
 | DELETE | `/api/v1/modules/{name}/errors` | Очистка ошибок | Да | `settings.manage` | — |
 | POST | `/api/v1/modules/queue/tick` | Запуск пакета фоновой очереди задач модулей | Да | `settings.manage` | Body: `limit`, `max_seconds` |
 | GET | `/api/v1/modules/diagnostics` | Системная диагностика всех установленных модулей | Да | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-url` | Установка из URL | Да | `settings.manage` | — |
-| POST | `/api/v1/modules/install-from-file` | Установка из файла | Да | `settings.manage` | `multipart/form-data` |
+| POST | `/api/v1/modules/install-from-url` | Установка из URL | Да | `module.install` | — |
+| POST | `/api/v1/modules/install-from-file` | Установка из файла | Да | `module.install` | — |
 
 ### Маркетплейс модулей
 
@@ -1310,7 +1310,7 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/marketplace/catalog` | Каталог маркетплейса | Да | `settings.manage` | Фильтры: `q`, `category`, `page`, `limit` |
 | GET | `/api/v1/marketplace/categories` | Категории маркетплейса | Да | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Детали модуля маркетплейса | Да | `settings.manage` | Включает опубликованные релизы |
-| POST | `/api/v1/marketplace/install` | Установка модуля из маркетплейса | Да | `settings.manage` | Только root. Body: `full_code`, `activate` |
+| POST | `/api/v1/marketplace/install` | Установка модуля из маркетплейса | Да | `module.install` | Только root. Body: `full_code`, `activate` |
 
 Ответы установки явно называют состояние установки: `ALREADY_INSTALLED` (409) — модуль зарегистрирован, `MODULE_DISCOVERED_LOCALLY` (409) — файлы модуля уже есть в CRM, но он не зарегистрирован (ставьте локальную копию: `POST /api/v1/modules/{code}/install`; удалённый установщик не пишет поверх существующего каталога), `MARKETPLACE_PACKAGE_MISMATCH` (502) — пакет маркетплейса объявляет другой код модуля, чем каталог, и `INVALID_PARAM` (400) — `full_code` не является кодом вида `<vendor>.<module>`.
 

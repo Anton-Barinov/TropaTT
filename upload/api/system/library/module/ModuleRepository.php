@@ -42,7 +42,19 @@ final class ModuleRepository
 
         $tmp = sys_get_temp_dir() . '/crm_mod_' . bin2hex(random_bytes(4)) . '.zip';
 
-        $content = file_get_contents($url);
+        $context = stream_context_create([
+            'http' => [
+                'follow_location' => 0,
+                'max_redirects' => 0,
+                'timeout' => 15,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $content = @file_get_contents($url, false, $context);
         if ($content === false) {
             throw new \RuntimeException("Cannot download module: {$name} v{$version}");
         }

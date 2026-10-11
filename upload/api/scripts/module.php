@@ -611,8 +611,33 @@ function cmd_sign(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
         exit(1);
     }
 
-    $hash = hash('sha256', $manifestContent);
-    out("Signature (SHA256): {$hash}");
+    // SEC (audit 2026-10, finding #11): this tool used to print a plain
+    // SHA-256 of the raw manifest bytes, while ModuleRemoteInstaller::
+    // verifyPackageSignature() expects HMAC-SHA256 over the manifest JSON
+    // re-encoded WITHOUT the signature field (JSON_UNESCAPED_SLASHES |
+    // JSON_UNESCAPED_UNICODE) keyed by MODULE_SIGNING_KEY. Signatures from the
+    // old tool never verified. Compute exactly what the verifier will check.
+    $signingKey = trim((string)(getenv('MODULE_SIGNING_KEY') ?: ''));
+    if ($signingKey === '') {
+        err("\xE2\x9C\x97 MODULE_SIGNING_KEY is not set in the environment.");
+        exit(1);
+    }
+
+    $data = json_decode($manifestContent, true);
+    if (!is_array($data)) {
+        err("\xE2\x9C\x97 Manifest is not valid JSON.");
+        exit(1);
+    }
+
+    unset($data['signature']);
+    $payload = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($payload)) {
+        err("\xE2\x9C\x97 Cannot encode manifest for signing.");
+        exit(1);
+    }
+
+    $signature = hash_hmac('sha256', $payload, $signingKey);
+    out("Signature (HMAC-SHA256): {$signature}");
 }
 
 function cmd_package(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm, HookManager $hm, PDO $pdo, bool $json, array $args, string $projectRoot): void

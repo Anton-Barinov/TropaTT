@@ -966,7 +966,7 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 | `crm_update_feature_flag` | Update feature flag | settings.manage | update |
 | `crm_list_modules` | List modules | settings.manage | none |
 | `crm_get_module` | Get module | settings.manage | none |
-| `crm_install_module` | Install module | settings.manage | install |
+| `crm_install_module` | Install module | module.install | install |
 | `crm_activate_module` | Activate module | settings.manage | update |
 | `crm_deactivate_module` | Deactivate module | settings.manage | update |
 | `crm_uninstall_module` | Uninstall module | settings.manage | delete |
