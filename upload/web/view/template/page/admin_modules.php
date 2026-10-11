@@ -2,7 +2,7 @@
 <?php $title = $t('admin_modules.title', 'TropaTT — Модули'); ?>
 <body data-page="admin-modules" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-admin-page crm-admin-modules-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_modules.link_admin"><?= htmlspecialchars($t('admin_modules.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="admin_modules.breadcrumb"><?= htmlspecialchars($t('admin_modules.breadcrumb', 'Модули'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="admin_modules.page_title"><?= htmlspecialchars($t('admin_modules.page_title', 'Модули'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_modules.subtitle"><?= htmlspecialchars($t('admin_modules.subtitle', 'Управление модулями расширения: установка, активация, деактивация и удаление.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><a class="btn crm-btn-primary" href="index.php?route=admin-modules-install" data-i18n="admin_modules.link_install_module"><i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.link_install_module', 'Установить модуль'), ENT_QUOTES, 'UTF-8') ?></a></div></div>
+<main class="crm-content crm-admin-page crm-admin-modules-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_modules.link_admin"><?= htmlspecialchars($t('admin_modules.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="admin_modules.breadcrumb"><?= htmlspecialchars($t('admin_modules.breadcrumb', 'Модули'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="admin_modules.page_title"><?= htmlspecialchars($t('admin_modules.page_title', 'Модули'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="admin_modules.subtitle"><?= htmlspecialchars($t('admin_modules.subtitle', 'Управление модулями расширения: установка, активация, деактивация и удаление.'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions"><a class="btn crm-btn-primary" id="linkInstallModule" href="index.php?route=admin-modules-install" data-i18n="admin_modules.link_install_module"><i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.link_install_module', 'Установить модуль'), ENT_QUOTES, 'UTF-8') ?></a></div></div>
 
 <!--
   Segmented view switcher, the same control the rest of the admin area uses
@@ -85,6 +85,11 @@
     var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
+    var canInstall = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
+    if (!canInstall) {
+        var linkInstall = document.getElementById('linkInstallModule');
+        if (linkInstall) linkInstall.style.display = 'none';
+    }
 
     function esc(value) {
         if (window.CRM && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function') {
@@ -177,7 +182,7 @@
             ['bulkPurgeBtn', 'purge']
         ].forEach(function (entry) {
             var button = document.getElementById(entry[0]);
-            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0;
+            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0 || (entry[1] === 'install' && !canInstall);
         });
         updateSelectAllState();
     }
@@ -239,7 +244,7 @@
                 state.modulesError = false;
                 setTabCount('moduleInstalledCount', modules.length);
                 if (modules.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty', 'Модули не найдены.') + ' <a href="index.php?route=admin-modules-install">' + window.CRM.i18n.t('admin_modules.link_install_first', 'Установить первый модуль') + '</a></td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty', 'Модули не найдены.') + (canInstall ? ' <a href="index.php?route=admin-modules-install">' + window.CRM.i18n.t('admin_modules.link_install_first', 'Установить первый модуль') + '</a>' : '') + '</td></tr>';
                     renderFilters();
                     updateBulkToolbar();
                     mpRefreshCardStates();
@@ -328,7 +333,7 @@
             var statusText = m.is_active ? window.CRM.i18n.t('admin_modules.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_modules.state_installed', 'Установлен') : window.CRM.i18n.t('admin_modules.state_discovered', 'Обнаружен'));
             var actions = '';
             if (m.status === 'not_installed') {
-                actions = '<button class="btn btn-sm crm-btn-primary module-install me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_install', 'Установить модуль') + '" data-i18n-title="admin_modules.title_install" aria-label="' + window.CRM.i18n.t('admin_modules.aria_install', 'Установить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules.btn_install', 'Установить') + '</button>';
+                actions = canInstall ? '<button class="btn btn-sm crm-btn-primary module-install me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_install', 'Установить модуль') + '" data-i18n-title="admin_modules.title_install" aria-label="' + window.CRM.i18n.t('admin_modules.aria_install', 'Установить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules.btn_install', 'Установить') + '</button>' : '';
             } else if (m.is_active) {
                 actions = '<button class="btn btn-sm crm-btn-warning module-deact me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_deactivate', 'Деактивировать модуль') + '" data-i18n-title="admin_modules.title_deactivate" aria-label="' + window.CRM.i18n.t('admin_modules.aria_deactivate', 'Деактивировать модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_deactivate"><i class="fa-solid fa-pause" aria-hidden="true"></i></button>';
                 actions += '<button class="btn btn-sm crm-btn-danger-icon module-remove" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_remove', 'Удалить модуль') + '" data-i18n-title="admin_modules.title_remove" aria-label="' + window.CRM.i18n.t('admin_modules.aria_remove', 'Удалить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_remove"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';

@@ -525,7 +525,6 @@ final class ModuleController
 
     public function installFromUrl(array $params = []): JsonResponse
     {
-        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $input = $this->request()->allInput();
         $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
         if ($url === '') {
@@ -558,7 +557,6 @@ final class ModuleController
 
     public function installFromFile(array $params = []): JsonResponse
     {
-        if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $input = $this->request()->allInput();
         $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
         if ($fileData === '') {

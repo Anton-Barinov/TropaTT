@@ -945,7 +945,7 @@ $adminRoutePermissions = [
     // Recurring task templates live in the admin hub; their API is task-scoped.
     'recurring' => ['task.manage'],
     'admin-modules' => ['settings.manage', 'module.install'],
-    'admin-modules-install' => ['settings.manage', 'module.install'],
+    'admin-modules-install' => ['module.install'],
     'admin-module-detail' => ['settings.manage', 'module.install'],
     'admin-updates' => ['settings.manage'],
     // Estimate sets/options are project-scoped: /api/v1/estimate-sets etc.
