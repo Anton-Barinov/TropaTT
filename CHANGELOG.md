@@ -6,6 +6,38 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+## [v0.2.0.14] - 2026-10-11
+
+### Highlights
+
+- **Granular Permissions for Module & Language Management**:
+  - **`module.install` permission enforcement**: Module uploads, installations, and one-click marketplace installations are now strictly gated behind the dedicated `module.install` permission across web routes (`admin-modules-install`, `admin-modules-upload`) and REST/MCP controllers. Non-root administrators without this permission are restricted from installing or uploading extensions.
+  - **`language.install` and `language.manage` permissions**: Language pack uploads, archive extraction, settings updates, and deletions (`admin-languages`) are protected by granular permission checks. Language management is cleanly separated from general administration.
+  - **Full multilingual translations for new permissions**: Added localized display labels and descriptions for `module.install`, `language.install`, and `language.manage` across all 5 supported locales (`ru-ru`, `en-gb`, `es-es`, `de-de`, `zh-cn`).
+- **Path Containment & Security Hardening**:
+  - **Template and route path traversal defense**: Hardened template loading and dynamic route resolution using canonical `realpath` checks strictly bounded within allowed template and controller directories, eliminating LFI risks.
+  - **SSRF and webhook protection**: Enhanced hostname and private IP validation on outgoing HTTP requests and webhook deliveries.
+- **Updater Resilience, Self-Healing & Storage Bounding**:
+  - **UI-driven update recovery**: If an update is interrupted during file application, the admin updates screen (`admin-updates`) detects the interrupted state and provides automatic one-click healing to complete or roll back the update safely.
+  - **Bounded disk usage**: Automatically cleans up stale staging directories, temporary packages, and old backup archives, preventing disk exhaustion during frequent updates.
+  - **Non-POSIX host support**: Added graceful fallbacks for environments where PHP `ext-posix` is not available, ensuring smooth updates across restricted shared hostings.
+  - **Lease fencing**: Solid release locking and conflict prevention, eliminating duplicate simultaneous update processes.
+- **Concurrency & Pipeline Stability**:
+  - Built-in `AgentLeaseService` and `AgentJournalService` with atomic task fencing and retry idempotency.
+  - Full local test runner verification suite passing all 3 740+ unit, integration, and security checks.
+
+### Security
+
+- **Enforced granular RBAC on module installation**: Restricted web and API endpoints for uploading and installing modules behind `module.install` (`isRoot() || hasPermission('module.install')`).
+- **Enforced granular RBAC on language pack management**: Restricted language upload, install, delete, and settings behind `language.install` and `language.manage`.
+- **Filesystem boundary containment**: Enforced strict realpath containment checks against base template and controller directories to prevent path traversal attacks.
+
+### Fixed
+
+- **ModuleAutoloader web controller resolution**: Resolved issue where `ModuleAutoloader` did not resolve web controllers with the `...\Web\Controller` namespace, eliminating HTTP 500 errors on routes like `module-automation-hub`.
+- **Interrupted updater resume**: Prevented updater package downloads from being truncated on network disconnects, and preserved rollback points during multi-step applies.
+- **Installer SQL comment parsing**: Fixed MySQL script runner to properly parse SQL comments and seed localized demo data cleanly.
+
 ## [v0.2.0.13] - 2026-10-10
 
 ### Highlights
