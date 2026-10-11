@@ -10797,5 +10797,7 @@ return array (
     'install_failed' => 'Failed to install language pack',
     'delete_success' => 'Language pack deleted successfully',
     'delete_failed' => 'Failed to delete language pack',
+    'manage_required' => 'Permission to manage settings is required',
+    'install_denied' => 'Insufficient permissions to install language packs',
   ),
 );
