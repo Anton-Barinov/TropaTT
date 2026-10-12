@@ -4754,6 +4754,7 @@ window.CRM.br1 = (function () {
             reasonTarget.textContent = '"' + statusLabel(currentTask ? currentTask.status_code : '') + '" → "' + statusLabel(targetStatus) + '"';
           }
           if (String(currentTask && currentTask.status_code || '') === targetStatus) {
+            closeReasonForm(false);
             notify(window.CRM.i18n.t('task_detail.status_conflict_already_applied', 'Другой запрос уже установил выбранный статус. Причина из этой формы не подтверждена и не была отправлена повторно.'), 'warning');
           } else {
             notify(window.CRM.i18n.t('task_detail.status_conflict_reloaded', 'Задача изменилась параллельно. Данные обновлены; проверьте новый статус и подтвердите переход ещё раз.'), 'warning');
