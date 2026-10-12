@@ -489,8 +489,21 @@ final class TaskController extends BaseController
             'actor_id' => (int)($authUser['user']['id'] ?? 0),
         ]);
 
-        $this->invalidateTaskCaches();
-        $item = $this->attachCustomFields($item, $authUser['user']);
+        // These reads/cache writes happen after TaskService committed the task.
+        // A failure here must not report the committed status transition as a
+        // failed PATCH: the caller would retry with an old row_version.
+        try {
+            $this->invalidateTaskCaches();
+        } catch (\Throwable $error) {
+            AppLog::error('[TaskController::update] post-commit task-cache invalidation failed: ' . $error->getMessage());
+        }
+        try {
+            $item = $this->attachCustomFields($item, $authUser['user']);
+        } catch (\Throwable $error) {
+            AppLog::error('[TaskController::update] post-commit custom-field read failed for task '
+                . (string)($item['public_id'] ?? '') . ': ' . $error->getMessage());
+            $item['custom_fields'] = [];
+        }
 
         return $this->success('TASK_UPDATED', $this->t('task/messages.updated'), [
             'task' => $item,

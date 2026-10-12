@@ -4723,9 +4723,49 @@ window.CRM.br1 = (function () {
         renderStatusMenu();
         await loadTaskActivity(taskId);
         notify(window.CRM.i18n.t('js.br1.status_zadachi_obnovlen', 'Статус задачи обновлен'));
+        return true;
       } catch (error) {
         var envelopeError = error && error.envelope ? error.envelope : null;
+        var errorCode = String((envelopeError && envelopeError.code) || '');
+        var refreshed = false;
+        if (errorCode === 'ROW_VERSION_CONFLICT' || Number(error && error.status) >= 500) {
+          try {
+            var latestEnvelope = await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId), {
+              method: 'GET',
+              noCache: true,
+              noDedupe: true
+            });
+            var latestTask = extractTaskPayload(latestEnvelope);
+            if (latestTask) {
+              currentTask = mergeTaskState(latestTask);
+              renderTaskStatus(currentTask.status_code || '');
+              renderTaskMetaChips();
+              renderTaskProgressByStatus(currentTask.status_code || '');
+              renderTaskRiskBanner();
+              renderStatusMenu();
+              refreshed = true;
+            }
+          } catch (refreshError) {
+            // Preserve the original mutation error; the task card remains unchanged.
+          }
+        }
+        if (errorCode === 'ROW_VERSION_CONFLICT') {
+          if (reasonTarget) {
+            reasonTarget.textContent = '"' + statusLabel(currentTask ? currentTask.status_code : '') + '" → "' + statusLabel(targetStatus) + '"';
+          }
+          if (String(currentTask && currentTask.status_code || '') === targetStatus) {
+            notify(window.CRM.i18n.t('task_detail.status_conflict_already_applied', 'Другой запрос уже установил выбранный статус. Причина из этой формы не подтверждена и не была отправлена повторно.'), 'warning');
+          } else {
+            notify(window.CRM.i18n.t('task_detail.status_conflict_reloaded', 'Задача изменилась параллельно. Данные обновлены; проверьте новый статус и подтвердите переход ещё раз.'), 'warning');
+          }
+          return false;
+        }
+        if (Number(error && error.status) >= 500 && refreshed) {
+          notify(window.CRM.i18n.t('task_detail.status_result_reloaded', 'Ответ сервера не подтвердил сохранение. Данные задачи обновлены; проверьте статус и историю перед повтором.'), 'warning');
+          return false;
+        }
         notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_obnovit_status', 'Не удалось обновить статус'), 'error');
+        return false;
       }
     }
 
@@ -4769,10 +4809,25 @@ window.CRM.br1 = (function () {
           notify(window.CRM.i18n.t('js.br1.snachala_vyberite_novyy_status', 'Сначала выберите новый статус'), 'warning');
           return;
         }
+        if (String(currentTask && currentTask.status_code || '') === pendingStatus) {
+          notify(window.CRM.i18n.t('task_detail.status_conflict_already_applied', 'Другой запрос уже установил выбранный статус. Причина из этой формы не подтверждена и не была отправлена повторно.'), 'warning');
+          return;
+        }
         var reason = reasonInput ? String(reasonInput.value || '').trim() : '';
-        await updateTaskStatus(pendingStatus, reason);
-        if (currentTask && String(currentTask.status_code || '') === String(pendingStatus)) {
-          closeReasonForm(false);
+        var submitButton = reasonForm.querySelector('button[type="submit"]');
+        if (submitButton && submitButton.disabled) return;
+        if (submitButton) {
+          submitButton.disabled = true;
+          submitButton.setAttribute('aria-busy', 'true');
+        }
+        try {
+          var saved = await updateTaskStatus(pendingStatus, reason);
+          if (saved) closeReasonForm(false);
+        } finally {
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+          }
         }
       });
       reasonForm.dataset.bound = '1';

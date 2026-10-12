@@ -473,7 +473,7 @@ final class TaskService
             }
             $result = $this->updateWithinTransaction($publicId, $input, $actorUserId, $actor);
             if (is_array($result)) {
-                $this->semanticIndex?->removeEntityDocument('task', $publicId);
+                $this->removeTaskFromSemanticIndexBestEffort($publicId);
             }
             return $result;
         }
@@ -603,7 +603,10 @@ final class TaskService
                 }
             }
             $this->pdo->commit();
-            $this->semanticIndex?->removeEntityDocument('task', $publicId);
+            // The task and its status-reason activity are committed. Search-index
+            // maintenance is optional and must not turn that successful mutation
+            // into an HTTP 500, which makes a retry fail with a stale row_version.
+            $this->removeTaskFromSemanticIndexBestEffort($publicId);
             return $result;
         } catch (\Throwable $error) {
             $this->mutationLockedTasks = null;
@@ -611,6 +614,19 @@ final class TaskService
                 $this->pdo->rollBack();
             }
             throw $error;
+        }
+    }
+
+    private function removeTaskFromSemanticIndexBestEffort(string $publicId): void
+    {
+        if ($this->semanticIndex === null) {
+            return;
+        }
+        try {
+            $this->semanticIndex->removeEntityDocument('task', $publicId);
+        } catch (\Throwable $error) {
+            AppLog::error('[TaskService] post-commit semantic-index cleanup failed for task '
+                . $publicId . ': ' . $error->getMessage());
         }
     }
 
