@@ -1552,9 +1552,16 @@ CREATE TABLE IF NOT EXISTS `idempotency_keys` (
   `key_hash` varchar(255) DEFAULT NULL,
   `route` varchar(255) DEFAULT NULL,
   `response_payload` text DEFAULT NULL,
+  `actor_public_id` varchar(64) DEFAULT NULL,
+  `organization_public_id` varchar(64) DEFAULT NULL,
+  `request_hash` varchar(255) DEFAULT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'completed',
+  `completed_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `public_id` (`public_id`)
+  UNIQUE KEY `public_id` (`public_id`),
+  UNIQUE KEY `uq_idempotency_keys_key_hash` (`key_hash`),
+  KEY `idx_idempotency_keys_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -3817,7 +3824,8 @@ INSERT IGNORE INTO `migrations` (`migration_key`, `description`, `applied_at`) V
 ('20260927_000001_organization_scope_extended', 'Re-ensure organization_id on every workspace-scoped table (repairs installs that ran an earlier scope migration body)', NOW()),
 ('20260929_000001_subtask_organization_backfill', 'Backfill tasks.organization_id for subtasks from their parent tasks', NOW()),
 ('20261001_000001_module_job_contexts', 'Create workspace context and idempotency storage for module jobs', NOW()),
-('20261002_000001_connector_primitives', 'Create connector credentials and idempotency tables', NOW());
+('20261002_000001_connector_primitives', 'Create connector credentials and idempotency tables', NOW()),
+('20261013_000001_idempotency_claim_hardening', 'Idempotency keys: actor/organization/request binding, atomic in-flight claims, retention columns', NOW());
 
 
 -- Baseline core permissions

@@ -156,7 +156,13 @@ All IDs are ULIDs (26 characters). `row_version` is an integer used for optimist
 
 ### Idempotency
 
-The `X-Idempotency-Key` header prevents duplicate operations and provides replay protection across state mutations.
+The `X-Idempotency-Key` header prevents duplicate operations and provides replay protection across state mutations. The stored record is bound to the actor, the active workspace, the route and a hash of the exact request body:
+
+- An identical retry (same actor, workspace, route, key and body) replays the original response with `meta.idempotency_replayed: true`.
+- The same key with a different body returns `409` (`IDEMPOTENCY_PAYLOAD_MISMATCH`).
+- The same key while the original request is still executing returns `409` (`IDEMPOTENCY_IN_PROGRESS`) with `meta.retry_after` in seconds; retry after that window. A claim abandoned by a crashed request is taken over automatically after 120 seconds.
+- A key issued in another workspace never replays across workspaces (`IDEMPOTENCY_ORG_MISMATCH` as a defence-in-depth guard).
+- Completed records are retained for 7 days and then removed automatically.
 
 ### Optimistic Concurrency Control (STORM)
 
