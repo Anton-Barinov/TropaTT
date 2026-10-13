@@ -43,7 +43,10 @@ final class InstalledSnapshotReader
         if (!is_array($manifestInfo) || is_link($manifestPath) || !is_string($manifestBytes)) {
             throw new \RuntimeException('SNAPSHOT_MANIFEST_INVALID');
         }
-        $manifestDigest = hash('sha256', $manifestBytes);
+        // Match UpdaterKernel's signed-manifest digest, rather than hashing
+        // pretty-printed JobState bytes. Whitespace and key insertion order
+        // are serialization details and must not change manifest identity.
+        $manifestDigest = hash('sha256', $this->canonicalJson($manifest));
         if (($job['state'] ?? null) !== 'applied'
             || ($installed['state'] ?? null) !== 'installed'
             || ($installed['last_job_id'] ?? null) !== $jobId
@@ -268,6 +271,23 @@ final class InstalledSnapshotReader
         }
         ksort($map, SORT_STRING);
         return hash('sha256', json_encode($map, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    private function canonicalJson(array $value): string
+    {
+        $normalize = static function (mixed $item) use (&$normalize): mixed {
+            if (!is_array($item)) {
+                return $item;
+            }
+            if (!array_is_list($item)) {
+                ksort($item);
+            }
+            foreach ($item as $key => $child) {
+                $item[$key] = $normalize($child);
+            }
+            return $item;
+        };
+        return json_encode($normalize($value), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     private function migrationSummary(array $report, array $databaseStatus): array
