@@ -274,7 +274,30 @@ final class UpdaterKernel
                 $this->basePath, $this->storageDir,
                 $this->effectiveProtectedPaths($installedManifest)
             );
-            $snapshot = $reader->read($installedJob, $cursor, $limit);
+            $expectedFiles = $input['expected_files'] ?? null;
+            if ($expectedFiles !== null && !is_array($expectedFiles)) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_FILES_INVALID', 'Expected baseline files are invalid.', 400);
+            }
+            $expectedTotal = $input['expected_total'] ?? null;
+            if ($expectedFiles !== null && (!is_int($expectedTotal) || $expectedTotal < 1 || $expectedTotal > 100000)) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_TOTAL_INVALID', 'Expected baseline size is invalid.', 400);
+            }
+            $expectedMapSha = $input['expected_file_map_sha256'] ?? null;
+            $expectedSourceSha = $input['expected_source_sha'] ?? null;
+            if ($expectedFiles !== null
+                && (!is_string($expectedMapSha) || !is_string($expectedSourceSha))) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_BINDING_INVALID', 'Expected baseline binding is invalid.', 400);
+            }
+            $snapshot = $reader->read(
+                $installedJob,
+                $cursor,
+                $limit,
+                $expectedFiles,
+                is_int($expectedTotal) ? $expectedTotal : null,
+                is_string($expectedMapSha) ? strtolower($expectedMapSha) : null,
+                is_string($expectedSourceSha) ? strtolower($expectedSourceSha) : null,
+                array_values(array_map('strval', (array)($this->config['core_paths'] ?? [])))
+            );
         } catch (\Throwable $error) {
             return JsonResponse::error('INSTALLED_SNAPSHOT_READBACK_FAILED', 'The current installation could not be verified.', 409);
         }
