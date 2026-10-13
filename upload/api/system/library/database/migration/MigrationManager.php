@@ -121,6 +121,7 @@ final class MigrationManager
             new ConnectorPrimitivesMigration(),
             new AiAgentNameCleanupMigration(),
             new InstallGranularPermissionsMigration(),
+            new IdempotencyClaimHardeningMigration(),
         ];
     }
 

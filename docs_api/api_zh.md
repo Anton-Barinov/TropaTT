@@ -154,7 +154,13 @@ Authorization: Bearer <token>
 
 ### 幂等性
 
-`X-Idempotency-Key` 请求头可防止重复操作，在网络波动和状态突变中提供防重放保护。
+`X-Idempotency-Key` 请求头可防止重复操作，在网络波动和状态突变中提供防重放保护。存储记录绑定到操作者、当前 workspace、路由以及请求体精确哈希：
+
+- 完全相同的重试（同一操作者、workspace、路由、密钥和请求体）将重放原始响应，并带有 `meta.idempotency_replayed: true`。
+- 同一密钥但请求体不同将返回 `409`（`IDEMPOTENCY_PAYLOAD_MISMATCH`）。
+- 原始请求仍在执行时收到同一密钥将返回 `409`（`IDEMPOTENCY_IN_PROGRESS`），并在 `meta.retry_after` 中给出秒数；请在该窗口后重试。崩溃请求遗留的占用会在 120 秒后被自动接管。
+- 在其他 workspace 签发的密钥绝不会跨 workspace 重放（`IDEMPOTENCY_ORG_MISMATCH` 作为纵深防御）。
+- 已完成的记录保留 7 天后自动清除。
 
 ### 乐观并发控制 (STORM)
 

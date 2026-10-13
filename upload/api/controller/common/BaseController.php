@@ -133,13 +133,13 @@ abstract class BaseController
         $request = $this->request();
         $actor = $this->user()['user'] ?? null;
 
-        $replayed = $service->replay($request, is_array($actor) ? $actor : null);
-        if ($replayed instanceof JsonResponse) {
-            return $replayed;
+        $shortCircuit = $service->begin($request, is_array($actor) ? $actor : null);
+        if ($shortCircuit instanceof JsonResponse) {
+            return $shortCircuit;
         }
 
         $response = $producer();
-        $service->remember($request, is_array($actor) ? $actor : null, $response);
+        $service->complete($response);
 
         return $response;
     }
