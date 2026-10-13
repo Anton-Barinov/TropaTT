@@ -665,6 +665,10 @@ final class UpdaterKernel
                     throw new \RuntimeException('Update lock was lost; another update may have started. Roll back or retry the update.');
                 }
                 (new MaintenanceMode($this->basePath))->enable($jobId);
+                // Persist the maintenance ownership alongside the flag before
+                // returning any backup-gate checkpoint. The checkpoint reader
+                // validates both records and must not infer one from the other.
+                $state->write(['maintenance_held' => true]);
                 // A failed attempt is being retried: clear the failure marker
                 // so the page stops showing the stale error while the same
                 // job resumes from its stored progress.
@@ -695,6 +699,7 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'apply');
                 (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
                 (new MaintenanceMode($this->basePath))->enable($jobId);
+                $state->write(['maintenance_held' => true]);
                 // The whole apply is a resumable step machine: the file, DB
                 // backup, apply and migration phases all persist their cursor
                 // (apply_files even trims its journal back to the committed
