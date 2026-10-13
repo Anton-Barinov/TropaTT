@@ -21,7 +21,16 @@ final class InstalledSnapshotReader
     }
 
     /** @return array<string,mixed> */
-    public function read(string $jobId, int $cursor = 0, int $limit = 100): array
+    public function read(
+        string $jobId,
+        int $cursor = 0,
+        int $limit = 100,
+        ?array $expectedFilePage = null,
+        ?int $expectedTotal = null,
+        ?string $expectedFileMapSha256 = null,
+        ?string $expectedSourceSha = null,
+        array $corePaths = []
+    ): array
     {
         if (preg_match('/\A[A-Za-z0-9_-][A-Za-z0-9._-]{0,79}\z/D', $jobId) !== 1
             || $cursor < 0 || $limit < 1 || $limit > 100) {
@@ -43,7 +52,10 @@ final class InstalledSnapshotReader
         if (!is_array($manifestInfo) || is_link($manifestPath) || !is_string($manifestBytes)) {
             throw new \RuntimeException('SNAPSHOT_MANIFEST_INVALID');
         }
-        $manifestDigest = hash('sha256', $manifestBytes);
+        // Match UpdaterKernel's signed-manifest digest, rather than hashing
+        // pretty-printed JobState bytes. Whitespace and key insertion order
+        // are serialization details and must not change manifest identity.
+        $manifestDigest = hash('sha256', $this->canonicalJson($manifest));
         if (($job['state'] ?? null) !== 'applied'
             || ($installed['state'] ?? null) !== 'installed'
             || ($installed['last_job_id'] ?? null) !== $jobId
@@ -60,14 +72,32 @@ final class InstalledSnapshotReader
             throw new \RuntimeException('SNAPSHOT_UPDATE_IN_PROGRESS');
         }
 
-        $expected = $this->expectedFiles($manifest);
-        if (count($expected) > 100000) {
+        $externalMap = $expectedFilePage !== null;
+        if ($externalMap) {
+            $expected = $this->validateExpectedFilePage(
+                $expectedFilePage,
+                $expectedTotal,
+                $expectedFileMapSha256,
+                $expectedSourceSha,
+                $targetSha,
+                $cursor,
+                $limit,
+                $corePaths
+            );
+            $total = $expectedTotal;
+            $mapDigest = strtolower((string)$expectedFileMapSha256);
+        } else {
+            $expected = $this->expectedFiles($manifest);
+            $total = count($expected);
+            $mapDigest = $this->canonicalFileMapDigest($expected);
+        }
+        if ($total > 100000) {
             throw new \RuntimeException('SNAPSHOT_MANIFEST_TOO_MANY_FILES');
         }
-        if ($cursor > count($expected)) {
+        if ($cursor > $total) {
             throw new \InvalidArgumentException('SNAPSHOT_CURSOR_INVALID');
         }
-        $page = array_slice($expected, $cursor, $limit);
+        $page = $externalMap ? $expected : array_slice($expected, $cursor, $limit);
         $root = realpath($this->basePath);
         if ($root === false) {
             throw new \RuntimeException('SNAPSHOT_ROOT_UNAVAILABLE');
@@ -124,11 +154,12 @@ final class InstalledSnapshotReader
             'source_sha' => $targetSha,
             'build' => $build,
             'job_manifest_sha256' => $manifestDigest,
-            'expected_file_map_sha256' => $this->canonicalFileMapDigest($expected),
             'cursor' => $cursor,
             'next_cursor' => $nextCursor,
-            'total' => count($expected),
-            'complete' => $nextCursor >= count($expected),
+            'expected_source_sha' => $targetSha,
+            'expected_file_map_sha256' => $mapDigest,
+            'total' => $total,
+            'complete' => $nextCursor >= $total,
             'files' => $files,
             'health_ok' => ($health['ok'] ?? null) === true,
             'migration_report_sha256' => hash('sha256', json_encode(
@@ -136,6 +167,64 @@ final class InstalledSnapshotReader
             )),
             'migrations' => $this->migrationSummary($migrationReport, $databaseStatus),
         ];
+    }
+
+    /** @return array<int,array{path:string,kind:string,sha256:string}> */
+    private function validateExpectedFilePage(
+        array $items,
+        ?int $total,
+        ?string $mapDigest,
+        ?string $sourceSha,
+        string $installedSha,
+        int $cursor,
+        int $limit,
+        array $corePaths
+    ): array {
+        if ($total === null || $total < 1 || $total > 100000
+            || $items === [] || !array_is_list($items) || count($items) > $limit
+            || $cursor + count($items) > $total
+            || count($items) !== min($limit, $total - $cursor)
+            || !is_string($mapDigest) || preg_match('/\A[a-f0-9]{64}\z/D', $mapDigest) !== 1
+            || !is_string($sourceSha) || preg_match('/\A[a-f0-9]{40}\z/D', $sourceSha) !== 1
+            || !hash_equals($installedSha, $sourceSha)
+            || $corePaths === [] || count($corePaths) > 256) {
+            throw new \InvalidArgumentException('SNAPSHOT_EXPECTED_FILE_PAGE_INVALID');
+        }
+
+        $guard = new PathGuard($this->protectedPaths);
+        $expected = [];
+        $previousPath = null;
+        foreach ($items as $item) {
+            if (!is_array($item) || array_is_list($item)
+                || count($item) !== 2 || !isset($item['path'], $item['sha256'])
+                || !is_string($item['path']) || !is_string($item['sha256'])
+                || $guard->normalize($item['path']) !== $item['path']
+                || !$guard->isAllowed($item['path'])
+                || !$this->matchesAnyCorePath($item['path'], $corePaths)
+                || preg_match('/\A[a-f0-9]{64}\z/D', $item['sha256']) !== 1
+                || ($previousPath !== null && strcmp($previousPath, $item['path']) >= 0)) {
+                throw new \InvalidArgumentException('SNAPSHOT_EXPECTED_FILE_PAGE_INVALID');
+            }
+            $expected[] = ['path' => $item['path'], 'kind' => 'file', 'sha256' => $item['sha256']];
+            $previousPath = $item['path'];
+        }
+        return $expected;
+    }
+
+    private function matchesAnyCorePath(string $path, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern) || $pattern === '' || strlen($pattern) > 256) {
+                continue;
+            }
+            $quoted = preg_quote($pattern, '#');
+            $quoted = str_replace('\\*\\*', '.*', $quoted);
+            $quoted = str_replace('\\*', '[^/]*', $quoted);
+            if (preg_match('#\\A' . $quoted . '\\z#D', $path) === 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function assertBoundedRegularFile(string $path, int $maxBytes): void
@@ -268,6 +357,23 @@ final class InstalledSnapshotReader
         }
         ksort($map, SORT_STRING);
         return hash('sha256', json_encode($map, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    private function canonicalJson(array $value): string
+    {
+        $normalize = static function (mixed $item) use (&$normalize): mixed {
+            if (!is_array($item)) {
+                return $item;
+            }
+            if (!array_is_list($item)) {
+                ksort($item);
+            }
+            foreach ($item as $key => $child) {
+                $item[$key] = $normalize($child);
+            }
+            return $item;
+        };
+        return json_encode($normalize($value), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     private function migrationSummary(array $report, array $databaseStatus): array

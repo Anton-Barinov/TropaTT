@@ -274,7 +274,30 @@ final class UpdaterKernel
                 $this->basePath, $this->storageDir,
                 $this->effectiveProtectedPaths($installedManifest)
             );
-            $snapshot = $reader->read($installedJob, $cursor, $limit);
+            $expectedFiles = $input['expected_files'] ?? null;
+            if ($expectedFiles !== null && !is_array($expectedFiles)) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_FILES_INVALID', 'Expected baseline files are invalid.', 400);
+            }
+            $expectedTotal = $input['expected_total'] ?? null;
+            if ($expectedFiles !== null && (!is_int($expectedTotal) || $expectedTotal < 1 || $expectedTotal > 100000)) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_TOTAL_INVALID', 'Expected baseline size is invalid.', 400);
+            }
+            $expectedMapSha = $input['expected_file_map_sha256'] ?? null;
+            $expectedSourceSha = $input['expected_source_sha'] ?? null;
+            if ($expectedFiles !== null
+                && (!is_string($expectedMapSha) || !is_string($expectedSourceSha))) {
+                return JsonResponse::error('INSTALLED_SNAPSHOT_EXPECTED_BINDING_INVALID', 'Expected baseline binding is invalid.', 400);
+            }
+            $snapshot = $reader->read(
+                $installedJob,
+                $cursor,
+                $limit,
+                $expectedFiles,
+                is_int($expectedTotal) ? $expectedTotal : null,
+                is_string($expectedMapSha) ? strtolower($expectedMapSha) : null,
+                is_string($expectedSourceSha) ? strtolower($expectedSourceSha) : null,
+                array_values(array_map('strval', (array)($this->config['core_paths'] ?? [])))
+            );
         } catch (\Throwable $error) {
             return JsonResponse::error('INSTALLED_SNAPSHOT_READBACK_FAILED', 'The current installation could not be verified.', 409);
         }
@@ -337,11 +360,50 @@ final class UpdaterKernel
 
         $package = $plan['recommended_package'] ?? null;
         if (!is_array($package)) {
+            // An exact-SHA request can legitimately resolve to the currently
+            // installed build. Preserve the signed manifest identity so a
+            // coordinator can prove what was resolved without pretending a
+            // package was downloaded or applied. This is not an apply gate:
+            // it is a read-only no-update receipt, and callers must use a
+            // separately accepted installed-target QA path before promotion.
+            $currentSha = strtolower(trim((string)($installedCore['source_sha'] ?? '')));
+            $resolvedSha = strtolower(trim((string)($plan['target_sha'] ?? '')));
+            if (($plan['update_available'] ?? null) !== false
+                || $currentSha === '' || $currentSha !== $resolvedSha
+                || !is_array($pinnedManifest)) {
+                throw new \UnexpectedValueException('PINNED_NO_UPDATE_TARGET_NOT_INSTALLED');
+            }
+            $noUpdateManifest = $pinnedManifest;
+            $noUpdatePackage = is_array($noUpdateManifest['package'] ?? null)
+                ? $noUpdateManifest['package'] : [];
+            $expectedProduct = UpdateCenterClient::expectedProductForDomain(
+                (string)$this->config['product'],
+                $client->installationDomain()
+            );
+            $manifestReport = (new ManifestVerifier(
+                (string)$this->config['public_key_path'],
+                $this->effectiveProtectedPaths($noUpdateManifest)
+            ))->verify($noUpdateManifest, $noUpdatePackage, $expectedProduct);
+            $manifestChecksPassed = ($noUpdateManifest['to_sha'] ?? null) === $resolvedSha
+                && ($manifestReport['schema_version'] ?? false) === true
+                && ($manifestReport['product'] ?? false) === true
+                && ($manifestReport['manifest_signature'] ?? false) === true
+                && ($manifestReport['package_sha'] ?? false) === true
+                && ($manifestReport['package_signature'] ?? false) === true
+                && ($manifestReport['no_forbidden_paths'] ?? false) === true;
+            if (!$manifestChecksPassed) {
+                throw new \UnexpectedValueException('PINNED_NO_UPDATE_MANIFEST_INVALID');
+            }
+            $manifestDigest = hash('sha256', $this->canonicalJson($noUpdateManifest));
             $report = ['ok' => true, 'update_available' => false, 'current_build' => $current,
                 'target_build' => (string)($plan['target_build'] ?? $current),
-                'target_sha' => (string)($plan['target_sha'] ?? ''),
-                'checks' => ['no_update' => true]];
+                'target_sha' => $resolvedSha,
+                'manifest_sha256' => $manifestDigest,
+                'manifest_report' => $manifestReport,
+                'checks' => ['no_update' => true, 'installed_source_sha_matches_target' => true,
+                    'signed_manifest_verified' => true]];
             $state->writeFile('plan.json', $plan);
+            $state->writeFile('manifest.json', $noUpdateManifest);
             $state->writeFile('preflight.json', $report);
             return JsonResponse::success(['job_id' => $jobId, 'preflight' => $report]);
         }
@@ -603,6 +665,10 @@ final class UpdaterKernel
                     throw new \RuntimeException('Update lock was lost; another update may have started. Roll back or retry the update.');
                 }
                 (new MaintenanceMode($this->basePath))->enable($jobId);
+                // Persist the maintenance ownership alongside the flag before
+                // returning any backup-gate checkpoint. The checkpoint reader
+                // validates both records and must not infer one from the other.
+                $state->write(['maintenance_held' => true]);
                 // A failed attempt is being retried: clear the failure marker
                 // so the page stops showing the stale error while the same
                 // job resumes from its stored progress.
@@ -633,6 +699,7 @@ final class UpdaterKernel
                 $this->verifyTokenIfPresent($input, 'apply');
                 (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->acquire($jobId);
                 (new MaintenanceMode($this->basePath))->enable($jobId);
+                $state->write(['maintenance_held' => true]);
                 // The whole apply is a resumable step machine: the file, DB
                 // backup, apply and migration phases all persist their cursor
                 // (apply_files even trims its journal back to the committed
