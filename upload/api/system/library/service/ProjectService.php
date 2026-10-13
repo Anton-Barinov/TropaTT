@@ -182,6 +182,12 @@ final class ProjectService
         $taskKeyPrefix = null;
         if (!empty($input['task_key_prefix'])) {
             $taskKeyPrefix = $this->resolveTaskKeyPrefix((string)$input['task_key_prefix'], null);
+            if ($taskKeyPrefix === null) {
+                // Fail closed: a NULL prefix insert would succeed silently because
+                // NULLs are exempt from uq_projects_task_key_prefix, dropping the
+                // requested key instead of reporting the conflict.
+                return 'PROJECT_TASK_PREFIX_ALREADY_EXISTS';
+            }
         } else {
             $taskKeyPrefix = $this->taskKeys?->generateProjectPrefix((string)($input['title'] ?? ''));
             $taskKeyPrefix = $this->taskKeys?->ensureUniqueProjectPrefix($taskKeyPrefix ?? 'PRJ', null) ?? 'PRJ';
