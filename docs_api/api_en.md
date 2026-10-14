@@ -255,6 +255,12 @@ To eliminate enum friction across external systems, AI agents, and frontend clie
 | GET | `/api/v1/users/{public_id}/menu-preferences` | User menu preferences (admin) | Yes | `user.manage` | Admin management |
 | PUT, PATCH | `/api/v1/users/{public_id}/menu-preferences` | Save user menu preferences (admin) | Yes | `user.manage` | Admin management |
 
+### App
+
+| Method | Endpoint | Description | Auth | Permissions | Notes |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/app/capabilities` | Capabilities manifest | Yes | — | Mobile client bootstrap: actor, workspace, permissions, protocol contract (idempotency, row_version, workspace header); External guests allowed |
+
 ### Telemetry
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |

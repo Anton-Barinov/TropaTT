@@ -2053,6 +2053,8 @@ final class App
             $c->get('repository.idempotency')
         ));
 
+        $this->container->factory('service.app_capabilities', fn() => new \Api\System\Library\Service\AppCapabilitiesService());
+
         $this->container->factory('cache.api', fn(Container $c) => new ApiFileCache(
             $this->config,
             $c->get('logger')
