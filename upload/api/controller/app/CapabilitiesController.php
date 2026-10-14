@@ -33,7 +33,7 @@ final class CapabilitiesController extends BaseController
             }
         }
 
-        $sessionTtlSeconds = (int)$this->config()->get('security.auth.access_token_ttl', 604800);
+        $sessionTtlSeconds = (int)$this->container->get('config')->get('security.auth.access_token_ttl', 604800);
 
         /** @var AppCapabilitiesService $service */
         $service = $this->container->get('service.app_capabilities');
