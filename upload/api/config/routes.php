@@ -55,6 +55,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'getPreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['PUT', 'PATCH'], 'pattern' => '/api/v1/auth/menu/preferences', 'controller' => Api\Controller\Auth\MenuController::class, 'action' => 'savePreferences', 'auth' => true, 'authz_note' => 'self-service: current user preferences'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/telemetry/frontend-event', 'controller' => Api\Controller\Common\TelemetryController::class, 'action' => 'frontendEvent', 'auth' => true, 'external_ok' => true, 'authz_note' => 'self-service: any authenticated user, including external guests — telemetry payloads are sanitized (no tokens, no bodies) and external users hit EXTERNAL_ACCESS_DENIED on many routes, so their error reports must be capturable for support'],
+
+    // app (mobile client bootstrap)
+    ['methods' => ['GET'], 'pattern' => '/api/v1/app/capabilities', 'controller' => Api\Controller\App\CapabilitiesController::class, 'action' => 'show', 'auth' => true, 'authz_note' => 'self-service: current user capabilities manifest (actor, workspace, permissions, protocol contract) for the mobile client', 'external_ok' => true],
     // CSP reports are sent automatically by the browser on policy violations and
     // cannot carry a session or CSRF token. The controller only logs sanitized
     // report data, so the endpoint is intentionally public.

@@ -250,6 +250,12 @@ Authorization: Bearer <token>
 | GET | `/api/v1/users/{public_id}/menu-preferences` | 用户菜单偏好（管理员） | 是 | `user.manage` | 管理员管理 |
 | PUT, PATCH | `/api/v1/users/{public_id}/menu-preferences` | 保存用户菜单偏好（管理员） | 是 | `user.manage` | 管理员管理 |
 
+### 应用
+
+| 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |
+|-------|----------|------------|:---:|-------------|----------|
+| GET | `/api/v1/app/capabilities` | 能力清单 | 是 | — | 移动客户端引导：操作者、工作区、权限、协议约定（幂等、row_version、工作区请求头）；允许外部访客 |
+
 ### 遥测
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |

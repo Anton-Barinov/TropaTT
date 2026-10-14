@@ -180,6 +180,13 @@ $expectedExternalRoutes = [
     'GET /api/v1/knowledge/client-page/{public_id}',
     // Visual editor image viewing (embedded in descriptions/pages for authenticated users including client portal)
     'GET /api/v1/visual-editor/image/{year}/{month}/{name}',
+    // Mobile client bootstrap manifest: strictly self-scoped (CapabilitiesController reads
+    // only the authenticated actor via $this->user(); permissions come from
+    // AuthzService::permissionsForUser() for that same actor; no path/body/object IDs, no
+    // cross-user or cross-org reads, no secrets — asserted by app_capabilities_unit.php).
+    // Data class is a superset of the already-reviewed GET /api/v1/auth/me +
+    // GET /api/v1/auth/menu (own identity, own workspace, own roles, contract constants).
+    'GET /api/v1/app/capabilities',
 ];
 
 $actualExternalRoutes = [];
