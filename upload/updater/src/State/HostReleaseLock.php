@@ -89,7 +89,7 @@ final class HostReleaseLock
         $directoryStatAfter = @lstat($directory);
         if ($fileStat === false || ($fileStat['mode'] & 0170000) !== 0100000
             || ($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
-            || $fileStat['uid'] !== $directoryStat['uid'] || $pathStatAfter === false
+            || !$this->isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid']) || $pathStatAfter === false
             || ($pathStatAfter['mode'] & 0170000) !== 0100000
             || $fileStat['dev'] !== $pathStatAfter['dev'] || $fileStat['ino'] !== $pathStatAfter['ino']
             || $directoryStatAfter === false || ($directoryStatAfter['mode'] & 0170000) !== 0040000
@@ -133,7 +133,7 @@ final class HostReleaseLock
         clearstatcache(true, $directory);
         $dir = @lstat($directory);
         if ($dir === false || is_link($directory) || ($dir['mode'] & 0170000) !== 0040000
-            || ($dir['mode'] & 0077) !== 0 || $dir['uid'] !== fileowner($this->basePath)) {
+            || ($dir['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$dir['uid'], (int)fileowner($this->basePath))) {
             throw new \RuntimeException('BOOTSTRAP_INTENT_DIRECTORY_UNSAFE');
         }
         $leaseRecord = $directory . '/host-release.lease.json';
@@ -148,7 +148,7 @@ final class HostReleaseLock
         $existing = @lstat($path);
         if ($existing !== false) {
             if (is_link($path) || ($existing['mode'] & 0170000) !== 0100000 || ($existing['mode'] & 0077) !== 0
-                || $existing['nlink'] !== 1 || $existing['uid'] !== $dir['uid'] || $existing['size'] > 4096) {
+                || $existing['nlink'] !== 1 || !$this->isValidOwner((int)$existing['uid'], (int)$dir['uid']) || $existing['size'] > 4096) {
                 throw new \RuntimeException('BOOTSTRAP_INTENT_UNSAFE');
             }
             $prior = json_decode((string)@file_get_contents($path), true);
@@ -193,5 +193,17 @@ final class HostReleaseLock
     public function __destruct()
     {
         $this->release();
+    }
+
+    private function isValidOwner(int $uid, int $expectedUid): bool
+    {
+        if ($uid === $expectedUid) {
+            return true;
+        }
+        if (function_exists('posix_geteuid') && $uid === (int)posix_geteuid()) {
+            return true;
+        }
+        $myUid = getmyuid();
+        return $myUid !== false && $uid === (int)$myUid;
     }
 }

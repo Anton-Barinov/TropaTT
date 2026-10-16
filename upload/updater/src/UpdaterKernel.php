@@ -982,7 +982,11 @@ final class UpdaterKernel
             $cursor .= '/' . $part;
             clearstatcache(true, $cursor);
             $stat = @lstat($cursor);
-            if (!is_array($stat) || is_link($cursor) || $stat['uid'] !== (int)@fileowner($root)) { return false; }
+            $rootOwner = (int)@fileowner($root);
+            $validOwner = is_array($stat) && ((int)$stat['uid'] === $rootOwner
+                || (function_exists('posix_geteuid') && (int)$stat['uid'] === (int)posix_geteuid())
+                || (getmyuid() !== false && (int)$stat['uid'] === (int)getmyuid()));
+            if (!is_array($stat) || is_link($cursor) || !$validOwner) { return false; }
             if ($index < count(explode('/', $relative)) - 1 && ($stat['mode'] & 0170000) !== 0040000) { return false; }
             if ($index === count(explode('/', $relative)) - 1 && (($stat['mode'] & 0170000) !== 0100000 || $stat['nlink'] !== 1 || $stat['size'] > 512 * 1024 * 1024)) { return false; }
         }
