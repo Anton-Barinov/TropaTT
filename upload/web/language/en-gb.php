@@ -8156,6 +8156,7 @@ return array (
     'db_restore_skipped' => 'no DB backup',
     'apply_in_progress' => 'Update is in progress. Do not refresh or close this page.',
     'retry_in_progress' => 'Network error, retrying... ({attempt} of {max})',
+    'busy_retry' => 'Another operation temporarily holds the update lock. Retrying automatically in {seconds}s ({attempt} of {max})…',
   ),
   'admin_webhooks' => 
   array (

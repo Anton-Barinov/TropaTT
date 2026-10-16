@@ -235,6 +235,7 @@ $auJs = [
   'writableHintText' => $au('writable_hint_text', 'Веб-серверу не хватает прав на запись в каталоги: {dirs}. Это часто случается после ручной загрузки файлов по FTP (владелец файлов — FTP-пользователь, а PHP работает от другого пользователя). Через SSH выполните chmod -R 775 <каталоги> или установите владельца каталогов, как у storage/, затем нажмите «Проверить безопасность» ещё раз.'),
   'applyInProgress' => $au('apply_in_progress', 'Обновление выполняется. Не обновляйте и не закрывайте страницу.'),
   'retryInProgress' => $au('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})'),
+  'busyRetry' => $au('busy_retry', 'Другая операция временно заняла блокировку обновления. Продолжаем автоматически через {seconds} с ({attempt} из {max})…'),
   // Keys the page script asks for by name. Every one of them must be present
   // here: `tr()` falls back to the literal passed in the call, and those
   // literals are Russian, so a key missing from this map shows Russian text to
@@ -1549,6 +1550,17 @@ $auJs = [
     let tokenRetries = 0;
     const maxNetworkRetries = 3;
     let networkRetries = 0;
+    // A release snapshot / deployment may briefly own the installation mutex.
+    // The updater returns an explicit 409 before running the requested step;
+    // retrying the SAME job and cursor is therefore safe and avoids leaving
+    // maintenance held just because another bounded operation overlapped it.
+    const retryableBusyCodes = new Set([
+      'DEPLOYMENT_BUSY',
+      'HOST_RELEASE_BUSY',
+      'HOST_LEASE_RECONCILIATION_REQUIRED'
+    ]);
+    const maxBusyRetries = 30;
+    let busyRetries = 0;
     for (let guard = 0; guard < 2000; guard++) {
       let result;
       try {
@@ -1574,6 +1586,19 @@ $auJs = [
             continue;
           }
           throw fetchErr;
+        }
+        if (result && result.success === false
+          && retryableBusyCodes.has(String(result.code || '').toUpperCase())) {
+          if (busyRetries >= maxBusyRetries) {
+            ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
+          }
+          busyRetries++;
+          const retryDelayMs = Math.min(5000, busyRetries * 1000);
+          showNotice(tr('busyRetry', 'Другая операция временно заняла блокировку обновления. Продолжаем автоматически через {seconds} с ({attempt} из {max})…', {
+            seconds: Math.ceil(retryDelayMs / 1000), attempt: busyRetries, max: maxBusyRetries
+          }), 'info');
+          await sleep(retryDelayMs);
+          continue;
         }
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
       } catch (err) {
@@ -1608,6 +1633,9 @@ $auJs = [
         throw err;
       }
       const data = result.data || result;
+      // A successful request proves the installation mutex became available.
+      // Start a fresh bounded retry allowance for the next step.
+      busyRetries = 0;
       if (!data.continue) return result;
       // A completed step resets the network retry budget: a flaky link must
       // not exhaust all retries on one early step and leave later steps

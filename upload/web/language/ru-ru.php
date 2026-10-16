@@ -8276,6 +8276,7 @@ return array (
     'db_restore_skipped' => 'нет бэкапа БД',
     'apply_in_progress' => 'Обновление выполняется. Не обновляйте и не закрывайте страницу.',
     'retry_in_progress' => 'Сетевая ошибка, повторяем... ({attempt} из {max})',
+    'busy_retry' => 'Другая операция временно заняла блокировку обновления. Продолжаем автоматически через {seconds} с ({attempt} из {max})…',
   ),
   'admin_webhooks' => 
   array (

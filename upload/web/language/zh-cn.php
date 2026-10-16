@@ -8083,6 +8083,7 @@ return array (
     'dev_stream_on_production' => '此安装是从 develop 流 ({product}) 创建的。此域名的更新从 stable 流提供，因此下次更新将使其切换到 stable 流。',
     'kpi_stream_meta' => '流：{stream}',
     'retry_in_progress' => '网络错误，正在重试...（第 {attempt} 次，共 {max} 次）',
+    'busy_retry' => '另一项操作暂时占用了更新锁。将在 {seconds} 秒后自动重试（第 {attempt} 次，共 {max} 次）…',
   ),
   'admin_statuses' => 
   array (
