@@ -18169,7 +18169,19 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var createBtn = document.getElementById('roleCreateOpenBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.addEventListener('click', function () {
-        renderRolePermissionsList(document.getElementById('roleCreatePermissionsList'), permissions, {}, document.getElementById('roleCreatePermSearch'), document.getElementById('roleCreatePermCount'));
+        var createForm = document.getElementById('roleCreateForm');
+        if (createForm) createForm.reset();
+        var searchInput = document.getElementById('roleCreatePermSearch');
+        if (searchInput) searchInput.value = '';
+        renderRolePermissionsList(
+          document.getElementById('roleCreatePermissionsList'),
+          permissions,
+          {},
+          searchInput,
+          document.getElementById('roleCreatePermCount'),
+          document.getElementById('roleCreateSelectAll'),
+          document.getElementById('roleCreateDeselectAll')
+        );
         var modal = new bootstrap.Modal(document.getElementById('roleCreateModal'));
         modal.show();
       });
@@ -18182,11 +18194,23 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var publicId = btn.getAttribute('data-role-edit');
         var role = roles.find(function (r) { return r.public_id === publicId; });
         if (!role) return;
+        var editForm = document.getElementById('roleEditForm');
+        if (editForm) editForm.reset();
         document.querySelector('#roleEditForm [name="public_id"]').value = role.public_id;
         document.querySelector('#roleEditForm [name="code"]').value = role.code;
         document.querySelector('#roleEditForm [name="title"]').value = role.title;
         var currentPerms = roleMatrix[role.public_id] || [];
-        renderRolePermissionsList(document.getElementById('roleEditPermissionsList'), permissions, currentPerms.reduce(function (map, code) { map[code] = true; return map; }, {}), document.getElementById('roleEditPermSearch'), document.getElementById('roleEditPermCount'));
+        var searchInput = document.getElementById('roleEditPermSearch');
+        if (searchInput) searchInput.value = '';
+        renderRolePermissionsList(
+          document.getElementById('roleEditPermissionsList'),
+          permissions,
+          currentPerms.reduce(function (map, code) { map[code] = true; return map; }, {}),
+          searchInput,
+          document.getElementById('roleEditPermCount'),
+          document.getElementById('roleEditSelectAll'),
+          document.getElementById('roleEditDeselectAll')
+        );
         var modal = new bootstrap.Modal(document.getElementById('roleEditModal'));
         modal.show();
       });
@@ -18321,7 +18345,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     return '<div class="form-check crm-perm-item py-1" data-perm-search="' + safeText(searchText) + '"><input class="form-check-input" type="checkbox" name="permissions" value="' + safeText(perm.code) + '"' + checked + ' id="perm_' + safeText(perm.code) + '"><label class="form-check-label w-100" for="perm_' + safeText(perm.code) + '">' + safeText(perm.title) + badge + '<small class="text-muted d-block font-monospace">' + safeText(perm.code) + '</small>' + hintHtml + '</label></div>';
   }
 
-  function renderRolePermissionsList(container, permissions, checkedMap, searchInput, countBadge) {
+  function renderRolePermissionsList(container, permissions, checkedMap, searchInput, countBadge, selectAllBtn, deselectAllBtn) {
     if (!container) return;
 
     var groupDefs = [
@@ -18351,8 +18375,14 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (!list.length) return;
       var badgeHtml = g.badge ? ' <span class="badge ' + g.badge + ' ms-1" style="font-size:0.75rem;">' + list.length + '</span>' : ' <span class="badge bg-secondary-subtle text-secondary ms-1" style="font-size:0.75rem;">' + list.length + '</span>';
       html += '<div class="crm-perm-group mb-3" data-perm-group="' + safeText(g.id) + '">'
-        + '<div class="crm-perm-group-title fw-bold border-bottom pb-1 mb-2 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.5px;">'
-        + safeText(g.title) + badgeHtml + '</div>'
+        + '<div class="crm-perm-group-title d-flex justify-content-between align-items-center fw-bold border-bottom pb-1 mb-2 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.5px;">'
+        + '<div><span>' + safeText(g.title) + '</span>' + badgeHtml + '</div>'
+        + '<div class="d-flex align-items-center gap-2" style="font-size:0.7rem; text-transform:none; letter-spacing:normal; font-weight:normal;">'
+        + '<button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-primary" data-group-select="' + safeText(g.id) + '">' + safeText(tp('admin_roles.select_all', 'Выбрать все')) + '</button>'
+        + '<span class="text-muted opacity-50">|</span>'
+        + '<button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-muted" data-group-deselect="' + safeText(g.id) + '">' + safeText(tp('admin_roles.deselect_group', 'Снять')) + '</button>'
+        + '</div>'
+        + '</div>'
         + list.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('')
         + '</div>';
     });
@@ -18370,6 +18400,63 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     container.querySelectorAll('input[name="permissions"]').forEach(function (cb) {
       cb.addEventListener('change', updateCount);
     });
+
+    // Wire group-level select and deselect buttons
+    if (container.dataset.groupClicksBound !== '1') {
+      container.addEventListener('click', function (e) {
+        var selBtn = e.target.closest && e.target.closest('[data-group-select]');
+        var deselBtn = e.target.closest && e.target.closest('[data-group-deselect]');
+        if (selBtn) {
+          e.preventDefault();
+          var gId = selBtn.getAttribute('data-group-select');
+          var groupEl = container.querySelector('.crm-perm-group[data-perm-group="' + gId + '"]');
+          if (groupEl) {
+            groupEl.querySelectorAll('.crm-perm-item:not(.d-none) input[name="permissions"]').forEach(function (cb) {
+              cb.checked = true;
+            });
+            updateCount();
+          }
+        } else if (deselBtn) {
+          e.preventDefault();
+          var gId = deselBtn.getAttribute('data-group-deselect');
+          var groupEl = container.querySelector('.crm-perm-group[data-perm-group="' + gId + '"]');
+          if (groupEl) {
+            groupEl.querySelectorAll('input[name="permissions"]').forEach(function (cb) {
+              cb.checked = false;
+            });
+            updateCount();
+          }
+        }
+      });
+      container.dataset.groupClicksBound = '1';
+    }
+
+    // Wire global select all / deselect all buttons
+    if (selectAllBtn && selectAllBtn.dataset.bound !== '1') {
+      selectAllBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var q = searchInput ? String(searchInput.value || '').trim() : '';
+        var targets = q
+          ? container.querySelectorAll('.crm-perm-item:not(.d-none) input[name="permissions"]')
+          : container.querySelectorAll('input[name="permissions"]');
+        targets.forEach(function (cb) {
+          cb.checked = true;
+        });
+        updateCount();
+      });
+      selectAllBtn.dataset.bound = '1';
+    }
+
+    if (deselectAllBtn && deselectAllBtn.dataset.bound !== '1') {
+      deselectAllBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelectorAll('input[name="permissions"]').forEach(function (cb) {
+          cb.checked = false;
+        });
+        updateCount();
+      });
+      deselectAllBtn.dataset.bound = '1';
+    }
 
     // Wire live search filter
     if (searchInput) {

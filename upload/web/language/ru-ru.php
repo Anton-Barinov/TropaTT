@@ -7662,6 +7662,9 @@ return array (
     'perm_hint_language_pack_install' => 'Разрешает установку языковых пакетов из админки и маркетплейса.',
     'no_matching_perms' => 'Нет прав, соответствующих поиску',
     'selected_count' => 'Выбрано: {n}',
+    'select_all' => 'Выбрать все',
+    'deselect_all' => 'Снять все',
+    'deselect_group' => 'Снять',
   ),
   'admin_settings' => 
   array (
