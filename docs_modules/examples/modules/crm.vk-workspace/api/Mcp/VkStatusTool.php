@@ -16,7 +16,7 @@ class VkStatusTool
     public function handle(array $params): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
             'provider' => 'VK WorkSpace (VK Звонки / Календарь / Teams)',
             'features' => [
                 'vk_calls' => 'enabled',
@@ -24,7 +24,7 @@ class VkStatusTool
                 'vk_teams_notifications' => 'enabled',
                 'mail_invites' => 'enabled'
             ],
-            'configured' => true
+            'configured' => false
         ];
     }
 }

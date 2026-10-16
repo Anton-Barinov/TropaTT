@@ -16,7 +16,8 @@ class PaystackAfricaApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'gateway' => 'Paystack Africa',
             'supported_countries' => ['Nigeria', 'Ghana', 'South Africa', 'Kenya'],
             'supported_currencies' => ['NGN', 'GHS', 'ZAR', 'KES']

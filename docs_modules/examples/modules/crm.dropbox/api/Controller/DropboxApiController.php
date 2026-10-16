@@ -16,7 +16,8 @@ class DropboxApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'api_version' => 'v2',
             'features' => [
                 'project_folder_hierarchy' => true,
