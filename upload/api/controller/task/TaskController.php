@@ -136,6 +136,9 @@ final class TaskController extends BaseController
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
+        if (!isset($input['status']) && isset($input['status_code']) && is_string($input['status_code'])) {
+            $input['status'] = trim($input['status_code']);
+        }
         $v = new Validator();
         $v->require($input, 'title', $this->t('common/messages.field_required'))
             ->maxLen($input, 'title', 255, $this->t('task/messages.max_255'))
@@ -216,14 +219,18 @@ final class TaskController extends BaseController
                 ]);
             }
 
-            $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
-            $this->dispatchModuleHook(ModuleEvents::TASK_CREATED, [
-                'task_id' => (int)($item['id'] ?? 0),
-                'task_public_id' => (string)($item['public_id'] ?? ''),
-                'status_code' => (string)($item['status_code'] ?? ''),
-                'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
-                'actor_id' => (int)($authUser['user']['id'] ?? 0),
-            ]);
+            try {
+                $this->fireWorkflowTrigger('task_created', $item, $authUser['user']);
+                $this->dispatchModuleHook(ModuleEvents::TASK_CREATED, [
+                    'task_id' => (int)($item['id'] ?? 0),
+                    'task_public_id' => (string)($item['public_id'] ?? ''),
+                    'status_code' => (string)($item['status_code'] ?? ''),
+                    'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                    'actor_id' => (int)($authUser['user']['id'] ?? 0),
+                ]);
+            } catch (\Throwable $error) {
+                AppLog::error('[TaskController::create] post-commit trigger/hook dispatch failed: ' . $error->getMessage());
+            }
 
             // Auto-populate Definition of Done (DoD) checklist based on task type prefix
             try {
@@ -346,6 +353,9 @@ final class TaskController extends BaseController
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
+        if (!isset($input['status']) && isset($input['status_code']) && is_string($input['status_code'])) {
+            $input['status'] = trim($input['status_code']);
+        }
         if (array_key_exists('agent_lease_context', $input)
             && (!is_array($input['agent_lease_context'])
                 || array_diff(array_keys($input['agent_lease_context']), ['agent_id', 'run_id', 'token', 'generation']) !== []
@@ -454,40 +464,44 @@ final class TaskController extends BaseController
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404);
         }
 
-        if (isset($input['status']) && (string)$input['status'] !== (string)($before['status_code'] ?? '')) {
-            $this->fireWorkflowTrigger('task_status_changed', $item, $authUser['user'], [
-                'previous_status' => $before['status_code'] ?? null,
-                'new_status' => (string)$input['status'],
-            ]);
-            $this->dispatchModuleHook(ModuleEvents::TASK_STATUS_CHANGED, [
+        try {
+            if (isset($input['status']) && (string)$input['status'] !== (string)($before['status_code'] ?? '')) {
+                $this->fireWorkflowTrigger('task_status_changed', $item, $authUser['user'], [
+                    'previous_status' => $before['status_code'] ?? null,
+                    'new_status' => (string)$input['status'],
+                ]);
+                $this->dispatchModuleHook(ModuleEvents::TASK_STATUS_CHANGED, [
+                    'task_id' => (int)($item['id'] ?? 0),
+                    'task_public_id' => (string)($item['public_id'] ?? ''),
+                    'old_status' => (string)($before['status_code'] ?? ''),
+                    'new_status' => (string)$input['status'],
+                    'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                    'actor_id' => (int)($authUser['user']['id'] ?? 0),
+                ]);
+            }
+
+            if ((int)($item['assignee_user_id'] ?? 0) !== (int)($before['assignee_user_id'] ?? 0)) {
+                $this->dispatchModuleHook(ModuleEvents::TASK_ASSIGNEE_CHANGED, [
+                    'task_id' => (int)($item['id'] ?? 0),
+                    'task_public_id' => (string)($item['public_id'] ?? ''),
+                    'old_assignee_id' => (int)($before['assignee_user_id'] ?? 0),
+                    'new_assignee_id' => (int)($item['assignee_user_id'] ?? 0),
+                    'status_code' => (string)($item['status_code'] ?? ''),
+                    'actor_id' => (int)($authUser['user']['id'] ?? 0),
+                ]);
+            }
+
+            $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
+            $this->dispatchModuleHook(ModuleEvents::TASK_UPDATED, [
                 'task_id' => (int)($item['id'] ?? 0),
                 'task_public_id' => (string)($item['public_id'] ?? ''),
-                'old_status' => (string)($before['status_code'] ?? ''),
-                'new_status' => (string)$input['status'],
+                'status_code' => (string)($item['status_code'] ?? ''),
                 'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
                 'actor_id' => (int)($authUser['user']['id'] ?? 0),
             ]);
+        } catch (\Throwable $error) {
+            AppLog::error('[TaskController::update] post-commit trigger/hook dispatch failed: ' . $error->getMessage());
         }
-
-        if ((int)($item['assignee_user_id'] ?? 0) !== (int)($before['assignee_user_id'] ?? 0)) {
-            $this->dispatchModuleHook(ModuleEvents::TASK_ASSIGNEE_CHANGED, [
-                'task_id' => (int)($item['id'] ?? 0),
-                'task_public_id' => (string)($item['public_id'] ?? ''),
-                'old_assignee_id' => (int)($before['assignee_user_id'] ?? 0),
-                'new_assignee_id' => (int)($item['assignee_user_id'] ?? 0),
-                'status_code' => (string)($item['status_code'] ?? ''),
-                'actor_id' => (int)($authUser['user']['id'] ?? 0),
-            ]);
-        }
-
-        $this->fireWorkflowTrigger('task_updated', $item, $authUser['user']);
-        $this->dispatchModuleHook(ModuleEvents::TASK_UPDATED, [
-            'task_id' => (int)($item['id'] ?? 0),
-            'task_public_id' => (string)($item['public_id'] ?? ''),
-            'status_code' => (string)($item['status_code'] ?? ''),
-            'assignee_id' => (int)($item['assignee_user_id'] ?? 0),
-            'actor_id' => (int)($authUser['user']['id'] ?? 0),
-        ]);
 
         // These reads/cache writes happen after TaskService committed the task.
         // A failure here must not report the committed status transition as a
@@ -699,6 +713,10 @@ final class TaskController extends BaseController
         $input = $this->request()->allInput();
         $taskPublicIds = (array)($input['task_public_ids'] ?? []);
         $changes = (array)($input['changes'] ?? []);
+        if (!isset($changes['status']) && isset($changes['status_code']) && is_string($changes['status_code'])) {
+            $changes['status'] = trim($changes['status_code']);
+            $input['changes'] = $changes;
+        }
 
         // SEC-013: Limit bulk operations to prevent resource exhaustion
         $maxItems = 100;
