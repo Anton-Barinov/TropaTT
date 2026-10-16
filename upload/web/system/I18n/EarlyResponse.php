@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Web\System\I18n;
 
+require_once __DIR__ . '/I18n.php';
+
 final class EarlyResponse
 {
     /** @var list<string> */
