@@ -880,8 +880,14 @@ $auJs = [
   // not an apply.
   function latestAppliedTarget() {
     const latest = state.status && state.status.latest_job;
-    if (!latest || latest.state !== 'applied') return '';
-    return (latest.plan && latest.plan.target_build) ? String(latest.plan.target_build) : '';
+    if (latest && latest.state === 'applied') {
+      return (latest.plan && latest.plan.target_build) ? String(latest.plan.target_build) : '';
+    }
+    const installed = state.status && state.status.installed_core;
+    if (installed && installed.core_build) {
+      return String(installed.core_build);
+    }
+    return '';
   }
 
   // "Update installed" may only be claimed when the build the update check
@@ -911,6 +917,7 @@ $auJs = [
     if (name === 'rollback_failed') return tr('stateRollbackFailed', 'откат не удался');
     if (name === 'rolled_back') return tr('stateRolledBack', 'откачено');
     if (name === 'applied') return tr('stateApplied', 'установлено');
+    if (name === 'preflight_passed' || name === 'plan_loaded') return tr('preflightOk', 'проверка пройдена');
     return name || '';
   }
 
