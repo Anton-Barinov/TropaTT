@@ -6,6 +6,28 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+## [v0.2.0.15] - 2026-10-16
+
+### Highlights
+
+- **Roles & Permissions UI Modernization**:
+  - **Quick selection controls**: Added "Select all" and "Deselect all" buttons to permission selection lists in role management modals for rapid permission assignment.
+  - **Modal dialog standardization**: Unified role creation and editing modals into a single consistent visual structure, form layout, and responsive mobile styling.
+  - **Multilingual role management**: Added localized strings and Chinese (`zh-cn`) translations for role search, permission filtering, and granular module permissions.
+- **Marketplace & Extension Management**:
+  - **Self-healing checksum verification**: Hardened marketplace release delivery to dynamically verify physical package SHA256 hashes against disk archives, preventing false integrity mismatch errors.
+  - **Granular installation authorization**: Ensured fail-closed access control on module installation endpoints (`module.install` and root verification).
+- **Core Updater Robustness**:
+  - **Shared hosting permission resilience**: Allowed replacing unwritable files when parent directory is writable in `FileApplier`, and resolved UID ownership checks on environments with virtual or shared user mappings.
+  - **Automatic recovery and maintenance watchdog**: Enhanced self-healing for interrupted update jobs and recovery from abandoned maintenance flags.
+  - **Package digest canonicalization**: Preserved signed manifests and exact baseline digests for verified installations.
+- **API & System Hardening**:
+  - **API Idempotency enhancements**: Strengthened request deduplication with workspace and payload binding, atomic claims, and automatic TTL retention.
+  - **Conflict prevention**: Fail-closed validation on project `task_key_prefix` collisions.
+  - **Bootstrap capabilities endpoint**: Added `GET /api/v1/app/capabilities` for client discovery of active features and modules.
+  - **Visual editor stability**: Fixed caret placement and protected non-editable containers when pasting rich content.
+  - **Task status workflow parity**: Unified status and status code aliases across REST and MCP endpoints with guarded post-commit event triggers.
+
 ### Fixed
 
 - **Task status updates and MCP parity**:
