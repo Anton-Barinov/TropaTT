@@ -55,7 +55,18 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
     private function isRoot(): bool
     {
         $user = $this->user();
-        return is_array($user) && (bool)($user['user']['is_root'] ?? false);
+        if (is_array($user) && (bool)($user['user']['is_root'] ?? false)) {
+            return true;
+        }
+        if (!is_array($user) || !isset($user['user'])) {
+            return false;
+        }
+        if (!$this->container->has('service.authz')) {
+            return false;
+        }
+        /** @var \Api\System\Library\Service\AuthzService $authz */
+        $authz = $this->container->get('service.authz');
+        return $authz->hasAnyPermissions($user['user'], ['module.install']);
     }
 
     public function catalog(): JsonResponse

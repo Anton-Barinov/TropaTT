@@ -18169,7 +18169,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var createBtn = document.getElementById('roleCreateOpenBtn');
     if (createBtn && createBtn.dataset.bound !== '1') {
       createBtn.addEventListener('click', function () {
-        renderRolePermissionsList(document.getElementById('roleCreatePermissionsList'), permissions, {});
+        renderRolePermissionsList(document.getElementById('roleCreatePermissionsList'), permissions, {}, document.getElementById('roleCreatePermSearch'), document.getElementById('roleCreatePermCount'));
         var modal = new bootstrap.Modal(document.getElementById('roleCreateModal'));
         modal.show();
       });
@@ -18186,7 +18186,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         document.querySelector('#roleEditForm [name="code"]').value = role.code;
         document.querySelector('#roleEditForm [name="title"]').value = role.title;
         var currentPerms = roleMatrix[role.public_id] || [];
-        renderRolePermissionsList(document.getElementById('roleEditPermissionsList'), permissions, currentPerms.reduce(function (map, code) { map[code] = true; return map; }, {}));
+        renderRolePermissionsList(document.getElementById('roleEditPermissionsList'), permissions, currentPerms.reduce(function (map, code) { map[code] = true; return map; }, {}), document.getElementById('roleEditPermSearch'), document.getElementById('roleEditPermCount'));
         var modal = new bootstrap.Modal(document.getElementById('roleEditModal'));
         modal.show();
       });
@@ -18277,10 +18277,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     }
   }
 
-  // Finance permission hints (TZ 6.1 / 8.8). Explanations are localized via the
-  // admin_roles namespace (added to the client dictionary in Controller.php).
-  function financePermHint(code) {
-    var map = {
+  // Permission hints (Finance, Modules, Languages). Localized via admin_roles namespace.
+  function permExtraHint(code) {
+    var financeMap = {
       'finance.rate.view_own_payout': 'perm_hint_view_own_payout',
       'finance.rate.view_own_cost': 'perm_hint_view_own_cost',
       'finance.rate.view_cost': 'perm_hint_view_cost',
@@ -18288,28 +18287,115 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       'finance.rate.manage': 'perm_hint_manage',
       'finance.ratecard.manage': 'perm_hint_ratecard_manage'
     };
-    var hintKey = map[code];
+    var moduleMap = {
+      'module.install': 'perm_hint_module_install',
+      'language_pack.install': 'perm_hint_language_pack_install'
+    };
+    var hintKey = financeMap[code] || moduleMap[code];
     if (!hintKey) return '';
     var hint = tp('admin_roles.' + hintKey, '');
     return hint ? '<small class="text-muted d-block">' + safeText(hint) + '</small>' : '';
   }
 
-  function renderPermissionCheckbox(perm, checkedMap) {
-    var checked = checkedMap[perm.code] ? ' checked' : '';
-    var hintHtml = financePermHint(perm.code);
-    return '<div class="form-check"><input class="form-check-input" type="checkbox" name="permissions" value="' + safeText(perm.code) + '"' + checked + ' id="perm_' + safeText(perm.code) + '"><label class="form-check-label" for="perm_' + safeText(perm.code) + '">' + safeText(perm.title) + '<small class="text-muted d-block">' + safeText(perm.code) + '</small>' + hintHtml + '</label></div>';
+  function getPermissionCategory(code) {
+    var c = String(code || '').toLowerCase();
+    if (c === 'module.install' || c.indexOf('module.') === 0 || c === 'language_pack.install' || c.indexOf('language_pack.') === 0) return 'modules';
+    if (c.indexOf('finance.') === 0) return 'finance';
+    if (c.indexOf('settings.') === 0 || c.indexOf('logs.') === 0 || c.indexOf('api_client.') === 0 || c.indexOf('webhook.') === 0 || c.indexOf('feature_flag.') === 0 || c.indexOf('organization.') === 0 || c.indexOf('recycle_bin.') === 0 || c.indexOf('import.') === 0 || c.indexOf('export.') === 0) return 'system';
+    if (c.indexOf('user.') === 0 || c.indexOf('role.') === 0 || c.indexOf('team.') === 0 || c.indexOf('department.') === 0 || c.indexOf('company.') === 0) return 'users';
+    if (c.indexOf('project.') === 0 || c.indexOf('task.') === 0 || c.indexOf('approval.') === 0 || c.indexOf('intake.') === 0 || c.indexOf('chat.') === 0 || c.indexOf('idea.') === 0) return 'projects';
+    if (c.indexOf('client.') === 0 || c.indexOf('counterparty.') === 0 || c.indexOf('contact.') === 0 || c.indexOf('lead.') === 0 || c.indexOf('deal.') === 0) return 'crm';
+    if (c.indexOf('knowledge.') === 0) return 'knowledge';
+    if (c.indexOf('ai.') === 0) return 'ai';
+    return 'other';
   }
 
-  function renderRolePermissionsList(container, permissions, checkedMap) {
-    if (!container) return;
-    var finance = permissions.filter(function (p) { return String(p.code).indexOf('finance.') === 0; });
-    var other = permissions.filter(function (p) { return String(p.code).indexOf('finance.') !== 0; });
-    var html = other.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('');
-    if (finance.length) {
-      html = '<div class="crm-perm-group-title fw-semibold mt-2 mb-1">' + safeText(tp('admin_roles.finance_group', 'Финансы')) + '</div>'
-        + finance.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('') + html;
+  function renderPermissionCheckbox(perm, checkedMap) {
+    var checked = checkedMap[perm.code] ? ' checked' : '';
+    var hintHtml = permExtraHint(perm.code);
+    var badge = '';
+    if (perm.code === 'module.install' || perm.code === 'language_pack.install') {
+      badge = ' <span class="badge bg-primary-subtle text-primary border ms-1" style="font-size:0.7rem;">' + safeText(tp('admin_modules.breadcrumb', 'Модули')) + '</span>';
     }
+    var searchText = (String(perm.code || '') + ' ' + String(perm.title || '') + ' ' + (perm.code === 'module.install' ? 'модуль marketplace маркетплейс install' : '') + (perm.code === 'language_pack.install' ? 'язык локализация language pack install' : '')).toLowerCase();
+    return '<div class="form-check crm-perm-item py-1" data-perm-search="' + safeText(searchText) + '"><input class="form-check-input" type="checkbox" name="permissions" value="' + safeText(perm.code) + '"' + checked + ' id="perm_' + safeText(perm.code) + '"><label class="form-check-label w-100" for="perm_' + safeText(perm.code) + '">' + safeText(perm.title) + badge + '<small class="text-muted d-block font-monospace">' + safeText(perm.code) + '</small>' + hintHtml + '</label></div>';
+  }
+
+  function renderRolePermissionsList(container, permissions, checkedMap, searchInput, countBadge) {
+    if (!container) return;
+
+    var groupDefs = [
+      { id: 'modules', title: tp('admin_roles.group_modules', 'Модули и языковые пакеты'), badge: 'bg-primary-subtle text-primary border' },
+      { id: 'system', title: tp('admin_roles.group_system', 'Система и настройки') },
+      { id: 'users', title: tp('admin_roles.group_users', 'Пользователи и структура') },
+      { id: 'projects', title: tp('admin_roles.group_projects', 'Проекты и задачи') },
+      { id: 'crm', title: tp('admin_roles.group_crm', 'Клиенты и CRM') },
+      { id: 'finance', title: tp('admin_roles.finance_group', 'Финансы и ставки') },
+      { id: 'knowledge', title: tp('admin_roles.group_knowledge', 'База знаний') },
+      { id: 'ai', title: tp('admin_roles.group_ai', 'Искусственный интеллект (AI)') },
+      { id: 'other', title: tp('admin_roles.group_other', 'Другие права') }
+    ];
+
+    var categorized = {};
+    groupDefs.forEach(function (g) { categorized[g.id] = []; });
+
+    (permissions || []).forEach(function (p) {
+      var cat = getPermissionCategory(p.code);
+      if (!categorized[cat]) cat = 'other';
+      categorized[cat].push(p);
+    });
+
+    var html = '';
+    groupDefs.forEach(function (g) {
+      var list = categorized[g.id] || [];
+      if (!list.length) return;
+      var badgeHtml = g.badge ? ' <span class="badge ' + g.badge + ' ms-1" style="font-size:0.75rem;">' + list.length + '</span>' : ' <span class="badge bg-secondary-subtle text-secondary ms-1" style="font-size:0.75rem;">' + list.length + '</span>';
+      html += '<div class="crm-perm-group mb-3" data-perm-group="' + safeText(g.id) + '">'
+        + '<div class="crm-perm-group-title fw-bold border-bottom pb-1 mb-2 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.5px;">'
+        + safeText(g.title) + badgeHtml + '</div>'
+        + list.map(function (p) { return renderPermissionCheckbox(p, checkedMap); }).join('')
+        + '</div>';
+    });
+
+    html += '<div class="crm-perm-empty text-muted text-center py-3 d-none">' + safeText(tp('admin_roles.no_matching_perms', 'Нет прав, соответствующих поиску')) + '</div>';
     container.innerHTML = html;
+
+    // Update count badge
+    function updateCount() {
+      if (!countBadge) return;
+      var checked = container.querySelectorAll('input[name="permissions"]:checked').length;
+      countBadge.textContent = tp('admin_roles.selected_count', 'Выбрано: {n}').replace('{n}', String(checked));
+    }
+    updateCount();
+    container.querySelectorAll('input[name="permissions"]').forEach(function (cb) {
+      cb.addEventListener('change', updateCount);
+    });
+
+    // Wire live search filter
+    if (searchInput) {
+      searchInput.value = '';
+      if (searchInput.dataset.bound !== '1') {
+        searchInput.addEventListener('input', function () {
+          var q = String(searchInput.value || '').trim().toLowerCase();
+          var emptyEl = container.querySelector('.crm-perm-empty');
+          var totalVisible = 0;
+          container.querySelectorAll('.crm-perm-group').forEach(function (groupEl) {
+            var groupVisible = 0;
+            groupEl.querySelectorAll('.crm-perm-item').forEach(function (itemEl) {
+              var searchData = itemEl.getAttribute('data-perm-search') || '';
+              var matches = !q || searchData.indexOf(q) !== -1;
+              itemEl.classList.toggle('d-none', !matches);
+              if (matches) { groupVisible++; totalVisible++; }
+            });
+            groupEl.classList.toggle('d-none', groupVisible === 0);
+          });
+          if (emptyEl) {
+            emptyEl.classList.toggle('d-none', totalVisible > 0);
+          }
+        });
+        searchInput.dataset.bound = '1';
+      }
+    }
 
     // TZ 15.2: enabling view_own_cost requires informed consent at the moment of
     // action — a confirm dialog explaining what cost really is and suggesting the
@@ -18321,6 +18407,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var text = tp('admin_roles.confirm_own_cost_text', 'См. предупреждение в ТЗ 15.2');
         if (!window.confirm(text)) {
           cb.checked = false;
+          updateCount();
         }
       });
       cb.dataset.bound = '1';
