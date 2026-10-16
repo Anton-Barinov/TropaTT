@@ -327,7 +327,7 @@ final class TaskService
             'task_sequence_number' => $taskSequenceNumber,
             'title' => trim((string)$input['title']),
             'description' => trim((string)($input['description'] ?? '')),
-            'status_code' => (string)($input['status'] ?? $this->tasks->defaultStatusCode() ?? 'new'),
+            'status_code' => (string)($input['status'] ?? $input['status_code'] ?? $this->tasks->defaultStatusCode() ?? 'new'),
             'priority_code' => (string)($input['priority'] ?? 'normal'),
             'activity_code' => !empty($input['activity_code']) ? (string)$input['activity_code'] : null,
             'override_cost_rate' => $this->normalizeRateInput($input['override_cost_rate'] ?? null),
@@ -684,6 +684,8 @@ final class TaskService
         }
         if (array_key_exists('status', $input)) {
             $set['status_code'] = (string)$input['status'];
+        } elseif (array_key_exists('status_code', $input)) {
+            $set['status_code'] = (string)$input['status_code'];
         }
         if (array_key_exists('priority', $input)) {
             $set['priority_code'] = (string)$input['priority'];

@@ -6,6 +6,14 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+### Fixed
+
+- **Task status updates and MCP parity**:
+  - Unified `status` and `status_code` aliases across REST (`TaskController`), service layer (`TaskService`), and MCP (`crm_task`), allowing clients to update status using either naming convention without silent drops.
+  - Declared `status_reason` in `crm_task` MCP schema to support status change audit notes.
+  - Wrapped post-commit workflow triggers and module hooks in `TaskController` inside error-handling guards so notification or hook errors cannot abort a successfully committed task update and return false 500 / invocation errors.
+  - Improved MCP controller error reporting to return actionable exception details instead of a generic failure message.
+
 ## [v0.2.0.14] - 2026-10-11
 
 ### Highlights
