@@ -108,12 +108,33 @@ function crmManifestPickLocale(): string
 $locale = crmManifestPickLocale();
 $t = CRM_MANIFEST_LOCALES[$locale];
 
+require_once __DIR__ . '/system/Core/helpers.php';
+require_once __DIR__ . '/system/Core/Branding.php';
+
+$branding = \Web\System\Core\Branding::get(__DIR__);
+$brandName = $branding->name() !== '' ? $branding->name() : 'TropaTT';
+$brandLogoUrl = $branding->logoUrl('./');
+
 $icon192 = ['src' => 'assets/icons/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png'];
+
+$manifestIcons = [
+    $icon192,
+    ['src' => 'assets/icons/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+    ['src' => 'assets/icons/icon-512-maskable.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+];
+if ($brandLogoUrl !== '') {
+    array_unshift($manifestIcons, [
+        'src' => $brandLogoUrl,
+        'sizes' => '192x192 512x512',
+        'type' => $branding->logoMimeType(),
+        'purpose' => 'any',
+    ]);
+}
 
 $manifest = [
     'id' => './',
-    'name' => 'TropaTT',
-    'short_name' => 'TropaTT',
+    'name' => $brandName,
+    'short_name' => $brandName,
     'description' => $t['description'],
     'lang' => $locale,
     'start_url' => './',
@@ -122,11 +143,7 @@ $manifest = [
     'orientation' => 'any',
     'background_color' => '#ffffff',
     'theme_color' => '#0f8f72',
-    'icons' => [
-        $icon192,
-        ['src' => 'assets/icons/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-        ['src' => 'assets/icons/icon-512-maskable.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
-    ],
+    'icons' => $manifestIcons,
     'shortcuts' => [
         ['name' => $t['tasks'], 'short_name' => $t['tasks'], 'url' => './index.php?route=tasks', 'icons' => [$icon192]],
         ['name' => $t['kanban'], 'short_name' => $t['kanban'], 'url' => './index.php?route=kanban', 'icons' => [$icon192]],

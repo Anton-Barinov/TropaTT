@@ -27948,11 +27948,36 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           ? webBase + 'index.php?route=branding-logo&v=' + Date.now()
           : webBase + 'assets/apple-touch-icon.png';
         document.documentElement.style.setProperty('--crm-brand-image', 'url("' + logoUrl + '")');
+
+        var iconLinks = document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]');
+        var defaultFavicon = webBase + 'assets/favicon.ico';
+        Array.prototype.forEach.call(iconLinks, function (link) {
+          var rel = (link.getAttribute('rel') || '').toLowerCase();
+          if (update.logo) {
+            link.href = logoUrl;
+          } else {
+            link.href = rel.indexOf('apple-touch-icon') !== -1
+              ? webBase + 'assets/apple-touch-icon.png'
+              : defaultFavicon;
+          }
+        });
+        if (window.CRM && window.CRM.config) {
+          window.CRM.config.brandLogoUrl = update.logo ? logoUrl : '';
+        }
       }
 
       if (typeof update.name !== 'string') return;
+      var currentName = (window.CRM && window.CRM.config && window.CRM.config.brandName) || 'TropaTT';
       // The server falls back to the shipped default when branding.name is empty.
       var visibleName = update.name || 'TropaTT';
+
+      if (document.title) {
+        if (currentName && document.title.indexOf(currentName) !== -1) {
+          document.title = document.title.split(currentName).join(visibleName);
+        } else if (document.title.indexOf('TropaTT') !== -1) {
+          document.title = document.title.split('TropaTT').join(visibleName);
+        }
+      }
 
       Array.prototype.forEach.call(document.querySelectorAll('.crm-brand'), function (brand) {
         Array.prototype.forEach.call(brand.childNodes, function (node) {
@@ -27963,6 +27988,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (footerBrand) footerBrand.textContent = visibleName;
       if (window.CRM && window.CRM.messages && window.CRM.messages.app) {
         window.CRM.messages.app.name = visibleName;
+        window.CRM.messages.app.default_title = visibleName;
+      }
+      if (window.CRM && window.CRM.config) {
+        window.CRM.config.brandName = update.name;
       }
     }
 

@@ -160,15 +160,20 @@ if (preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $currentLocale)) {
       }
     })();
   </script>
+<?php if (!empty($brand_logo_url)): ?>
+  <link rel="icon" type="<?= htmlspecialchars((string)($brand_logo_mime ?? 'image/png'), ENT_QUOTES, 'UTF-8') ?>" href="<?= htmlspecialchars((string)$brand_logo_url, ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="apple-touch-icon" href="<?= htmlspecialchars((string)$brand_logo_url, ENT_QUOTES, 'UTF-8') ?>">
+<?php else: ?>
   <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<?php endif; ?>
   <!-- PWA: manifest (localized per user locale, relative URLs keep this hosting-agnostic) + install meta -->
   <link rel="manifest" href="manifest.php">
   <meta name="theme-color" content="#0f8f72">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <?php if ($isRtl): ?>
   <link rel="stylesheet" href="assets/css/bootstrap.rtl.min.css?v=<?= urlencode($assetsVersion) ?>">
 <?php else: ?>
@@ -242,5 +247,7 @@ if (preg_match('/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/', $currentLocale)) {
     window.CRM.config.apiBaseUrl = <?= json_encode($apiBase, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.authCookieName = <?= json_encode(trim((string)(getenv('CRM_API_SESSION_COOKIE') ?: 'crm_api_session')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     window.CRM.config.csrfCookieName = <?= json_encode(trim((string)(getenv('CRM_CSRF_COOKIE') ?: 'crm_csrf_token')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.brandName = <?= json_encode((string)($brand_name ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.CRM.config.brandLogoUrl = <?= json_encode((string)($brand_logo_url ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
 </head>

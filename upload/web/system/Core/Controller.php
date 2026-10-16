@@ -278,12 +278,35 @@ abstract class Controller
         $brandName = $branding->name();
         $data['brand_name'] = $brandName;
         $data['brand_logo_url'] = $branding->logoUrl((string)($data['base_path'] ?? ''));
+        $data['brand_logo_mime'] = $branding->logoMimeType();
         if ($brandName !== '') {
             $t = static function (string $key, string $default = '') use ($i18n, $brandName): string {
-                return $key === 'app.name' ? $brandName : $i18n->t($key, $default);
+                if ($key === 'app.name' || $key === 'app.default_title') {
+                    return $brandName;
+                }
+                $val = $i18n->t($key, $default);
+                if (str_contains($val, 'TropaTT')) {
+                    return str_replace('TropaTT', $brandName, $val);
+                }
+                return $val;
             };
-            if (isset($data['lang_messages']['app']) && is_array($data['lang_messages']['app'])) {
-                $data['lang_messages']['app']['name'] = $brandName;
+            if (isset($data['title']) && is_string($data['title'])) {
+                if (str_contains($data['title'], 'TropaTT')) {
+                    $data['title'] = str_replace('TropaTT', $brandName, $data['title']);
+                } elseif ($data['title'] === 'CRM' || $data['title'] === '') {
+                    $data['title'] = $brandName;
+                }
+            }
+            if (isset($data['lang_messages']) && is_array($data['lang_messages'])) {
+                array_walk_recursive($data['lang_messages'], static function (mixed &$value) use ($brandName): void {
+                    if (is_string($value) && str_contains($value, 'TropaTT')) {
+                        $value = str_replace('TropaTT', $brandName, $value);
+                    }
+                });
+                if (isset($data['lang_messages']['app']) && is_array($data['lang_messages']['app'])) {
+                    $data['lang_messages']['app']['name'] = $brandName;
+                    $data['lang_messages']['app']['default_title'] = $brandName;
+                }
             }
         }
 
