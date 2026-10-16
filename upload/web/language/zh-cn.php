@@ -7648,6 +7648,9 @@ return array (
     'perm_hint_language_pack_install' => '允许从后台和市场安装语言包。',
     'no_matching_perms' => '未找到匹配的权限',
     'selected_count' => '已选择: {n}',
+    'select_all' => '全选',
+    'deselect_all' => '取消全选',
+    'deselect_group' => '取消',
   ),
   'admin_settings' => 
   array (

@@ -7542,6 +7542,9 @@ return array (
     'perm_hint_language_pack_install' => 'Allows installing language packs from admin and marketplace.',
     'no_matching_perms' => 'No permissions matching search',
     'selected_count' => 'Selected: {n}',
+    'select_all' => 'Select all',
+    'deselect_all' => 'Deselect all',
+    'deselect_group' => 'Deselect',
   ),
   'admin_settings' => 
   array (
