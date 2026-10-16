@@ -18,8 +18,8 @@ class ZoomApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
-            'connected' => true,
+            'status' => 'not_configured',
+            'connected' => false,
             'features' => [
                 'zoom_meetings' => true,
                 'cloud_recordings' => true,

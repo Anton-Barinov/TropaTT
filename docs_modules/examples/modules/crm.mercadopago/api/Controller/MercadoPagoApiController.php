@@ -16,7 +16,8 @@ class MercadoPagoApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'gateway' => 'Mercado Pago Brazil',
             'supported_methods' => ['pix', 'boleto', 'credit_card']
         ];

@@ -16,7 +16,8 @@ class GoogleDriveApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'api' => 'Google Drive API v3',
             'features' => [
                 'folder_structure' => true,

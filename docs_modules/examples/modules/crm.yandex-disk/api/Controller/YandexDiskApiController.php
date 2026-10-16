@@ -16,7 +16,8 @@ class YandexDiskApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'features' => [
                 'txt_proxy_bypass' => true,
                 'public_links' => true,

@@ -18,7 +18,8 @@ class HubSpotMigrationApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'supported_objects' => ['contacts', 'companies', 'deals'],
             'features' => [
                 'dry_run' => true,

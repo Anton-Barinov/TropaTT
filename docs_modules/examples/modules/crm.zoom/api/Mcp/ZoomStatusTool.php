@@ -16,7 +16,7 @@ class ZoomStatusTool
     public function handle(array $params): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
             'provider' => 'Zoom Video Communications',
             'features' => [
                 'meetings' => 'enabled',
@@ -24,7 +24,7 @@ class ZoomStatusTool
                 'calendar_sync' => 'enabled',
                 'webhooks' => 'enabled'
             ],
-            'configured' => true
+            'configured' => false
         ];
     }
 }

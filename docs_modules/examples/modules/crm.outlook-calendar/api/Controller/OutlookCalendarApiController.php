@@ -16,7 +16,8 @@ class OutlookCalendarApiController
     public function getStatus(): array
     {
         return [
-            'status' => 'active',
+            'status' => 'not_configured',
+            'connected' => false,
             'supported_endpoints' => ['delta', 'sync', 'webhooks'],
             'version' => '1.0.0'
         ];
