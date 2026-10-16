@@ -78,8 +78,11 @@ final class FileApplier
                 }
                 if (is_file($target) && !is_writable($target)) {
                     @chmod($target, 0664);
+                    if (!is_writable($target) && is_writable($targetDir)) {
+                        @unlink($target);
+                    }
                 }
-                if (!copy($source, $target)) {
+                if (!@copy($source, $target)) {
                     $err = error_get_last();
                     throw new \RuntimeException(
                         'Unable to apply file: ' . $relative
