@@ -324,6 +324,7 @@ function webRateLimitCheck(string $route): ?array
  * Extracted to eliminate ~40 lines of duplicated connection logic between
  * crmWebApiSessionCookieIsValid and crmWebApiCheckAnyPermission.
  */
+if (!function_exists('crmWebApiDbConnect')) {
 function crmWebApiDbConnect(string $webBaseDir): ?PDO
 {
     $apiBaseDir = dirname($webBaseDir) . '/api';
@@ -418,6 +419,7 @@ function crmWebApiDbConnect(string $webBaseDir): ?PDO
         \Api\System\Library\Support\AppLog::error('[index::crmWebApiDbConnect] ' . $e->getMessage());
         return null;
     }
+}
 }
 
 function crmWebApiSessionCookieIsValid(string $sessionToken, string $webBaseDir): bool
