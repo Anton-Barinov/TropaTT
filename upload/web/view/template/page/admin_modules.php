@@ -837,6 +837,10 @@
         host.innerHTML = html;
         host.querySelectorAll('.module-filter').forEach(function (btn) {
             btn.addEventListener('click', function () {
+                var searchInput = document.getElementById('mpSearch');
+                if (searchInput) {
+                    mpState.q = String(searchInput.value || '').trim();
+                }
                 mpState.category = this.getAttribute('data-cat') || '';
                 mpLoad(1);
             });
@@ -1196,6 +1200,10 @@
             });
         }
         if (searchInput) {
+            searchInput.addEventListener('search', function () {
+                syncSearch();
+                mpLoad(1);
+            });
             searchInput.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
