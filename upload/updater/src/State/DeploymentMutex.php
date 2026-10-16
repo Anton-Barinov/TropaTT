@@ -35,14 +35,14 @@ final class DeploymentMutex
         if ($directoryStat === false) { return false; }
         if (is_link($directory) || ($directoryStat['mode'] & 0170000) !== 0040000
             || ($directoryStat['mode'] & 0077) !== 0
-            || $directoryStat['uid'] !== $storageStat['uid']) { return true; }
+            || !self::isValidOwner((int)$directoryStat['uid'], (int)$storageStat['uid'])) { return true; }
         $path = $directory . '/installation-release.lock';
         clearstatcache(true, $path);
         $pathStat = @lstat($path);
         if ($pathStat === false) { return false; }
         if (is_link($path) || ($pathStat['mode'] & 0170000) !== 0100000
             || ($pathStat['mode'] & 0077) !== 0 || $pathStat['nlink'] !== 1
-            || $pathStat['uid'] !== $directoryStat['uid']) { return true; }
+            || !self::isValidOwner((int)$pathStat['uid'], (int)$directoryStat['uid'])) { return true; }
         $handle = @fopen($path, 'rb');
         if ($handle === false) { return true; }
         try {
@@ -76,7 +76,8 @@ final class DeploymentMutex
         }
         clearstatcache(true, $directory);
         $directoryStat = @stat($directory);
-        if ($directoryStat === false || ($directoryStat['mode'] & 0077) !== 0) {
+        if ($directoryStat === false || ($directoryStat['mode'] & 0077) !== 0
+            || !self::isValidOwner((int)$directoryStat['uid'], (int)@fileowner($storage))) {
             throw new \RuntimeException('Deployment mutex directory must be private.');
         }
         $path = $directory . '/installation-release.lock';
@@ -95,7 +96,7 @@ final class DeploymentMutex
         $fileStat = fstat($handle);
         if ($fileStat === false || ($fileStat['mode'] & 0170000) !== 0100000
             || ($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
-            || $fileStat['uid'] !== $directoryStat['uid']) {
+            || !self::isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])) {
             fclose($handle);
             throw new \RuntimeException('Unsafe deployment mutex file.');
         }
@@ -119,5 +120,17 @@ final class DeploymentMutex
     public function __destruct()
     {
         $this->release();
+    }
+
+    private static function isValidOwner(int $uid, int $expectedUid): bool
+    {
+        if ($uid === $expectedUid) {
+            return true;
+        }
+        if (function_exists('posix_geteuid') && $uid === (int)posix_geteuid()) {
+            return true;
+        }
+        $myUid = getmyuid();
+        return $myUid !== false && $uid === (int)$myUid;
     }
 }

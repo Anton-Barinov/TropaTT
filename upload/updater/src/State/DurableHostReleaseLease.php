@@ -55,7 +55,7 @@ final class DurableHostReleaseLease
         $dirStat = @lstat($directory);
         if (!is_array($dirStat) || ($dirStat['mode'] & 0170000) !== 0040000
             || ($dirStat['mode'] & 0077) !== 0 || is_link($directory)
-            || $dirStat['uid'] !== $stat['uid']) {
+            || !$this->isValidOwner((int)$dirStat['uid'], (int)$stat['uid'])) {
             throw new \RuntimeException('HOST_LEASE_DIRECTORY_UNSAFE');
         }
         $this->directory = $directory;
@@ -232,7 +232,7 @@ final class DurableHostReleaseLease
                 || ($meta['mode'] & 0170000) !== 0100000 || ($meta['mode'] & 0077) !== 0
                 || $meta['nlink'] !== 1 || $meta['dev'] !== $pathMeta['dev']
                 || $meta['ino'] !== $pathMeta['ino'] || ($pathMeta['mode'] & 0170000) !== 0100000
-                || $meta['uid'] !== $pathMeta['uid'] || $meta['uid'] !== $this->directoryUid()) {
+                || $meta['uid'] !== $pathMeta['uid'] || !$this->isValidOwner((int)$meta['uid'], $this->directoryUid())) {
                 throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
             }
             if (!flock($handle, LOCK_EX | LOCK_NB)) {
@@ -256,7 +256,7 @@ final class DurableHostReleaseLease
         $meta = @lstat($this->path);
         if (!is_array($meta) || is_link($this->path) || ($meta['mode'] & 0170000) !== 0100000
             || ($meta['mode'] & 0077) !== 0 || $meta['nlink'] !== 1 || $meta['size'] > 8192
-            || $meta['uid'] !== $this->directoryUid()) {
+            || !$this->isValidOwner((int)$meta['uid'], $this->directoryUid())) {
             throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
         }
         $raw = @file_get_contents($this->path);
@@ -623,7 +623,7 @@ final class DurableHostReleaseLease
         $dir = @lstat($this->directory);
         if ($stat === false || $dir === false || is_link($path)
             || ($stat['mode'] & 0170000) !== 0100000 || ($stat['mode'] & 0077) !== 0
-            || $stat['nlink'] !== 1 || $stat['uid'] !== $dir['uid'] || $stat['size'] < 2 || $stat['size'] > 4096) {
+            || $stat['nlink'] !== 1 || !$this->isValidOwner((int)$stat['uid'], (int)$dir['uid']) || $stat['size'] < 2 || $stat['size'] > 4096) {
             throw new \RuntimeException('HOST_BOOTSTRAP_INTENT_UNSAFE');
         }
         $value = json_decode((string)@file_get_contents($path), true);
@@ -747,7 +747,7 @@ final class DurableHostReleaseLease
         clearstatcache(true, $path); $stat = @lstat($path);
         if (!is_array($stat) || is_link($path) || ($stat['mode'] & 0170000) !== 0100000
             || $stat['nlink'] !== 1 || $stat['size'] > 4096
-            || $stat['uid'] !== (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/'))) {
+            || !$this->isValidOwner((int)$stat['uid'], (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/')))) {
             throw new \RuntimeException('HOST_LEASE_MAINTENANCE_READBACK_INVALID');
         }
         $body = json_decode((string)@file_get_contents($path), true);
@@ -764,7 +764,7 @@ final class DurableHostReleaseLease
         clearstatcache(true, $path); $stat = @lstat($path);
         if (!is_array($stat) || is_link($path) || ($stat['mode'] & 0170000) !== 0100000
             || $stat['nlink'] !== 1 || $stat['size'] < 2 || $stat['size'] > 8192
-            || $stat['uid'] !== (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/'))) {
+            || !$this->isValidOwner((int)$stat['uid'], (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/')))) {
             throw new \RuntimeException('HOST_LEASE_UPDATE_LOCK_READBACK_INVALID');
         }
         $lock = json_decode((string)@file_get_contents($path), true);
@@ -792,7 +792,7 @@ final class DurableHostReleaseLease
             clearstatcache(true, $jsonl); $meta = @lstat($jsonl);
             if (!is_array($meta) || is_link($jsonl) || ($meta['mode'] & 0170000) !== 0100000
                 || ($meta['mode'] & 0077) !== 0 || $meta['nlink'] !== 1 || $meta['size'] > 8 * 1024 * 1024
-                || $meta['uid'] !== (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/'))) {
+                || !$this->isValidOwner((int)$meta['uid'], (int)@fileowner(rtrim((string)$this->updaterStorageDir, '/')))) {
                 throw new \RuntimeException('HOST_LEASE_DIRTY_PATH_READBACK_INVALID');
             }
             foreach (preg_split('/\\R/', trim((string)@file_get_contents($jsonl))) ?: [] as $line) {
@@ -826,7 +826,7 @@ final class DurableHostReleaseLease
         $storage = @lstat(rtrim((string)$this->updaterStorageDir, '/'));
         if (!is_array($stat) || !is_array($storage) || is_link($path)
             || ($stat['mode'] & 0170000) !== 0040000 || ($stat['mode'] & 0077) !== 0
-            || $stat['uid'] !== $storage['uid']) {
+            || !$this->isValidOwner((int)$stat['uid'], (int)$storage['uid'])) {
             throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
         }
     }
@@ -841,7 +841,7 @@ final class DurableHostReleaseLease
         $storage = @lstat(rtrim((string)$this->updaterStorageDir, '/'));
         if (!is_array($stat) || !is_array($storage) || is_link($path)
             || ($stat['mode'] & 0170000) !== 0100000 || ($stat['mode'] & 0077) !== 0
-            || $stat['uid'] !== $storage['uid'] || $stat['nlink'] !== 1
+            || !$this->isValidOwner((int)$stat['uid'], (int)$storage['uid']) || $stat['nlink'] !== 1
             || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
             throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
         }
@@ -884,5 +884,17 @@ final class DurableHostReleaseLease
             throw new \RuntimeException('HOST_LEASE_DIRECTORY_UNAVAILABLE');
         }
         return (int)$stat['uid'];
+    }
+
+    private function isValidOwner(int $uid, int $expectedUid): bool
+    {
+        if ($uid === $expectedUid) {
+            return true;
+        }
+        if (function_exists('posix_geteuid') && $uid === (int)posix_geteuid()) {
+            return true;
+        }
+        $myUid = getmyuid();
+        return $myUid !== false && $uid === (int)$myUid;
     }
 }

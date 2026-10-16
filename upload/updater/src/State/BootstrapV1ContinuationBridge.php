@@ -74,7 +74,7 @@ final class BootstrapV1ContinuationBridge
         $maintenanceStat = @lstat($maintenancePath);
         if ($maintenanceStat === false || is_link($maintenancePath)
             || ($maintenanceStat['mode'] & 0170000) !== 0100000 || $maintenanceStat['nlink'] !== 1
-            || $maintenanceStat['uid'] !== fileowner($this->storageDir) || $maintenanceStat['size'] > 4096) {
+            || !$this->isValidOwner((int)$maintenanceStat['uid'], (int)fileowner($this->storageDir)) || $maintenanceStat['size'] > 4096) {
             throw new \RuntimeException('BOOTSTRAP_V1_MAINTENANCE_FILE_UNSAFE');
         }
         $maintenance = json_decode((string)@file_get_contents($maintenancePath), true);
@@ -94,7 +94,7 @@ final class BootstrapV1ContinuationBridge
         clearstatcache(true, $path);
         $stat = @lstat($path);
         if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0040000
-            || ($stat['mode'] & 0077) !== 0 || $stat['uid'] !== fileowner($this->storageDir)) {
+            || ($stat['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_DIRECTORY_UNSAFE');
         }
     }
@@ -105,7 +105,7 @@ final class BootstrapV1ContinuationBridge
         $stat = @lstat($path);
         if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0100000
             || ($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1
-            || $stat['uid'] !== fileowner($this->storageDir) || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
+            || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir)) || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_FILE_UNSAFE');
         }
         $raw = @file_get_contents($path);
@@ -125,5 +125,17 @@ final class BootstrapV1ContinuationBridge
             return $item;
         };
         return json_encode($normalize($value), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    }
+
+    private function isValidOwner(int $uid, int $expectedUid): bool
+    {
+        if ($uid === $expectedUid) {
+            return true;
+        }
+        if (function_exists('posix_geteuid') && $uid === (int)posix_geteuid()) {
+            return true;
+        }
+        $myUid = getmyuid();
+        return $myUid !== false && $uid === (int)$myUid;
     }
 }
