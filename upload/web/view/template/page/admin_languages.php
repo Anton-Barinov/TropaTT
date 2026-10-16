@@ -25,7 +25,7 @@
 
   <div class="crm-admin-settings-note mb-3 d-flex align-items-start gap-2" role="note" data-i18n="admin_languages.note">
     <i class="fa-solid fa-circle-info crm-admin-settings-note-icon text-primary" aria-hidden="true"></i>
-    <span><?= htmlspecialchars($t('admin_languages.note', 'Отключенные языки не удаляются из системы, но скрываются из формы входа и настроек пользователя. Язык по умолчанию отключить нельзя.'), ENT_QUOTES, 'UTF-8') ?></span>
+    <span><?= htmlspecialchars($t('admin_languages.note', 'Отключенные языки не удаляются из системы, но скрываются из формы входа и настроек пользователя. Язык по умолчанию отключить нельзя.'), ENT_QUOTES, 'UTF-8') ?> <span class="text-muted">· <a href="index.php?route=admin-roles" class="text-decoration-none"><i class="fa-solid fa-shield-halved me-1"></i><?= htmlspecialchars($t('admin_languages.roles_perm_hint', 'Настройка прав ролей (language_pack.install)'), ENT_QUOTES, 'UTF-8') ?></a></span></span>
   </div>
 
   <div class="row g-3 mb-3">
