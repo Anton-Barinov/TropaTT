@@ -1275,7 +1275,7 @@ final class UpdaterKernel
         $this->ensureRecoveryKey($logger);
         // Clear any error recorded by an earlier failed attempt: a job that
         // finished successfully must never keep showing a stale error text.
-        $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        $state->write(['state' => 'applied', 'can_resume' => false, 'can_rollback' => true, 'maintenance_held' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('apply_complete', 'Update applied successfully');
         // The staged extraction and the downloaded archive are no longer
         // needed, and they are the two largest artefacts the updater keeps
@@ -1815,7 +1815,7 @@ final class UpdaterKernel
         (new MaintenanceMode($this->basePath))->disable($jobId);
         (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
         // Clear any error recorded by an earlier failed attempt.
-        $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
+        $state->write(['state' => 'rolled_back', 'can_resume' => false, 'can_rollback' => false, 'maintenance_held' => false, 'finished_at' => gmdate('c'), 'error' => null, 'progress' => ['phase' => 'finalized', 'cursor' => [], 'done' => 1, 'total' => 1]]);
         $logger->info('rollback_complete', 'Rollback completed', ['backup_id' => $backupId]);
         // Same disk discipline as a successful apply: the staged extraction and
         // the downloaded archive are spent, and finished jobs are bounded.
