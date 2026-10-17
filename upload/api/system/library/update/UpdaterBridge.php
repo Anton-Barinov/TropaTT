@@ -114,7 +114,7 @@ final class UpdaterBridge
         ];
     }
 
-    private static function registerUpdaterAutoloader(string $basePath): void
+    public static function registerUpdaterAutoloader(string $basePath): void
     {
         $basePath = rtrim($basePath, '/\\');
         if (isset(self::$autoloadRegistered[$basePath])) {
