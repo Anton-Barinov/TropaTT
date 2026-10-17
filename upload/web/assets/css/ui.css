@@ -180,6 +180,7 @@ form[data-dirty-guard][data-crm-dirty="1"] {
 
 .crm-dashboard-page .crm-page-title,
 .crm-admin-page .crm-page-title,
+.crm-module-page .crm-page-title,
 .crm-my-day-page .crm-page-title,
 .crm-my-week-page .crm-page-title,
 .crm-tasks-page .crm-page-title,
@@ -199,6 +200,7 @@ form[data-dirty-guard][data-crm-dirty="1"] {
 
 .crm-dashboard-page .crm-subtitle,
 .crm-admin-page .crm-subtitle,
+.crm-module-page .crm-subtitle,
 .crm-my-day-page .crm-subtitle,
 .crm-my-week-page .crm-subtitle,
 .crm-tasks-page .crm-subtitle,
@@ -215,6 +217,7 @@ form[data-dirty-guard][data-crm-dirty="1"] {
 }
 
 .crm-admin-page .crm-page-head .btn,
+.crm-module-page .crm-page-head .btn,
 .crm-my-day-page .crm-page-head .btn,
 .crm-my-week-page .crm-page-head .btn,
 .crm-tasks-page .crm-page-head .btn,

@@ -442,6 +442,7 @@ function cmd_make(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
 
     $vendorStudly = ucfirst($vendor);
     $nameStudly = str_replace(' ', '', ucwords(str_replace('-', ' ', $name)));
+    $i18nPrefix = 'module.' . $vendor . '.' . $name;
 
     $paths = [
         '',
@@ -497,12 +498,47 @@ function cmd_make(PluginManager $pm, ModuleConfig $mc, ModuleMigrationRunner $mm
 
     file_put_contents($dir . '/api/controller/HelloController.php', "<?php\ndeclare(strict_types=1);\n\nnamespace Module\\{$vendorStudly}\\{$nameStudly}\Controller;\n\nfinal class HelloController\n{\n    public function index(): array\n    {\n        return ['message' => 'Hello from {$moduleName}!'];\n    }\n}\n");
     file_put_contents($dir . '/web/controller/HelloController.php', "<?php\ndeclare(strict_types=1);\n\nnamespace Module\\{$vendorStudly}\\{$nameStudly}\Controller;\n\nuse Web\System\Core\Controller;\n\nfinal class HelloController extends Controller\n{\n    public function index(): void\n    {\n        \$this->render(__DIR__ . '/../template/page/module_{$name}.php', [\n            'title' => '{$moduleName}',\n            'route' => 'module-{$name}',\n        ]);\n    }\n}\n");
-    file_put_contents($dir . '/web/template/page/module_{$name}.php', "<h1>Hello from {$moduleName}!</h1>\n");
-    file_put_contents($dir . '/web/assets/js/module-{$name}-page-bindings.js', "// Module {$moduleName} page bindings\n");
-    file_put_contents($dir . '/web/assets/js/module-{$name}.js', "// Module {$moduleName} JS\n");
-    file_put_contents($dir . '/web/assets/css/module-{$name}.css', "/* Module {$moduleName} CSS */\n");
-    file_put_contents($dir . '/web/language/en-gb.php', "<?php\n\nreturn [];\n");
-    file_put_contents($dir . '/web/language/ru-ru.php', "<?php\n\nreturn [];\n");
+    $pageTemplate = <<<'PHP'
+<?php declare(strict_types=1); ?>
+<body data-page="module-__SLUG__" data-protected="1"><div class="crm-app">
+<aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
+<div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
+<main class="crm-content crm-admin-page crm-module-page">
+<?php crm_page_head([
+  ['label' => $t('nav.admin', 'Administration'), 'href' => 'index.php?route=admin'],
+  ['label' => $t('__I18N_PREFIX__.breadcrumb', 'Modules'), 'href' => 'index.php?route=admin-modules'],
+  ['label' => (string)($title ?? '__TITLE__'), 'active' => true],
+], (string)($title ?? '__TITLE__'), $t('__I18N_PREFIX__.welcome', 'Customize this module page and connect the actions it needs.'), '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="__I18N_PREFIX__.back_to_modules">' . htmlspecialchars($t('__I18N_PREFIX__.back_to_modules', 'Back to modules'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
+<section class="crm-card mt-3"><div class="crm-card-body"><p class="mb-0" data-i18n="__I18N_PREFIX__.content_placeholder"><?= htmlspecialchars($t('__I18N_PREFIX__.content_placeholder', 'This module page is ready for customization.'), ENT_QUOTES, 'UTF-8') ?></p></div></section>
+</main></div></div>
+PHP;
+    $pageTemplate = str_replace(['__SLUG__', '__TITLE__', '__I18N_PREFIX__'], [$name, $moduleName, $i18nPrefix], $pageTemplate) . "\n";
+    file_put_contents($dir . '/web/template/page/module_' . $name . '.php', $pageTemplate);
+    file_put_contents($dir . '/web/assets/js/module-' . $name . '-page-bindings.js', "// Module {$moduleName} page bindings\n");
+    file_put_contents($dir . '/web/assets/js/module-' . $name . '.js', "// Module {$moduleName} JS\n");
+    file_put_contents($dir . '/web/assets/css/module-' . $name . '.css', "/* Module {$moduleName} CSS */\n");
+    $moduleTranslations = [
+        'en-gb' => [
+            'breadcrumb' => 'Modules',
+            'back_to_modules' => 'Back to modules',
+            'welcome' => 'Customize this module page and connect the actions it needs.',
+            'content_placeholder' => 'This module page is ready for customization.',
+        ],
+        'ru-ru' => [
+            'breadcrumb' => 'Модули',
+            'back_to_modules' => 'Вернуться к модулям',
+            'welcome' => 'Настройте содержимое модуля и подключите необходимые действия.',
+            'content_placeholder' => 'Страница модуля готова к настройке.',
+        ],
+    ];
+    foreach ($moduleTranslations as $locale => $translations) {
+        $localeContent = "<?php\ndeclare(strict_types=1);\n\nreturn [\n    'module' => [\n        '" . $vendor . "' => [\n            '" . $name . "' => [\n";
+        foreach ($translations as $key => $translation) {
+            $localeContent .= "                '" . $key . "' => " . var_export($translation, true) . ",\n";
+        }
+        $localeContent .= "            ],\n        ],\n    ],\n];\n";
+        file_put_contents($dir . '/web/language/' . $locale . '.php', $localeContent);
+    }
     file_put_contents($dir . '/api/language/en-gb/module/messages.php', "<?php\n\nreturn [];\n");
     file_put_contents($dir . '/api/language/ru-ru/module/messages.php', "<?php\n\nreturn [];\n");
 
