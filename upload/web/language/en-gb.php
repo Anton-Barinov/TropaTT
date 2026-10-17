@@ -8098,6 +8098,7 @@ return array (
     'err_session' => 'Session expired. Refresh the page and sign in again.',
     'err_forbidden' => 'This user cannot manage updates. Root/admin or settings-management permission is required.',
     'err_generic' => 'Unable to perform the action.',
+    'err_transient_http' => 'The server returned a temporary HTTP {status} error. Try again later; update progress is saved.',
     'err_timeout' => 'The request timed out.',
     'loading_initial' => 'loading state',
     'loading_refresh' => 'refreshing status',
