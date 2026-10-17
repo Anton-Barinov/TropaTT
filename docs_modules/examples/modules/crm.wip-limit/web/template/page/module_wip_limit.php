@@ -2,7 +2,11 @@
 <?php $title = $t('module_wip_limit.title', 'TropaTT — WIP Limits'); ?>
 <body data-page="module-wip-limit" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
-<main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="nav.admin"><?= htmlspecialchars($t('nav.admin', 'Administration'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="module_wip_limit.page_title"><?= htmlspecialchars($t('module_wip_limit.page_title', 'WIP Limits'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="module_wip_limit.page_title"><?= htmlspecialchars($t('module_wip_limit.page_title', 'WIP Limits'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="module_wip_limit.subtitle"><?= htmlspecialchars($t('module_wip_limit.subtitle', 'Limit the number of tasks in progress per user, team and project.'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
+<main class="crm-content crm-admin-page crm-module-page"><?php crm_page_head([
+  ['label' => $t('admin_module_detail.link_admin', 'Administration'), 'href' => 'index.php?route=admin'],
+  ['label' => $t('admin_module_detail.link_modules', 'Modules'), 'href' => 'index.php?route=admin-modules'],
+  ['label' => $t('module_wip_limit.page_title', 'WIP Limits'), 'active' => true],
+], $t('module_wip_limit.page_title', 'WIP Limits'), $t('module_wip_limit.subtitle', 'Limit the number of tasks in progress per user, team and project.'), '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Back to modules'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
 
 <div class="btn-group btn-group-sm flex-wrap mb-3 crm-segmented-filter" id="wipScopeTabs" role="group" aria-label="WIP scope">
   <button type="button" class="btn btn-sm btn-outline-secondary crm-segmented-filter-btn active" data-scope="user" data-i18n="module_wip_limit.tab_users"><?= htmlspecialchars($t('module_wip_limit.tab_users', 'Users'), ENT_QUOTES, 'UTF-8') ?></button>
