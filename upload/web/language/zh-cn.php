@@ -8023,6 +8023,7 @@ return array (
     'err_session' => '会话已过期。请刷新页面并重新登录。',
     'err_forbidden' => '此用户不能管理更新。需要 root/admin 或设置管理权限。',
     'err_generic' => '无法执行操作。',
+    'err_transient_http' => '服务器暂时返回 HTTP {status} 错误。请稍后重试；更新进度已保存。',
     'err_timeout' => '请求超时。',
     'loading_initial' => '正在加载状态',
     'loading_refresh' => '正在刷新状态',

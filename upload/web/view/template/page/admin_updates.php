@@ -169,6 +169,7 @@ $auJs = [
   'errSession' => $au('err_session', 'Сессия истекла. Обновите страницу и войдите в CRM снова.'),
   'errForbidden' => $au('err_forbidden', 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.'),
   'errGeneric' => $au('err_generic', 'Не удалось выполнить действие.'),
+  'errTransientHttp' => $au('err_transient_http', 'Сервер временно вернул ошибку HTTP {status}. Повторите попытку позже; состояние обновления сохранено.'),
   'errTimeout' => $au('err_timeout', 'Запрос превысил таймаут.'),
   'errPreflightRequired' => $au('err_preflight_required', 'Сначала успешно выполните проверку безопасности.'),
   'errNoPackage' => $au('err_no_package', 'Для этой операции пакет обновления недоступен.'),
@@ -729,6 +730,25 @@ $auJs = [
     if (code === 'DOWNLOAD_FAILED') return tr('errDownload', 'Не удалось подготовить архив.');
     if (code === 'APPLY_FAILED') return tr('errApply', 'Не удалось установить обновление.');
     if (code === 'ROLLBACK_FAILED') return tr('errRollback', 'Не удалось восстановить backup.');
+    if (code === 'UPDATER_ERROR') {
+      const safeDiagnostics = {
+        'Update center request failed.': 'errCheck',
+        'Update center returned an HTTP error.': 'errCheck',
+        'Update center returned invalid data.': 'errCheck',
+        'Package download failed.': 'errDownload',
+        'Downloaded package size does not match the manifest.': 'errDownload',
+        'Downloaded package checksum does not match the manifest.': 'errDownload',
+        'Downloaded package is missing.': 'errDownload',
+        'Downloaded package could not be opened as a ZIP archive.': 'errDownload',
+        'Downloaded package could not be extracted.': 'errDownload'
+      };
+      const diagnosticKey = safeDiagnostics[String(payload && payload.message || '').trim()];
+      if (diagnosticKey === 'errCheck') return tr('errCheck', 'Не удалось проверить обновления.');
+      if (diagnosticKey === 'errDownload') return tr('errDownload', 'Не удалось подготовить архив.');
+    }
+    if (code === 'INVALID_JSON' && [408, 425, 429, 500, 502, 503, 504].includes(status)) {
+      return tr('errTransientHttp', 'Сервер временно вернул ошибку HTTP {status}. Повторите попытку позже; состояние обновления сохранено.', {status});
+    }
     if (code === 'UPDATER_ERROR') return tr('errGeneric', 'Не удалось выполнить действие.');
     return fallback || tr('errGeneric', 'Не удалось выполнить действие.');
   }
@@ -1618,6 +1638,7 @@ $auJs = [
       'HOST_RELEASE_BUSY',
       'HOST_LEASE_RECONCILIATION_REQUIRED'
     ]);
+    const retryableHttpStatuses = new Set([408, 425, 500, 502, 503, 504]);
     const maxBusyRetries = 30;
     let busyRetries = 0;
     for (let guard = 0; guard < 2000; guard++) {
@@ -1662,6 +1683,19 @@ $auJs = [
           downloadRetries++;
           showNotice(tr('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})', {attempt: downloadRetries, max: maxNetworkRetries}), 'info');
           await sleep(1200 * downloadRetries);
+          continue;
+        }
+        const responseStatus = Number(result && (result.http_status || (result.meta && result.meta.status)) || 0);
+        const responseCode = String(result && result.code || '').toUpperCase();
+        if (result && result.success === false
+          && responseCode === 'INVALID_JSON'
+          && retryableHttpStatuses.has(responseStatus)
+          && networkRetries < maxNetworkRetries) {
+          networkRetries++;
+          showNotice(tr('retry_in_progress', 'Временная ошибка HTTP {status}, повторяем запрос… ({attempt} из {max})', {
+            status: responseStatus, attempt: networkRetries, max: maxNetworkRetries
+          }), 'info');
+          await sleep(Math.min(5000, 1200 * networkRetries));
           continue;
         }
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
