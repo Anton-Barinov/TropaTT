@@ -9339,6 +9339,7 @@ return array (
     'error' => 'Ошибка',
     'error_load' => 'Ошибка загрузки',
     'error_load_config' => 'Не удалось загрузить конфигурацию',
+    'invalid_json' => 'Введите корректный JSON для поля',
     'error_load_errors' => 'Не удалось загрузить',
     'error_load_migrations' => 'Не удалось загрузить',
     'errors_cleared' => 'Ошибки очищены',

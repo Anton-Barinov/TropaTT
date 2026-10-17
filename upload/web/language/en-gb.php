@@ -9219,6 +9219,7 @@ return array (
     'error' => 'Error',
     'error_load' => 'Load error',
     'error_load_config' => 'Failed to load configuration',
+    'invalid_json' => 'Enter valid JSON for the field',
     'error_load_errors' => 'Failed to load',
     'error_load_migrations' => 'Failed to load',
     'errors_cleared' => 'Errors cleared',
