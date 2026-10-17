@@ -126,24 +126,39 @@ final class UpdateCenterClient
     /**
      * Whether the domain belongs to the project's test stands.
      *
-     * Any *.tropatt.com host (demo, qa, updtest, test-*, ...) is served from
-     * the develop stream by the update center; the bare apex tropatt.com does
-     * not match and is served from main.
+     * Only the explicitly designated test stands (and reserved test-name
+     * prefixes) may use the develop stream. Production such as work.tropatt.com
+     * stays on main even though it shares the tropatt.com parent domain.
      */
     public static function isTestDomain(string $domain): bool
     {
         $domain = strtolower(trim($domain, '.'));
-        return $domain !== '' && str_ends_with($domain, '.tropatt.com');
+        if ($domain === '') {
+            return false;
+        }
+        $knownTestDomains = [
+            'demo.tropatt.com',
+            'en.demo.tropatt.com',
+            'zh.demo.tropatt.com',
+            'updater-lab.tropatt.com',
+            'updater-old.tropatt.com',
+            'updater-old-qa.tropatt.com',
+            'updater-qa.tropatt.com',
+        ];
+        if (in_array($domain, $knownTestDomains, true)) {
+            return true;
+        }
+        return preg_match('/^(?:test-[a-z0-9-]+|qa-[a-z0-9-]+|updtest(?:-[a-z0-9-]+)?)\.tropatt\.com$/', $domain) === 1;
     }
 
     /**
      * Stream policy guard: may this installation accept an update whose
      * resolved stream differs from its configured product?
      *
-     * A production installation (any non-*.tropatt.com domain, or an unknown
-     * domain) is only ever allowed the stream that matches its configured
-     * product (e.g. tropatt-core). Test stands on *.tropatt.com are the only
-     * place where the develop stream (tropatt-core-dev) is legitimate. This is
+     * A production installation (including work.tropatt.com) is only ever
+     * allowed the stream that matches its configured product (e.g.
+     * tropatt-core). Explicitly designated test stands are the only place
+     * where the develop stream (tropatt-core-dev) is legitimate. This is
      * the client-side counterpart of the update center's DomainRouter and a
      * hard stop that keeps a production installation from ever applying
      * unreviewed develop-stream code, even if the center were misconfigured or

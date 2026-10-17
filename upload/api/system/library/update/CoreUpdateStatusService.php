@@ -25,6 +25,9 @@ final class CoreUpdateStatusService
         usort($jobs, static fn(string $a, string $b): int => @filemtime($b) <=> @filemtime($a));
         if ($jobs) {
             $latestJob = json_decode((string)file_get_contents($jobs[0]), true);
+            if (is_array($latestJob)) {
+                $latestJob = $this->reconcileTerminalMaintenanceState($jobs[0], $latestJob);
+            }
         }
         return [
             'audit' => $audit,
@@ -44,6 +47,42 @@ final class CoreUpdateStatusService
             // constructor argument and CoreUpdateController still use it.
             'installed_core' => $this->version?->current(),
         ];
+    }
+
+    private function reconcileTerminalMaintenanceState(string $statePath, array $job): array
+    {
+        if (!in_array((string)($job['state'] ?? ''), ['applied', 'rolled_back'], true)
+            || ($job['maintenance_held'] ?? false) !== true
+            || !is_string($job['job_id'] ?? null)
+            || preg_match('/\A[A-Za-z0-9._-]{1,128}\z/D', $job['job_id']) !== 1
+            || is_link($statePath)) {
+            return $job;
+        }
+
+        $storageApi = dirname($this->storageDir);
+        $maintenanceFlag = $storageApi . '/maintenance.flag';
+        $updateLock = $this->storageDir . '/locks/update.lock';
+        $basePath = dirname($this->storageDir, 2);
+        if (is_link($storageApi) || is_link($maintenanceFlag) || file_exists($maintenanceFlag)
+            || is_link(dirname($updateLock)) || is_link($updateLock) || file_exists($updateLock)
+            || \Updater\State\DeploymentMutex::isBusy($basePath)) {
+            return $job;
+        }
+
+        $state = new \Updater\State\JobState($this->storageDir, $job['job_id']);
+        $current = $state->readFile('state.json');
+        if (!is_array($current) || ($current['job_id'] ?? null) !== $job['job_id']
+            || !in_array((string)($current['state'] ?? ''), ['applied', 'rolled_back'], true)
+            || ($current['maintenance_held'] ?? false) !== true) {
+            return is_array($current) ? $current : $job;
+        }
+
+        try {
+            $state->write(['maintenance_held' => false]);
+            return $state->readFile('state.json') ?? array_merge($current, ['maintenance_held' => false]);
+        } catch (\Throwable) {
+            return $current;
+        }
     }
 
     private function updateCenter(): array
