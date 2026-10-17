@@ -1941,12 +1941,19 @@ final class UpdaterKernel
                 'state' => $stateName,
             ]);
         }
-        // A job that reached applied or rolled_back cleanly (no leftover maintenance or lock) is terminal.
-        if (in_array($stateName, ['applied', 'rolled_back'], true) && !$maintenanceHeld && !$flagExists && !$lockHeld) {
+        // Terminal jobs are immutable. A stale page can ask for recovery after
+        // apply() already returned successfully but a later status refresh
+        // failed; recovery must never downgrade that successful installation
+        // to RECOVERED_INTERRUPTED or release a lock/maintenance flag that may
+        // now belong to another operation.
+        if (in_array($stateName, ['applied', 'rolled_back'], true)) {
             return JsonResponse::success([
                 'recovered' => false,
                 'reason' => 'job_already_terminal',
                 'state' => $stateName,
+                'maintenance_held' => $maintenanceHeld,
+                'maintenance_flag_present' => $flagExists,
+                'lock_held' => $lockHeld,
             ]);
         }
 

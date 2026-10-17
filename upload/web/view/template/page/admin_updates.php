@@ -1915,6 +1915,19 @@ $auJs = [
         showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
         return true;
       } catch (_resumeError) {
+        // applyUpdate() stores its final updater response before refreshing the
+        // status panels. A temporary API/status failure after that response is
+        // not an apply failure and must never send a completed job to recovery.
+        const completed = state.apply && (state.apply.data || state.apply);
+        if (completed
+          && String(completed.job_id || '') === jobId
+          && completed.continue === false
+          && completed.installed_core
+          && completed.installed_core.state === 'installed') {
+          clearNotice();
+          showNotice(tr('autoResumeDone', 'Прерванное обновление завершено автоматически.'), 'success');
+          return true;
+        }
         // Fall through to recovery: the job cannot be continued.
       }
     }
