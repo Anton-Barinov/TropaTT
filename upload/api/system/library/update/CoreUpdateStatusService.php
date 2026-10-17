@@ -16,6 +16,7 @@ final class CoreUpdateStatusService
 
     public function status(): array
     {
+        UpdaterBridge::registerUpdaterAutoloader(dirname($this->storageDir, 2));
         $audit = $this->read('update-center-audit.json');
         $latestJob = null;
         $jobs = glob($this->storageDir . '/jobs/*/state.json') ?: [];
