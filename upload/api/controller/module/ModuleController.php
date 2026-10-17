@@ -626,12 +626,15 @@ final class ModuleController
 
     public function updateConfig(array $params = []): JsonResponse
     {
-        $name = $params['name'] ?? '';
-        $config = $params['config'] ?? [];
-        if (!is_array($config)) $config = [];
+        $input = array_replace($this->request()->allInput(), $params);
+        $name = $input['name'] ?? '';
+        $config = $input['config'] ?? null;
 
         if ($name === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.name_required'), 400);
+        }
+        if (!is_array($config)) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
         }
 
         try {
