@@ -536,11 +536,39 @@ final class UpdaterKernel
                 if (!is_array($package)) {
                     return JsonResponse::error('NO_PACKAGE', 'No package available for this job', 409);
                 }
-                // The package itself is downloaded in one streaming pass (PHP
-                // keeps its own generous timeout; memory stays flat because the
-                // downloader streams to disk). Extraction below is chunked.
-                $path = (new PackageDownloader($this->storageDir))->download($jobId, $package);
-                $state->write(['progress' => ['phase' => 'extract', 'cursor' => 0, 'done' => 0, 'total' => 0]]);
+                $state->write(['progress' => [
+                    'phase' => 'download', 'cursor' => 0, 'done' => 0,
+                    'total' => max(0, (int)($package['size_bytes'] ?? 0)),
+                ]]);
+            }
+
+            $stored = $state->readFile('state.json') ?: [];
+            $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
+            if (($progress['phase'] ?? '') === 'download') {
+                $plan = $state->readFile('plan.json') ?: [];
+                $package = $plan['recommended_package'] ?? null;
+                if (!is_array($package)) {
+                    throw new \RuntimeException('Update package metadata is missing.');
+                }
+                $downloader = new PackageDownloader(
+                    $this->storageDir,
+                    (int)$steps['download_timeout_seconds'],
+                    (int)$steps['download_chunk_bytes']
+                );
+                $download = $downloader->downloadStep($jobId, $package);
+                if ($download['done']) {
+                    $state->write(['progress' => ['phase' => 'extract', 'cursor' => 0, 'done' => 0, 'total' => 0]]);
+                } else {
+                    $state->write(['progress' => [
+                        'phase' => 'download', 'cursor' => $download['bytes'],
+                        'done' => $download['bytes'], 'total' => $download['total'],
+                    ]]);
+                    return JsonResponse::success([
+                        'job_id' => $jobId,
+                        'continue' => true,
+                        'progress' => ['phase' => 'download', 'cursor' => $download['bytes'], 'done' => $download['bytes'], 'total' => $download['total']],
+                    ]);
+                }
             }
 
             // Extraction step machine: unzip at most max_files_per_request
@@ -2192,6 +2220,8 @@ final class UpdaterKernel
             'max_rows_per_request' => 50000,
             'max_migrations_per_request' => 1,
             'max_statements_per_request' => 500,
+            'download_chunk_bytes' => 1048576,
+            'download_timeout_seconds' => 25,
             'lock_ttl_seconds' => 600,
         ], $steps);
     }

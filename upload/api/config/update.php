@@ -18,16 +18,13 @@ return [
     'public_key_path' => dirname(__DIR__, 2) . '/updater/keys/update_public.pem',
     'timeouts' => [
         'check' => 10,
-        // Per-socket-read timeout for the package download. The package is
-        // fetched in ONE streaming pass (memory-flat); on very slow shared
-        // hosts where a 100MB package cannot transfer inside the web-server
-        // proxy timeout, lower max_package_bytes below or mirror the package
-        // on a faster URL. Extraction itself is step-chunked.
-        'download' => 120,
+        // Per-request timeout for one bounded package byte range. The package
+        // is fetched over multiple short requests so shared-host proxy limits
+        // do not have to accommodate a single long transfer.
+        'download' => 25,
         // Used by CoreUpdateController when it proxies the updater over HTTP
-        // (preflight). Actual apply/rollback are invoked by the page JS directly
-        // against updater/index.php, which lifts max_execution_time to 600s.
-        // Generous anyway so slow shared hosts survive a slow preflight.
+        // (preflight). Apply/rollback are also invoked by the page JS directly
+        // against updater/index.php; each individual step remains bounded.
         'apply_step' => 300,
     ],
     // Step budgets: how much REAL work a single updater HTTP request may do
@@ -57,6 +54,8 @@ return [
         'max_migrations_per_request' => 5,
         // DB restore: at most this many SQL statements per request.
         'max_statements_per_request' => 500,
+        'download_chunk_bytes' => 1048576,
+        'download_timeout_seconds' => 25,
         // How long the apply/rollback lock stays valid between steps without
         // a heartbeat. Every step renews it; a crashed job (browser closed
         // mid-update) becomes reclaimable after this many seconds.
