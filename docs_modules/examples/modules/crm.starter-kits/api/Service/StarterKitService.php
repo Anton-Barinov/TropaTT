@@ -5,6 +5,7 @@ namespace Module\Crm\StarterKits\Service;
 
 use PDO;
 use RuntimeException;
+use InvalidArgumentException;
 
 /**
  * Service managing workspace starter kits: catalog, preview/diff, conflict checking, and idempotent application.
@@ -116,9 +117,9 @@ final class StarterKitService
         }
 
         // 2. Roles check
-        $existingRoles = $this->fetchExistingCodes('roles', 'name', null); // global roles or workspace roles
+        $existingRoles = $this->fetchExistingCodes('roles', 'code', null); // Roles are global in the CRM core.
         foreach ($kit['roles'] ?? [] as $r) {
-            $name = (string)$r['name'];
+            $name = $this->starterRoleCode($r);
             $title = $this->resolveLocaleText($r['titles'] ?? [], $locale, $name);
             if (in_array($name, $existingRoles, true)) {
                 $conflicts['roles'][] = ['name' => $name, 'title' => $title, 'reason' => 'Role name already exists.'];
@@ -150,7 +151,8 @@ final class StarterKitService
         }
 
         // 5. Knowledge spaces check
-        $existingSpaces = $this->fetchExistingCodes('knowledge_spaces', 'slug', $organizationId);
+        // The core schema has a global UNIQUE constraint on knowledge_spaces.slug.
+        $existingSpaces = $this->fetchExistingCodes('knowledge_spaces', 'slug', null);
         foreach ($kit['knowledge_spaces'] ?? [] as $ks) {
             $slug = (string)$ks['slug'];
             $title = $this->resolveLocaleText($ks['titles'] ?? [], $locale, $slug);
@@ -177,16 +179,29 @@ final class StarterKitService
      * @param array<int, string>|null $selectedComponents
      * @return array{ok: bool, kit_id: string, applied_objects: array<string, int>, conflicts_skipped: int}
      */
-    public function apply(string $kitId, int $organizationId, ?int $userId = null, ?array $selectedComponents = null, string $locale = 'ru-ru'): array
+    public function apply(string $kitId, int $organizationId, ?int $userId = null, ?array $selectedComponents = null, string $locale = 'ru-ru', bool $actorIsRoot = false): array
     {
+        $allComponents = ['statuses', 'roles', 'project_templates', 'task_templates', 'knowledge_spaces'];
+        if ($organizationId <= 0 || $userId === null || $userId <= 0) {
+            throw new InvalidArgumentException('A valid workspace and authenticated user are required.');
+        }
+        if ($selectedComponents === null || $selectedComponents === [] || count($selectedComponents) > count($allComponents)) {
+            throw new InvalidArgumentException('Select one or more starter kit components.');
+        }
+        foreach ($selectedComponents as $component) {
+            if (!is_string($component) || !in_array($component, $allComponents, true)) {
+                throw new InvalidArgumentException('Unknown starter kit component.');
+            }
+        }
+        $components = array_values(array_unique($selectedComponents));
+        if (in_array('roles', $components, true) && !$actorIsRoot) {
+            throw new RuntimeException('Only a root administrator can create global roles.');
+        }
         $preview = $this->preview($kitId, $organizationId, $locale);
         $kit = $this->getKit($kitId);
         if ($kit === null) {
             throw new RuntimeException("Starter kit '{$kitId}' not found.");
         }
-
-        $allComponents = ['statuses', 'roles', 'project_templates', 'task_templates', 'knowledge_spaces'];
-        $components = $selectedComponents !== null ? array_intersect($allComponents, $selectedComponents) : $allComponents;
 
         $createdCounts = [
             'statuses' => 0,
@@ -235,36 +250,41 @@ final class StarterKitService
 
             // 2. Apply Roles
             if (in_array('roles', $components, true)) {
-                $existing = $this->fetchExistingCodes('roles', 'name', null);
+                $existing = $this->fetchExistingCodes('roles', 'code', null);
                 foreach ($kit['roles'] ?? [] as $r) {
-                    $name = (string)$r['name'];
+                    $name = $this->starterRoleCode($r);
                     if (in_array($name, $existing, true)) {
                         $conflictsSkipped++;
                         continue;
                     }
                     $title = $this->resolveLocaleText($r['titles'] ?? [], $locale, $name);
                     $stmt = $this->db->prepare(
-                        "INSERT INTO `roles` (name, title, description, is_system, created_at, updated_at)
-                         VALUES (:name, :title, :desc, 0, :now, :now)"
+                        "INSERT INTO `roles` (public_id, code, title, is_system, created_at, updated_at)
+                         VALUES (:public_id, :code, :title, 0, :now, :now)"
                     );
                     $stmt->execute([
-                        ':name' => $name,
+                        ':public_id' => 'rol_' . bin2hex(random_bytes(10)),
+                        ':code' => $name,
                         ':title' => $title,
-                        ':desc' => "Created from starter kit {$kit['id']}",
                         ':now' => $now,
                     ]);
                     $roleId = (int)$this->db->lastInsertId();
 
-                    // Insert role permissions if permissions table has matching codes
+                    // Add every declared permission or fail the transaction rather than creating a misleading partial role.
                     if (!empty($r['permissions'])) {
+                        $permissionRows = [];
                         foreach ($r['permissions'] as $permCode) {
                             $pStmt = $this->db->prepare("SELECT id FROM permissions WHERE code = :code");
                             $pStmt->execute([':code' => $permCode]);
                             $permId = $pStmt->fetchColumn();
-                            if ($permId) {
-                                $rpStmt = $this->db->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (:role_id, :perm_id)");
-                                $rpStmt->execute([':role_id' => $roleId, ':perm_id' => $permId]);
+                            if (!$permId) {
+                                throw new RuntimeException('A required starter kit permission is unavailable.');
                             }
+                            $permissionRows[] = (int)$permId;
+                        }
+                        $rpStmt = $this->db->prepare("INSERT INTO role_permissions (role_id, permission_id, created_at) VALUES (:role_id, :perm_id, :created_at)");
+                        foreach ($permissionRows as $permId) {
+                            $rpStmt->execute([':role_id' => $roleId, ':perm_id' => $permId, ':created_at' => $now]);
                         }
                     }
 
@@ -340,7 +360,8 @@ final class StarterKitService
 
             // 5. Apply Knowledge Spaces
             if (in_array('knowledge_spaces', $components, true)) {
-                $existing = $this->fetchExistingCodes('knowledge_spaces', 'slug', $organizationId);
+                // Slugs are globally unique in the core schema, not per workspace.
+                $existing = $this->fetchExistingCodes('knowledge_spaces', 'slug', null);
                 foreach ($kit['knowledge_spaces'] ?? [] as $ks) {
                     $slug = (string)$ks['slug'];
                     if (in_array($slug, $existing, true)) {
@@ -371,8 +392,8 @@ final class StarterKitService
                         $pageTitle = $this->resolveLocaleText($p['titles'] ?? [], $locale, (string)$p['slug']);
                         $content = (string)($p['content'] ?? '');
                         $pStmt = $this->db->prepare(
-                            "INSERT INTO `knowledge_pages` (public_id, space_id, title, slug, content_text, content_html, status, author_user_id, created_at, updated_at)
-                             VALUES (:pub_id, :space_id, :title, :slug, :content_text, :content_html, 'published', :user_id, :now, :now)"
+                            "INSERT INTO `knowledge_pages` (public_id, space_id, title, slug, page_type, content_text, content_html, status, owner_user_id, last_editor_user_id, organization_id, created_at, updated_at)
+                             VALUES (:pub_id, :space_id, :title, :slug, 'article', :content_text, :content_html, 'draft', :user_id, :user_id, :org_id, :now, :now)"
                         );
                         $pStmt->execute([
                             ':pub_id' => $pagePubId,
@@ -382,6 +403,7 @@ final class StarterKitService
                             ':content_text' => strip_tags($content),
                             ':content_html' => nl2br(htmlspecialchars($content, ENT_QUOTES, 'UTF-8')),
                             ':user_id' => $userId,
+                            ':org_id' => $organizationId,
                             ':now' => $now,
                         ]);
                     }
@@ -437,6 +459,17 @@ final class StarterKitService
             return (string)$titles['ru-ru'];
         }
         return $fallback;
+    }
+
+    /**
+     * Starter kit roles are global templates. Keep them out of the implicit
+     * default-role candidate set used when creating ordinary CRM users.
+     */
+    private function starterRoleCode(array $role): string
+    {
+        $code = strtolower(trim((string)($role['name'] ?? '')));
+        $code = preg_replace('/[^a-z0-9_]+/', '_', $code) ?? '';
+        return 'starterkit_' . $code;
     }
 
     /**

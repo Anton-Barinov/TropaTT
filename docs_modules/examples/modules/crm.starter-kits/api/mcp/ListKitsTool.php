@@ -4,16 +4,20 @@ declare(strict_types=1);
 namespace Module\Crm\StarterKits\Mcp;
 
 use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Container;
+use Api\System\Library\Module\ModuleExecutionContext;
 use Module\Crm\StarterKits\Service\StarterKitService;
-use Api\System\Library\Database\DatabaseConnectionPool;
 
 final class ListKitsTool implements ModuleMcpToolInterface
 {
-    public function execute(array $arguments, array $context): array
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $db = DatabaseConnectionPool::getConnection();
+        if ($context->organizationId <= 0 || $context->actorPublicId === null || $context->actorPublicId === '') {
+            throw new \RuntimeException('An authorized workspace and actor are required.');
+        }
+        $db = $container->get('db.pdo');
         $service = new StarterKitService($db);
-        $locale = (string)($arguments['locale'] ?? ($context['user_locale'] ?? 'ru-ru'));
+        $locale = is_string($arguments['locale'] ?? null) ? substr(trim($arguments['locale']), 0, 35) : 'ru-ru';
         $kits = $service->listKits($locale);
 
         return [

@@ -1,6 +1,6 @@
 {
     "name": "crm.starter-kits",
-    "version": "1.0.3",
+    "version": "1.0.13",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -104,7 +104,9 @@
                         "items": {
                             "type": "string"
                         },
-                        "description": "Components to apply (statuses, roles, project_templates, task_templates, knowledge_spaces)"
+                        "description": "Components to apply (statuses, roles, project_templates, task_templates, knowledge_spaces)",
+                        "minItems": 1,
+                        "maxItems": 5
                     },
                     "locale": {
                         "type": "string",
@@ -112,7 +114,8 @@
                     }
                 },
                 "required": [
-                    "kit_id"
+                    "kit_id",
+                    "selected_components"
                 ],
                 "additionalProperties": false
             }
