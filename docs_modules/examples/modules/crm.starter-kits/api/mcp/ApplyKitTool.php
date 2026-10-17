@@ -32,7 +32,8 @@ final class ApplyKitTool implements ModuleMcpToolInterface
         if (!is_array($actor) || (int)$actor['id'] <= 0) {
             throw new \RuntimeException('Authenticated actor could not be resolved.');
         }
-        $service = new StarterKitService($db);
+        $events = $container->has('module.domain_event') ? $container->get('module.domain_event') : null;
+        $service = new StarterKitService($db, null, $events);
         $result = $service->apply($kitId, $context->organizationId, (int)$actor['id'], $components, $locale, (bool)$actor['is_root']);
 
         return $result;

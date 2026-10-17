@@ -123,6 +123,10 @@
 
     function categoryLabel(key) {
         var map = {
+            crm: window.CRM.i18n.t('admin_modules.cat_crm', 'CRM'),
+            integrations: window.CRM.i18n.t('admin_modules.cat_integrations', 'Интеграции'),
+            payments: window.CRM.i18n.t('admin_modules.cat_payments', 'Платежи'),
+            storage: window.CRM.i18n.t('admin_modules.cat_storage', 'Хранилище'),
             migration: window.CRM.i18n.t('admin_modules.cat_migration', 'Миграции'),
             calendar: window.CRM.i18n.t('admin_modules.cat_calendar', 'Календари'),
             integration: window.CRM.i18n.t('admin_modules.cat_integration', 'Интеграции'),

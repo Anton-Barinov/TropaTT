@@ -9,11 +9,11 @@ class MigrationStatusTool
     public function execute(array $args, array $context): array
     {
         return [
-            'status' => 'idle',
+            'status' => 'not_implemented',
             'active_sessions' => 0,
-            'supported_entities' => ['contacts', 'companies', 'deals', 'notes'],
-            'ready' => true,
-            'message' => 'HubSpot migration pipeline is ready for data ingest.'
+            'supported_entities' => [],
+            'ready' => false,
+            'message' => 'The migration workflow is not available yet. No data can be imported.'
         ];
     }
 }

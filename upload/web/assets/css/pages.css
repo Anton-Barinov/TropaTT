@@ -21210,8 +21210,8 @@ body[data-page="admin-settings"] [data-settings-group] {
   .crm-admin-modules-page #mpSearchBtn { min-height: 42px; flex: 1 1 8rem; }
   .crm-admin-modules-page #mpRefresh,
   .crm-admin-modules-page #mpOpenCatalog { min-width: 42px; min-height: 42px; }
-  .crm-admin-modules-page #mpCategoryFilters { width: 100%; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: .25rem; }
-  .crm-admin-modules-page #mpCategoryFilters .module-filter { flex: 0 0 auto; min-height: 40px; }
+  .crm-admin-modules-page #mpCategoryFilters { width: 100%; max-width: 100%; overflow: visible; flex-wrap: wrap !important; gap: .35rem; border: 0; background: transparent; box-shadow: none; }
+  .crm-admin-modules-page #mpCategoryFilters .module-filter { flex: 0 0 auto; min-height: 40px; border: 1px solid var(--crm-border) !important; border-radius: var(--crm-radius-md) !important; }
   body[data-page="not-found"] { min-width: 0; }
   body[data-page="not-found"] > .container { width: 100%; max-width: 100%; padding: 1rem !important; }
   body[data-page="not-found"] .card-body { padding: 1rem; }

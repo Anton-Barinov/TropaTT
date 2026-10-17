@@ -17,7 +17,8 @@
                 <p class="text-muted"><?= htmlspecialchars($form['description']) ?></p>
             <?php endif; ?>
 
-            <form id="public-form" action="/api/v1/public-forms/<?= htmlspecialchars($form['slug']) ?>/submit" method="POST">
+            <form id="public-form" action="/api/v1/_module/crm.public-forms/forms/<?= rawurlencode((string)$form['slug']) ?>/submit" method="POST">
+                <input type="hidden" name="_idempotency_key" value="<?= htmlspecialchars(bin2hex(random_bytes(16)), ENT_QUOTES, 'UTF-8') ?>">
                 <!-- Honeypot field (hidden from real users) -->
                 <div style="display:none;" aria-hidden="true">
                     <input type="text" name="_hp_website" tabindex="-1" autocomplete="off">
@@ -39,7 +40,39 @@
 
                 <button type="submit" class="btn btn-primary w-100">Отправить заявку</button>
             </form>
+            <div id="public-form-result" class="mt-3" role="status" aria-live="polite"></div>
         </div>
     </div>
+    <script>
+      document.getElementById('public-form')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const button = form.querySelector('button[type="submit"]');
+        const result = document.getElementById('public-form-result');
+        if (!form.reportValidity()) return;
+        const payload = Object.fromEntries(new FormData(form).entries());
+        payload.consent_agreed = form.elements.consent_agreed?.checked ? '1' : '';
+        button.disabled = true;
+        result.textContent = '';
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'omit'
+          });
+          const data = await response.json();
+          if (!response.ok || data.success === false) throw new Error(data.message || 'Не удалось отправить заявку.');
+          result.className = 'mt-3 alert alert-success';
+          result.textContent = data.message || 'Заявка отправлена.';
+          form.reset();
+        } catch (error) {
+          result.className = 'mt-3 alert alert-danger';
+          result.textContent = error instanceof Error ? error.message : 'Не удалось отправить заявку.';
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
 </body>
 </html>

@@ -1,11 +1,11 @@
 {
     "name": "crm.hubspot-migration",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "HubSpot Data Migration",
-    "description": "Безопасный перенос контактов, компаний, сделок и заметок из HubSpot в TropaTT CRM с предпросмотром, дедупликацией и аудитом",
+    "description": "Информация о планируемом переносе данных из HubSpot. Импорт пока недоступен и не изменяет данные CRM.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integrations",
@@ -13,8 +13,7 @@
     "require_permissions": [
         "settings.view",
         "settings.edit",
-        "clients.view",
-        "clients.create"
+        "clients.view"
     ],
     "service_provider": "Module\\Crm\\HubSpotMigration\\HubSpotMigrationServiceProvider",
     "migrations": "api/migrations",
@@ -40,7 +39,7 @@
     "mcp_tools": [
         {
             "name": "hubspot_migration_status",
-            "description": "Get HubSpot migration status, summary and staging statistics",
+            "description": "Report whether the HubSpot migration workflow is available",
             "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationStatusTool",
             "permissions": [
                 "settings.view"
@@ -50,38 +49,6 @@
             "input_schema": {
                 "type": "object",
                 "properties": {},
-                "additionalProperties": false
-            }
-        },
-        {
-            "name": "hubspot_migration_run",
-            "description": "Trigger preflight dry-run or live batch import from HubSpot payload",
-            "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationRunTool",
-            "permissions": [
-                "settings.edit"
-            ],
-            "mode": "all",
-            "workspace_required": true,
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "mode": {
-                        "type": "string",
-                        "enum": [
-                            "dry_run",
-                            "live_batch",
-                            "rollback"
-                        ],
-                        "description": "Execution mode"
-                    },
-                    "batch_size": {
-                        "type": "integer",
-                        "description": "Batch size for chunked execution (default 50)"
-                    }
-                },
-                "required": [
-                    "mode"
-                ],
                 "additionalProperties": false
             }
         }

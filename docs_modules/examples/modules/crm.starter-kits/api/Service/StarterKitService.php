@@ -6,6 +6,9 @@ namespace Module\Crm\StarterKits\Service;
 use PDO;
 use RuntimeException;
 use InvalidArgumentException;
+use Api\Model\Knowledge\KnowledgeRepository;
+use Api\System\Library\Module\DomainEventPublisher;
+use Api\System\Library\Module\ModuleEvents;
 
 /**
  * Service managing workspace starter kits: catalog, preview/diff, conflict checking, and idempotent application.
@@ -14,11 +17,15 @@ final class StarterKitService
 {
     private PDO $db;
     private string $kitsDir;
+    private KnowledgeRepository $knowledge;
+    private ?DomainEventPublisher $events;
 
-    public function __construct(PDO $db, ?string $kitsDir = null)
+    public function __construct(PDO $db, ?string $kitsDir = null, ?DomainEventPublisher $events = null)
     {
         $this->db = $db;
         $this->kitsDir = $kitsDir ?? dirname(__DIR__, 2) . '/resources/kits';
+        $this->knowledge = new KnowledgeRepository($db);
+        $this->events = $events;
     }
 
     /**
@@ -212,6 +219,9 @@ final class StarterKitService
         ];
         $conflictsSkipped = 0;
         $createdObjectIds = [];
+        $createdKnowledgePageIds = [];
+        $createdKnowledgeEventIds = [];
+        $repairedKnowledgeEventIds = [];
 
         $this->db->beginTransaction();
         try {
@@ -230,7 +240,7 @@ final class StarterKitService
                     $title = $this->resolveLocaleText($st['titles'] ?? [], $locale, $code);
                     $stmt = $this->db->prepare(
                         "INSERT INTO `statuses` (public_id, scope, code, title, color, sort_order, is_active, is_closed, organization_id, created_at, updated_at)
-                         VALUES (:pub_id, :scope, :code, :title, :color, :sort_order, 1, :is_closed, :org_id, :now, :now)"
+                         VALUES (:pub_id, :scope, :code, :title, :color, :sort_order, 1, :is_closed, :org_id, :created_at, :updated_at)"
                     );
                     $stmt->execute([
                         ':pub_id' => $pubId,
@@ -241,7 +251,8 @@ final class StarterKitService
                         ':sort_order' => (int)($st['sort_order'] ?? 10),
                         ':is_closed' => (int)($st['is_closed'] ?? 0),
                         ':org_id' => $organizationId,
-                        ':now' => $now,
+                        ':created_at' => $now,
+                        ':updated_at' => $now,
                     ]);
                     $createdCounts['statuses']++;
                     $createdObjectIds[] = ['type' => 'status', 'public_id' => $pubId, 'code' => $code];
@@ -260,13 +271,14 @@ final class StarterKitService
                     $title = $this->resolveLocaleText($r['titles'] ?? [], $locale, $name);
                     $stmt = $this->db->prepare(
                         "INSERT INTO `roles` (public_id, code, title, is_system, created_at, updated_at)
-                         VALUES (:public_id, :code, :title, 0, :now, :now)"
+                         VALUES (:public_id, :code, :title, 0, :created_at, :updated_at)"
                     );
                     $stmt->execute([
                         ':public_id' => 'rol_' . bin2hex(random_bytes(10)),
                         ':code' => $name,
                         ':title' => $title,
-                        ':now' => $now,
+                        ':created_at' => $now,
+                        ':updated_at' => $now,
                     ]);
                     $roleId = (int)$this->db->lastInsertId();
 
@@ -311,7 +323,7 @@ final class StarterKitService
 
                     $stmt = $this->db->prepare(
                         "INSERT INTO `project_templates` (public_id, title, payload, is_active, created_by_user_id, organization_id, created_at, updated_at)
-                         VALUES (:pub_id, :title, :payload, 1, :user_id, :org_id, :now, :now)"
+                         VALUES (:pub_id, :title, :payload, 1, :user_id, :org_id, :created_at, :updated_at)"
                     );
                     $stmt->execute([
                         ':pub_id' => $pubId,
@@ -319,7 +331,8 @@ final class StarterKitService
                         ':payload' => $payload,
                         ':user_id' => $userId,
                         ':org_id' => $organizationId,
-                        ':now' => $now,
+                        ':created_at' => $now,
+                        ':updated_at' => $now,
                     ]);
                     $createdCounts['project_templates']++;
                     $createdObjectIds[] = ['type' => 'project_template', 'public_id' => $pubId, 'title' => $title];
@@ -343,7 +356,7 @@ final class StarterKitService
 
                     $stmt = $this->db->prepare(
                         "INSERT INTO `task_templates` (public_id, title, payload, is_active, created_by_user_id, organization_id, created_at, updated_at)
-                         VALUES (:pub_id, :title, :payload, 1, :user_id, :org_id, :now, :now)"
+                         VALUES (:pub_id, :title, :payload, 1, :user_id, :org_id, :created_at, :updated_at)"
                     );
                     $stmt->execute([
                         ':pub_id' => $pubId,
@@ -351,7 +364,8 @@ final class StarterKitService
                         ':payload' => $payload,
                         ':user_id' => $userId,
                         ':org_id' => $organizationId,
-                        ':now' => $now,
+                        ':created_at' => $now,
+                        ':updated_at' => $now,
                     ]);
                     $createdCounts['task_templates']++;
                     $createdObjectIds[] = ['type' => 'task_template', 'public_id' => $pubId, 'title' => $title];
@@ -365,47 +379,47 @@ final class StarterKitService
                 foreach ($kit['knowledge_spaces'] ?? [] as $ks) {
                     $slug = (string)$ks['slug'];
                     if (in_array($slug, $existing, true)) {
+                        $this->repairLegacyKnowledgeSpace($ks, $kit['id'], $slug, $organizationId, $createdKnowledgePageIds, $repairedKnowledgeEventIds);
                         $conflictsSkipped++;
                         continue;
                     }
-                    $pubId = 'kbs_' . bin2hex(random_bytes(10));
                     $title = $this->resolveLocaleText($ks['titles'] ?? [], $locale, $slug);
-                    $stmt = $this->db->prepare(
-                        "INSERT INTO `knowledge_spaces` (public_id, title, slug, description, visibility, default_access_level, owner_user_id, organization_id, source_type, source_id, created_at, updated_at)
-                         VALUES (:pub_id, :title, :slug, :desc, 'public', 'view', :user_id, :org_id, 'starter_kit', :kit_id, :now, :now)"
+                    $actor = ['id' => $userId, 'organization_id' => $organizationId, 'is_root' => $actorIsRoot];
+                    $space = $this->knowledge->createSpace([
+                        'title' => $title,
+                        'slug' => $slug,
+                        'description' => (string)($ks['description'] ?? ''),
+                        'visibility' => 'public',
+                        'default_access_level' => 'view',
+                    ], $userId, $actor);
+                    $pubId = (string)($space['public_id'] ?? '');
+                    $spaceId = (int)($space['id'] ?? 0);
+                    if ($pubId === '' || $spaceId <= 0) {
+                        throw new RuntimeException('Knowledge space could not be created.');
+                    }
+                    $sourceStmt = $this->db->prepare(
+                        "UPDATE knowledge_spaces SET source_type = :source_type, source_id = :source_id WHERE id = :id"
                     );
-                    $stmt->execute([
-                        ':pub_id' => $pubId,
-                        ':title' => $title,
-                        ':slug' => $slug,
-                        ':desc' => (string)($ks['description'] ?? ''),
-                        ':user_id' => $userId,
-                        ':org_id' => $organizationId,
-                        ':kit_id' => $kit['id'],
-                        ':now' => $now,
-                    ]);
-                    $spaceId = (int)$this->db->lastInsertId();
+                    $sourceStmt->execute([':source_type' => 'starter_kit', ':source_id' => (string)$kit['id'], ':id' => $spaceId]);
 
                     // Insert child pages
                     foreach ($ks['pages'] ?? [] as $p) {
-                        $pagePubId = 'kbp_' . bin2hex(random_bytes(10));
                         $pageTitle = $this->resolveLocaleText($p['titles'] ?? [], $locale, (string)$p['slug']);
                         $content = (string)($p['content'] ?? '');
-                        $pStmt = $this->db->prepare(
-                            "INSERT INTO `knowledge_pages` (public_id, space_id, title, slug, page_type, content_text, content_html, status, owner_user_id, last_editor_user_id, organization_id, created_at, updated_at)
-                             VALUES (:pub_id, :space_id, :title, :slug, 'article', :content_text, :content_html, 'draft', :user_id, :user_id, :org_id, :now, :now)"
-                        );
-                        $pStmt->execute([
-                            ':pub_id' => $pagePubId,
-                            ':space_id' => $spaceId,
-                            ':title' => $pageTitle,
-                            ':slug' => (string)$p['slug'],
-                            ':content_text' => strip_tags($content),
-                            ':content_html' => nl2br(htmlspecialchars($content, ENT_QUOTES, 'UTF-8')),
-                            ':user_id' => $userId,
-                            ':org_id' => $organizationId,
-                            ':now' => $now,
-                        ]);
+                        $page = $this->knowledge->createPage([
+                            'space_public_id' => $pubId,
+                            'title' => $pageTitle,
+                            'slug' => (string)$p['slug'],
+                            'page_type' => 'article',
+                            'status' => 'draft',
+                            'content_html' => $this->markdownToSafeHtml($content),
+                        ], $userId, $actor);
+                        $pageId = (int)($page['id'] ?? 0);
+                        if ($pageId <= 0 || trim((string)($page['path'] ?? '')) === '') {
+                            throw new RuntimeException('Knowledge page could not be created.');
+                        }
+                        $createdKnowledgePageIds[] = $pageId;
+                        $createdKnowledgeEventIds[] = $pageId;
                     }
 
                     $createdCounts['knowledge_spaces']++;
@@ -430,11 +444,18 @@ final class StarterKitService
                 ':now' => $now,
             ]);
 
+            foreach (array_values(array_unique($createdKnowledgePageIds)) as $pageId) {
+                $this->knowledge->reindexPage($pageId);
+            }
+
             $this->db->commit();
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
         }
+
+        $this->publishKnowledgePageEvents($createdKnowledgeEventIds, $userId, $organizationId);
+        $this->publishKnowledgePageEvents($repairedKnowledgeEventIds, $userId, $organizationId, ModuleEvents::KNOWLEDGE_PAGE_UPDATED);
 
         return [
             'ok' => true,
@@ -470,6 +491,136 @@ final class StarterKitService
         $code = strtolower(trim((string)($role['name'] ?? '')));
         $code = preg_replace('/[^a-z0-9_]+/', '_', $code) ?? '';
         return 'starterkit_' . $code;
+    }
+
+    private function markdownToSafeHtml(string $markdown): string
+    {
+        $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
+        $blocks = preg_split('/\n\s*\n/u', trim($markdown)) ?: [];
+        $html = [];
+        foreach ($blocks as $block) {
+            $lines = array_values(array_filter(array_map('trim', explode("\n", $block)), static fn(string $line): bool => $line !== ''));
+            if ($lines === []) {
+                continue;
+            }
+            $escaped = array_map(static fn(string $line): string => htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $lines);
+            if (preg_match('/^#{1,6}\s/', $lines[0]) === 1 && count($lines) === 1) {
+                preg_match('/^(#{1,6})\s+(.*)$/u', $escaped[0], $match);
+                $level = strlen($match[1] ?? '#');
+                $html[] = '<h' . $level . '>' . ($match[2] ?? '') . '</h' . $level . '>';
+                continue;
+            }
+            $isList = count(array_filter($lines, static fn(string $line): bool => preg_match('/^\s*[-*]\s+/', $line) === 1)) === count($lines);
+            if ($isList) {
+                $items = array_map(static fn(string $line): string => '<li>' . preg_replace('/^\s*[-*]\s+/', '', htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')) . '</li>', $lines);
+                $html[] = '<ul>' . implode('', $items) . '</ul>';
+                continue;
+            }
+            $html[] = '<p>' . implode('<br>', $escaped) . '</p>';
+        }
+        return implode("\n", $html);
+    }
+
+    /**
+     * Repair only pages created by an earlier Starter Kits version in this workspace.
+     * User-edited pages are left untouched; the legacy body is replaced only when it
+     * still exactly matches the original escaped fixture.
+     *
+     * @param array<int, int> $pageIds
+     * @param array<int, int> $updatedPageIds
+     */
+    private function repairLegacyKnowledgeSpace(array $spaceDefinition, string $kitId, string $slug, int $organizationId, array &$pageIds, array &$updatedPageIds): void
+    {
+        $spaceStmt = $this->db->prepare(
+            "SELECT id, public_id FROM knowledge_spaces WHERE slug = :slug AND organization_id = :organization_id AND source_type = 'starter_kit' AND source_id = :source_id LIMIT 1"
+        );
+        $spaceStmt->execute([':slug' => $slug, ':organization_id' => $organizationId, ':source_id' => $kitId]);
+        $space = $spaceStmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($space)) {
+            return;
+        }
+
+        foreach ($spaceDefinition['pages'] ?? [] as $definition) {
+            $pageStmt = $this->db->prepare('SELECT id, public_id, slug, path, parent_id, content_html FROM knowledge_pages WHERE space_id = :space_id AND slug = :slug AND deleted_at IS NULL LIMIT 1');
+            $pageStmt->execute([':space_id' => (int)$space['id'], ':slug' => (string)$definition['slug']]);
+            $page = $pageStmt->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $pageId = (int)$page['id'];
+            $fixture = (string)($definition['content'] ?? '');
+            $legacyHtml = nl2br(htmlspecialchars($fixture, ENT_QUOTES, 'UTF-8'));
+            $updates = [];
+            $params = [':id' => $pageId];
+            if ((string)($page['content_html'] ?? '') === $legacyHtml) {
+                $html = $this->markdownToSafeHtml($fixture);
+                $text = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(preg_replace('#</(p|h[1-6]|li|ul|ol|br)>#i', ' ', $html) ?? $html), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+                $updates[] = 'content_html = :content_html';
+                $updates[] = 'content_text = :content_text';
+                $updates[] = 'excerpt = :excerpt';
+                $params[':content_html'] = $html;
+                $params[':content_text'] = $text;
+                $params[':excerpt'] = mb_substr($text, 0, 260);
+                $pageIds[] = $pageId;
+            }
+
+            if (($page['parent_id'] ?? null) === null && trim((string)($page['path'] ?? '')) === '') {
+                $updates[] = 'path = :path';
+                $updates[] = 'depth = 0';
+                $params[':path'] = '/' . (string)$page['slug'];
+                $pageIds[] = $pageId;
+            }
+            if ($updates !== []) {
+                $updates[] = 'row_version = row_version + 1';
+                $updates[] = 'updated_at = :updated_at';
+                $params[':updated_at'] = gmdate('Y-m-d H:i:s');
+                $this->db->prepare('UPDATE knowledge_pages SET ' . implode(', ', $updates) . ' WHERE id = :id')->execute($params);
+                $updatedPageIds[] = $pageId;
+            }
+        }
+    }
+
+    /** @param array<int, int> $pageIds */
+    private function publishKnowledgePageEvents(array $pageIds, int $userId, int $organizationId, string $event = ModuleEvents::KNOWLEDGE_PAGE_CREATED): void
+    {
+        if ($this->events === null || $pageIds === []) {
+            return;
+        }
+        $actorStmt = $this->db->prepare('SELECT public_id FROM users WHERE id = :id LIMIT 1');
+        $actorStmt->execute([':id' => $userId]);
+        $actorPublicId = (string)($actorStmt->fetchColumn() ?: '');
+        $actor = ['id' => $userId, 'public_id' => $actorPublicId, 'organization_id' => $organizationId];
+
+        $pageStmt = $this->db->prepare(
+            'SELECT p.public_id, p.title, p.slug, p.page_type, p.status, p.owner_user_id, p.last_editor_user_id, p.updated_at, s.public_id AS space_public_id '
+            . 'FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.id = :id LIMIT 1'
+        );
+        foreach (array_values(array_unique($pageIds)) as $pageId) {
+            $pageStmt->execute([':id' => $pageId]);
+            $page = $pageStmt->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($page)) {
+                continue;
+            }
+            try {
+                $payload = [
+                    'page_public_id' => (string)$page['public_id'],
+                    'space_public_id' => (string)$page['space_public_id'],
+                    'title' => (string)$page['title'],
+                    'slug' => (string)$page['slug'],
+                    'page_type' => (string)$page['page_type'],
+                    'status' => (string)$page['status'],
+                    'owner_user_id' => (int)$page['owner_user_id'],
+                    'last_editor_user_id' => (int)$page['last_editor_user_id'],
+                    'updated_at' => (string)$page['updated_at'],
+                ];
+                if ($event === ModuleEvents::KNOWLEDGE_PAGE_UPDATED) {
+                    $payload['changed_fields'] = ['content_html', 'content_text', 'excerpt', 'path', 'depth'];
+                }
+                $this->events->publish($event, $payload, $actor, $organizationId, 'module');
+            } catch (\Throwable) {
+            }
+        }
     }
 
     /**

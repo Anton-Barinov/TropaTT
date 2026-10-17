@@ -17,9 +17,21 @@ final class WhatsAppBusinessApiController extends BaseController
 
     public function handleWebhook(array $params): JsonResponse
     {
-        $orgId = (int)($params['org_id'] ?? 1);
-        $rawBody = (string)$this->request()->body();
-        $signature = (string)($this->request()->header('X-Hub-Signature-256') ?? '');
+        $orgId = (int)($params['org_id'] ?? 0);
+        if ($orgId <= 0) {
+            return $this->error('VALIDATION_ERROR', 'Invalid workspace identifier', 400);
+        }
+        $request = $this->request();
+        $rawBody = $request->rawBody;
+        $contentLength = (int)($request->server('CONTENT_LENGTH') ?? 0);
+        if ($contentLength > 262144 || strlen($rawBody) > 262144) {
+            return $this->error('PAYLOAD_TOO_LARGE', 'Webhook payload exceeds the 256 KB limit.', 413);
+        }
+        $contentType = strtolower(trim(explode(';', (string)($request->header('Content-Type') ?? ''))[0]));
+        if ($contentType !== 'application/json') {
+            return $this->error('UNSUPPORTED_MEDIA_TYPE', 'Webhook payload must use application/json.', 415);
+        }
+        $signature = trim((string)($request->header('X-Hub-Signature-256') ?? ''));
         $payload = $this->request()->allInput();
 
         $service = $this->getService();
@@ -38,7 +50,22 @@ final class WhatsAppBusinessApiController extends BaseController
             return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
         }
 
-        $orgId = (int)($auth['user']['organization_id'] ?? 1);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $user = (array)($auth['user'] ?? []);
+        $orgId = (int)($user['organization_id'] ?? 0);
+        if ($orgId <= 0) {
+            return $this->error('FORBIDDEN', 'An active workspace is required', 403);
+        }
+        if (empty($user['is_root'])) {
+            if (!$this->container->has('service.authz')
+                || !$this->container->get('service.authz')->hasPermissions($user, ['settings.view'])) {
+                return $this->error('FORBIDDEN', 'Insufficient permissions to view WhatsApp conversations', 403);
+            }
+        }
+
         $service = $this->getService();
         $items = $service->listConversations($orgId);
 

@@ -11,7 +11,10 @@ final class StarterKitsApiController extends BaseController
 {
     private function service(): StarterKitService
     {
-        return new StarterKitService($this->container->get('db.pdo'));
+        $events = $this->container->has('module.domain_event')
+            ? $this->container->get('module.domain_event')
+            : null;
+        return new StarterKitService($this->container->get('db.pdo'), null, $events);
     }
 
     private function actorContext(): array

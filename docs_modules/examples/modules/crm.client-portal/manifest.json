@@ -1,6 +1,6 @@
 {
     "name": "crm.client-portal",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -11,7 +11,7 @@
     "category": "crm",
     "dependencies": [],
     "require_permissions": [
-        "client.view"
+        "client.manage"
     ],
     "service_provider": "Module\\Crm\\ClientPortal\\ClientPortalServiceProvider",
     "migrations": "api/migrations",
@@ -23,7 +23,7 @@
             "title": "Сервисный портал",
             "route": "client-portal",
             "icon": "life-buoy",
-            "permission": "client.view"
+            "permission": "client.manage"
         }
     ],
     "assets": {
@@ -40,7 +40,7 @@
             "description": "List client service requests with status and SLA metrics",
             "handler": "Module\\Crm\\ClientPortal\\Mcp\\ListRequestsTool",
             "permissions": [
-                "client.view"
+                "client.manage"
             ],
             "mode": "all",
             "workspace_required": true,
@@ -60,7 +60,7 @@
             "description": "Resolve service estimate or deliverable approval (approve or reject)",
             "handler": "Module\\Crm\\ClientPortal\\Mcp\\ResolveApprovalTool",
             "permissions": [
-                "client.view"
+                "client.manage"
             ],
             "mode": "all",
             "workspace_required": true,
