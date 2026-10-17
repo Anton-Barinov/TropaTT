@@ -832,7 +832,10 @@ $auJs = [
     const latest = state.status && state.status.latest_job;
     if (!latest || !latest.job_id) return false;
     if (latestStateCleared) return false;
-    if (latest.state === 'failed' && latest.error_code === 'RECOVERED_INTERRUPTED') return false;
+    if (latest.state === 'failed' && latest.error_code === 'RECOVERED_INTERRUPTED') {
+      const phase = String((latest.progress || {}).phase || '');
+      return latest.can_rollback === true || ['backup_files', 'backup_db'].includes(phase);
+    }
     if (latest.state === 'applying' || latest.state === 'backup_created') {
       const phase = String((latest.progress || {}).phase || '');
       return phase !== '' && phase !== 'finalized';
@@ -1149,6 +1152,15 @@ $auJs = [
       // renderStatus already ran for whatever state we have; a failed reload
       // just leaves the current view in place until the next drive tick.
     }
+    const afterRollback = state.status && state.status.latest_job;
+    if (afterRollback && afterRollback.state === 'rolled_back') {
+      try {
+        await resumeAutomaticRetry();
+      } catch (err) {
+        const message = String(err && err.message ? err.message : err);
+        showNotice(tr('autoResumeFailed', 'Не удалось автоматически продолжить повторную установку: {message}. Проверьте состояние и повторите вручную.', {message}), 'danger');
+      }
+    }
     // Compare the real cursor rather than progress.at: the stamp has a
     // one-second resolution, so two healthy chunks inside the same second must
     // not be mistaken for a stall.
@@ -1441,6 +1453,7 @@ $auJs = [
     state.preflight = data.preflight || data;
     state.lastJobId = extractJobId(result) || state.lastJobId;
     if (!state.lastJobId) throw new Error(tr('needJobDownload', 'Сначала выполните проверку безопасности, чтобы получить job_id.'));
+    setAutomaticRetryPhase(String((state.plan || {}).target_build || ''), 'install', state.lastJobId);
     // A failed safety check used to reach the admin as the single sentence
     // "The security check failed", with the actual verdict (which check, and
     // which package paths) stored only in the job's preflight.json. Surface it
@@ -1675,6 +1688,8 @@ $auJs = [
     const result = await runUpdaterSteps('apply', {job_id: state.lastJobId, confirm_apply: true, token});
     ensureSuccess(result, tr('errApply', 'Не удалось установить обновление.'));
     state.apply = result;
+    const installedBuild = String((((result.data || result).installed_core || {}).core_build) || '');
+    if (installedBuild !== '') clearAutomaticRetry(installedBuild);
     // Clear the progress notice immediately after apply succeeds so it
     // does not remain visible after the page refreshes its status.
     clearNotice();
@@ -1739,6 +1754,111 @@ $auJs = [
     state.download = null;
     state.changes = null;
     await loadStatus();
+  }
+
+  function automaticRetryKey() {
+    return 'tropatt:updater:auto-retry:v1';
+  }
+
+  function readAutomaticRetry() {
+    try {
+      const value = JSON.parse(localStorage.getItem(automaticRetryKey()) || 'null');
+      if (!value || Number(value.expires_at || 0) <= Date.now()) return null;
+      return value;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function claimAutomaticRetry(targetBuild, jobId) {
+    const target = String(targetBuild || '').trim();
+    if (target === '') return false;
+    try {
+      const key = automaticRetryKey();
+      const previous = readAutomaticRetry();
+      if (previous && previous.target === target && previous.phase === 'rollback' && previous.job_id === jobId) return true;
+      const attempts = previous && previous.target === target ? Number(previous.attempts || 0) : 0;
+      if (attempts >= 2) return false;
+      localStorage.setItem(key, JSON.stringify({target, attempts: attempts + 1, job_id: jobId, phase: 'starting', expires_at: Date.now() + 24 * 60 * 60 * 1000}));
+      return true;
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  function setAutomaticRetryPhase(targetBuild, phase, jobId) {
+    const target = String(targetBuild || '').trim();
+    if (target === '') return;
+    try {
+      const previous = readAutomaticRetry();
+      if (!previous || previous.target !== target) return;
+      localStorage.setItem(automaticRetryKey(), JSON.stringify(Object.assign({}, previous, {
+        phase: String(phase || ''),
+        job_id: String(jobId || ''),
+        expires_at: Date.now() + 24 * 60 * 60 * 1000
+      })));
+    } catch (_err) {}
+  }
+
+  function clearAutomaticRetry(targetBuild) {
+    const target = String(targetBuild || '').trim();
+    if (target === '') return;
+    try {
+      const key = automaticRetryKey();
+      const previous = JSON.parse(localStorage.getItem(key) || 'null');
+      if (previous && previous.target === target) localStorage.removeItem(key);
+    } catch (_err) {}
+  }
+
+  function recoveredJobCanRestart(latest) {
+    if (!latest || latest.state !== 'failed' || latest.error_code !== 'RECOVERED_INTERRUPTED') return false;
+    if (latest.can_rollback === true) return true;
+    return ['backup_files', 'backup_db'].includes(String((latest.progress || {}).phase || ''));
+  }
+
+  async function restartAfterRecovery(jobId, latest) {
+    if (!recoveredJobCanRestart(latest)) {
+      throw new Error(tr('autoResumeFailed', 'Нельзя безопасно автоматически продолжить это обновление. Проверьте backup и восстановите систему перед повторной установкой.', {message: ''}));
+    }
+    const targetBuild = String(((latest.plan || {}).target_build) || '');
+    if (!claimAutomaticRetry(targetBuild, jobId)) {
+      throw new Error(tr('autoResumeFailed', 'Автоматическая повторная попытка для этой версии уже использована. Проверьте состояние и запустите обновление вручную.', {message: ''}));
+    }
+    if (latest.can_rollback === true) {
+      setAutomaticRetryPhase(targetBuild, 'rollback', jobId);
+      state.lastJobId = jobId;
+      showNotice(tr('autoRecoverRunning', 'Обновление не завершилось; восстанавливаем проверенную копию перед повторной попыткой…'), 'info');
+      await rollback();
+    }
+    latestStateCleared = true;
+    setAutomaticRetryPhase(targetBuild, 'fresh', '');
+    await autoInstallFresh(tr('autoRecoverDone', 'Прерванное обновление восстановлено и повторно установлено.'));
+  }
+
+  async function resumeAutomaticRetry() {
+    const retry = readAutomaticRetry();
+    const latest = state.status && state.status.latest_job;
+    if (!retry || !latest || !latest.job_id || !latest.plan || String(latest.plan.target_build || '') !== retry.target) return false;
+    if (latest.state === 'rolled_back' && ['rollback', 'fresh'].includes(String(retry.phase || ''))) {
+      if (!claimAutomaticRetry(retry.target, String(latest.job_id))) {
+        showNotice(tr('autoResumeFailed', 'Автоматическая повторная попытка для этой версии исчерпана. Проверьте состояние и запустите обновление вручную.', {message: ''}), 'danger');
+        return false;
+      }
+      setAutomaticRetryPhase(retry.target, 'fresh', '');
+      await autoInstallFresh(tr('autoRecoverDone', 'Прерванное обновление восстановлено; автоматически продолжаем установку.'));
+      return true;
+    }
+    if (retry.phase === 'install' && ['preflight_passed', 'staging_ready'].includes(String(latest.state || ''))) {
+      state.lastJobId = String(latest.job_id);
+      if (latest.state === 'preflight_passed') {
+        await download();
+        await applyUpdate();
+      } else {
+        await installUpdate();
+      }
+      return true;
+    }
+    return false;
   }
 
   // Rotate the updater recovery key and show the new value once. The key
@@ -1907,6 +2027,16 @@ $auJs = [
     // handed back within one page load instead of after another failed resume.
     const stalled = latestJobStalled();
     showNotice(tr('autoResumeRunning', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…', {phase}), 'info');
+    if (latest.state === 'failed' && latest.error_code === 'RECOVERED_INTERRUPTED') {
+      try {
+        await restartAfterRecovery(jobId, latest);
+        return true;
+      } catch (err) {
+        const message = String(err && err.message ? err.message : err);
+        showNotice(tr('autoResumeFailed', 'Автоматически завершить обновление не удалось: {message}. Проверьте состояние установки и повторите вручную.', {message}), 'danger');
+        return false;
+      }
+    }
     if (latestJobInterrupted() && !stalled) {
       try {
         state.lastJobId = jobId;
@@ -1934,9 +2064,9 @@ $auJs = [
     try {
       showNotice(tr('autoRecoverRunning', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'), 'info');
       await recoverInterrupted(jobId);
-      latestStateCleared = true;
       await loadStatus();
-      await autoInstallFresh(tr('autoRecoverDone', 'Прерванное обновление очищено автоматически; обновление запущено заново.'));
+      const recovered = state.status && state.status.latest_job;
+      await restartAfterRecovery(jobId, recovered);
       return true;
     } catch (err) {
       const message = String(err && err.message ? err.message : err);
@@ -1985,6 +2115,12 @@ $auJs = [
     // before asking the centre for anything new, so the installation does not
     // stay behind maintenance mode waiting for a server administrator.
     await autoResumeInterrupted();
+    try {
+      await resumeAutomaticRetry();
+    } catch (err) {
+      const message = String(err && err.message ? err.message : err);
+      showNotice(tr('autoResumeFailed', 'Не удалось автоматически продолжить повторную установку: {message}. Проверьте состояние и повторите вручную.', {message}), 'danger');
+    }
     await loadStatus();
     await check();
     // Explicitly load changes after check — the auto-call inside check()

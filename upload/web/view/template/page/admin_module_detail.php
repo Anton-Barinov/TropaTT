@@ -95,6 +95,11 @@
                 var html = '';
                 keys.forEach(function (k) {
                     var v = cfg[k];
+                    if (v === null || typeof v === 'object') {
+                        html += '<div class="mb-2 row"><label class="col-sm-4 col-form-label">' + window.CRM.text.escapeHtml(k) + '</label>';
+                        html += '<div class="col-sm-8"><textarea rows="4" class="form-control font-monospace config-field" data-key="' + window.CRM.text.escapeHtml(k) + '" data-type="json">' + window.CRM.text.escapeHtml(JSON.stringify(v, null, 2)) + '</textarea></div></div>';
+                        return;
+                    }
                     var inputType = typeof v === 'boolean' ? 'checkbox' : (typeof v === 'number' ? 'number' : 'text');
                     var valStr = typeof v === 'boolean' ? '' : ' value="' + window.CRM.text.escapeHtml(String(v)) + '"';
                     var checked = typeof v === 'boolean' && v ? ' checked' : '';
@@ -116,13 +121,28 @@
                 document.getElementById('saveConfigBtn').addEventListener('click', function () {
                     var fields = c.querySelectorAll('.config-field');
                     var data = {};
+                    var invalidJsonKey = '';
                     fields.forEach(function (f) {
                         var key = f.getAttribute('data-key');
                         var type = f.getAttribute('data-type');
                         if (type === 'bool') data[key] = f.checked;
                         else if (type === 'number') data[key] = Number(f.value) || 0;
+                        else if (type === 'json') {
+                            try { data[key] = JSON.parse(f.value); }
+                            catch (e) { invalidJsonKey = invalidJsonKey || key; }
+                        }
                         else data[key] = f.value;
                     });
+
+                    if (invalidJsonKey) {
+                        var status = document.getElementById('configStatus');
+                        status.textContent = window.CRM.i18n.t('admin_module_detail.invalid_json', 'Введите корректный JSON для поля') + ' ' + invalidJsonKey;
+                        status.className = 'ms-2 small text-danger';
+                        Array.prototype.find.call(c.querySelectorAll('.config-field'), function (field) {
+                            return field.getAttribute('data-key') === invalidJsonKey;
+                        })?.focus();
+                        return;
+                    }
 
                     var btn = document.getElementById('saveConfigBtn');
                     btn.disabled = true; btn.textContent = window.CRM.i18n.t('admin_module_detail.saving', 'Сохранение...');
