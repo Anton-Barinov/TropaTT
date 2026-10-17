@@ -22,6 +22,7 @@ $auJs = [
   'loadingRollback' => $au('loading_rollback', 'восстанавливаем backup'),
   'progressStep' => $au('progress_step', 'шаг {done} из {total}'),
   'phaseBackupFiles' => $au('phase_backup_files', 'бэкап файлов'),
+  'phaseDownload' => $au('phase_download', 'загрузка пакета'),
   'phaseApplyFiles' => $au('phase_apply_files', 'установка файлов'),
   'phaseHealth' => $au('phase_health', 'проверка состояния'),
   'phaseBackupDb' => $au('phase_backup_db', 'бэкап базы данных'),
