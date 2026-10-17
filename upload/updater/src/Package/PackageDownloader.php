@@ -85,7 +85,9 @@ final class PackageDownloader
             $contentRange = $this->headerValue($responseHeaders, 'content-range');
             $contentLength = $this->headerValue($responseHeaders, 'content-length');
             $expectedChunkBytes = $end - $offset + 1;
-            $transferWasCut = is_string($contentLength) && ctype_digit($contentLength) && (int)$contentLength > $bytes;
+            $hasContentLength = is_string($contentLength) && ctype_digit($contentLength);
+            $transferWasCut = $hasContentLength && (int)$contentLength > $bytes;
+            $shortRangeWithoutLength = !$hasContentLength && $bytes > 0 && $bytes < $expectedChunkBytes;
             $validPartial = $status === 206
                 && is_string($contentRange)
                 && preg_match('/^bytes\s+(\d+)-(\d+)\/(\d+)$/i', trim($contentRange), $range) === 1
@@ -105,7 +107,7 @@ final class PackageDownloader
                 @unlink($chunk);
                 throw new \RuntimeException('The downloaded package chunk has an invalid size.');
             }
-            if ($validPartial && $bytes < $expectedChunkBytes && !$transferWasCut) {
+            if ($validPartial && $bytes < $expectedChunkBytes && !$transferWasCut && !$shortRangeWithoutLength) {
                 @unlink($chunk);
                 throw new \RuntimeException('The update server returned a short range without indicating an interrupted transfer.');
             }

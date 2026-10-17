@@ -64,6 +64,9 @@ $auJs = [
   'recommendResumeTitle' => $au('recommend_resume_title', 'Обновление было прервано'),
   'recommendResumeText' => $au('recommend_resume_text', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.'),
   'primaryResume' => $au('btn_resume', 'Продолжить обновление'),
+  'recommendResumeDownloadTitle' => $au('recommend_resume_download_title', 'Загрузка пакета была прервана'),
+  'recommendResumeDownloadText' => $au('recommend_resume_download_text', 'Часть архива уже сохранена. Продолжите загрузку — CRM проверит пакет и докачает его с сохранённого места.'),
+  'primaryResumeDownload' => $au('btn_resume_download', 'Продолжить загрузку'),
   'autoResumeRunning' => $au('auto_resume_running', 'Обнаружено незавершённое обновление ({phase}). Продолжаем автоматически…'),
   'autoResumeDone' => $au('auto_resume_done', 'Прерванное обновление завершено автоматически.'),
   'autoResumeFailed' => $au('auto_resume_failed', 'Автоматически завершить обновление не удалось: {message}. Попробуйте «Продолжить обновление» ещё раз или откатитесь из backup.'),
@@ -810,6 +813,21 @@ $auJs = [
     return true;
   }
 
+  // A package download is a resumable step just like extraction and apply.
+  // When a bounded transfer fails after its in-page retries, the kernel keeps
+  // the partial bytes and the plan under the same job id. Offer to continue
+  // that job after reload instead of creating a fresh preflight (which would
+  // abandon the partial archive and start the transfer from byte zero).
+  function latestJobDownloadInterrupted() {
+    const latest = state.status && state.status.latest_job;
+    if (!latest || !latest.job_id || latest.state !== 'failed'
+      || latest.error_code !== 'DOWNLOAD_FAILED' || latest.can_resume !== true
+      || String((latest.progress || {}).phase || '') !== 'download') return false;
+    const failedTarget = String((latest.plan || {}).target_build || '');
+    const availableTarget = String((state.plan || {}).target_build || '');
+    return failedTarget !== '' && availableTarget !== '' && failedTarget === availableTarget;
+  }
+
   // An apply that was interrupted (tab closed, reload, dropped connection,
   // proxy timeout) leaves the job in `applying`/`backup_created` with a
   // non-final phase. Every apply phase keeps a cursor, so the same job can be
@@ -1022,6 +1040,10 @@ $auJs = [
       $('nextTitle').textContent = tr('recommendResumeTitle', 'Обновление было прервано');
       $('nextText').textContent = tr('recommendResumeText', 'Установка остановилась на середине (страница была закрыта или соединение прервалось). CRM остаётся в режиме обслуживания. Нажмите «Продолжить», чтобы завершить её с текущего шага — заново ничего не скачивается.');
       setPrimary('install', tr('primaryResume', 'Продолжить обновление'));
+    } else if (latestJobDownloadInterrupted()) {
+      $('nextTitle').textContent = tr('recommendResumeDownloadTitle', 'Загрузка пакета была прервана');
+      $('nextText').textContent = tr('recommendResumeDownloadText', 'Часть архива уже сохранена. Продолжите загрузку — CRM проверит пакет и докачает его с сохранённого места.');
+      setPrimary('install', tr('primaryResumeDownload', 'Продолжить загрузку'));
     } else if (state.download || latestJobIsStaged()) {
       $('nextTitle').textContent = tr('recommendReadyTitle', 'Можно устанавливать');
       $('nextText').textContent = tr('recommendReadyText', 'Перед установкой CRM создаст backup. Запускайте установку только если готовы к короткому maintenance-окну.');
@@ -1735,6 +1757,17 @@ $auJs = [
     if (!state.plan) await check();
     if (!state.plan || state.plan.update_available !== true) {
       await loadStatus();
+      return;
+    }
+    // Reuse the failed download job only while it still targets the build the
+    // update center currently offers. The kernel resumes package.tmp from its
+    // verified byte offset; preflight would create a different job and discard
+    // that resumable transfer.
+    if (latestJobDownloadInterrupted()) {
+      state.lastJobId = String(state.status.latest_job.job_id || '');
+      state.preflight = {ok: true};
+      await download();
+      await applyUpdate();
       return;
     }
     // Resume a job whose package is already downloaded and staged. This is
