@@ -122,11 +122,16 @@
                     var fields = c.querySelectorAll('.config-field');
                     var data = {};
                     var invalidJsonKey = '';
+                    var invalidNumberKey = '';
                     fields.forEach(function (f) {
                         var key = f.getAttribute('data-key');
                         var type = f.getAttribute('data-type');
                         if (type === 'bool') data[key] = f.checked;
-                        else if (type === 'number') data[key] = Number(f.value) || 0;
+                        else if (type === 'number') {
+                            var numberValue = f.valueAsNumber;
+                            if (!Number.isFinite(numberValue)) invalidNumberKey = invalidNumberKey || key;
+                            else data[key] = numberValue;
+                        }
                         else if (type === 'json') {
                             try { data[key] = JSON.parse(f.value); }
                             catch (e) { invalidJsonKey = invalidJsonKey || key; }
@@ -140,6 +145,16 @@
                         status.className = 'ms-2 small text-danger';
                         Array.prototype.find.call(c.querySelectorAll('.config-field'), function (field) {
                             return field.getAttribute('data-key') === invalidJsonKey;
+                        })?.focus();
+                        return;
+                    }
+
+                    if (invalidNumberKey) {
+                        var numberStatus = document.getElementById('configStatus');
+                        numberStatus.textContent = window.CRM.i18n.t('modal_edit_number_invalid', 'Укажите корректное числовое значение') + ': ' + invalidNumberKey;
+                        numberStatus.className = 'ms-2 small text-danger';
+                        Array.prototype.find.call(c.querySelectorAll('.config-field'), function (field) {
+                            return field.getAttribute('data-key') === invalidNumberKey;
                         })?.focus();
                         return;
                     }

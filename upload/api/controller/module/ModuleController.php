@@ -138,6 +138,7 @@ final class ModuleController
                 'service_provider' => $manifest->serviceProvider,
                 'is_loaded' => $pm->isLoaded($name),
                 'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
+                'status' => !$registry ? 'not_installed' : ((bool)($registry['is_active'] ?? false) ? 'active' : 'installed'),
                 'installed_at' => $registry['installed_at'] ?? null,
                 'activated_at' => $registry['activated_at'] ?? null,
             ]);
