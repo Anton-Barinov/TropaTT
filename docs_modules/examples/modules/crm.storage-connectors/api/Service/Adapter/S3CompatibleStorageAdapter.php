@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Module\Crm\StorageConnectors\Service\Adapter;
 
+use Module\Crm\StorageConnectors\Service\SafeEndpoint;
 use RuntimeException;
 
 /**
@@ -28,6 +29,9 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
     ) {
         $this->endpointUrl = rtrim($endpointUrl, '/');
         $this->bucket = trim($bucket, '/');
+        if ($this->bucket === '' || str_contains($this->bucket, '/') || preg_match('/[\x00-\x20\x7F]/', $this->bucket)) {
+            throw new RuntimeException('S3 bucket name is invalid.');
+        }
         $this->accessKey = $accessKey;
         $this->secretKey = $secretKey;
         $this->region = $region !== '' ? $region : 'us-east-1';
@@ -42,6 +46,7 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
         $headers = $this->signRequest('GET', $uri, '', ['max-keys' => '1']);
         $ch = curl_init($url . '?max-keys=1');
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url . '?max-keys=1', $this->timeoutSeconds),
             CURLOPT_HTTPGET => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
@@ -70,7 +75,7 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
     public function putObject(string $objectKey, string $content): array
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $uri = '/' . $this->bucket . '/' . $cleanKey;
         $url = $this->endpointUrl . $uri;
 
@@ -84,6 +89,7 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'PUT',
             CURLOPT_POSTFIELDS => $content,
             CURLOPT_RETURNTRANSFER => true,
@@ -110,28 +116,42 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
     public function getObject(string $objectKey): ?string
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $uri = '/' . $this->bucket . '/' . $cleanKey;
         $url = $this->endpointUrl . $uri;
+        $content = '';
+        $tooLarge = false;
 
         $headers = $this->signRequest('GET', $uri, '');
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_HTTPGET => true,
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$content, &$tooLarge): int {
+                if (strlen($content) + strlen($chunk) > 20971520) {
+                    $tooLarge = true;
+                    return 0;
+                }
+                $content .= $chunk;
+                return strlen($chunk);
+            },
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_HTTPHEADER => $headers,
         ]);
 
-        $content = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($tooLarge) {
+            throw new RuntimeException('Remote file exceeds the 20 MB storage limit.');
+        }
 
         if ($httpCode === 404) {
             return null;
         }
 
-        if ($httpCode >= 200 && $httpCode < 300 && is_string($content)) {
+        if ($httpCode >= 200 && $httpCode < 300) {
             return $content;
         }
 
@@ -140,13 +160,14 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
     public function deleteObject(string $objectKey): bool
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $uri = '/' . $this->bucket . '/' . $cleanKey;
         $url = $this->endpointUrl . $uri;
 
         $headers = $this->signRequest('DELETE', $uri, '');
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'DELETE',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
@@ -162,7 +183,8 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
     public function createSignedUrl(string $objectKey, int $expiresInSeconds = 300): ?string
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
+        SafeEndpoint::curlOptions($this->endpointUrl, $this->timeoutSeconds);
         $uri = '/' . $this->bucket . '/' . $cleanKey;
 
         $now = time();
@@ -261,5 +283,19 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
         }
 
         return $outHeaders;
+    }
+
+    private function normalizeObjectKey(string $objectKey): string
+    {
+        $value = trim(str_replace('\\', '/', $objectKey), '/');
+        if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
+            throw new RuntimeException('Remote object key is invalid.');
+        }
+        foreach (explode('/', rawurldecode($value)) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                throw new RuntimeException('Remote object key traversal is not allowed.');
+            }
+        }
+        return implode('/', array_map('rawurlencode', explode('/', $value)));
     }
 }

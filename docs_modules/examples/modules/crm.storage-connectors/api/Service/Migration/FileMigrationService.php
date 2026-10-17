@@ -54,15 +54,23 @@ final class FileMigrationService
 
         foreach ($files as $file) {
             $fPubId = (string)$file['public_id'];
-            $storedPath = (string)$file['stored_path'];
-            $fullLocalPath = str_starts_with($storedPath, '/') ? $storedPath : $this->storageRoot . '/' . $storedPath;
-
-            if (!file_exists($fullLocalPath) || !is_readable($fullLocalPath)) {
+            $fullLocalPath = $this->resolveLocalPath((string)$file['stored_path']);
+            if ($fullLocalPath === null || !is_file($fullLocalPath) || !is_readable($fullLocalPath) || is_link($fullLocalPath)) {
                 $failed++;
                 continue;
             }
 
-            $content = (string)file_get_contents($fullLocalPath);
+            $fileSize = filesize($fullLocalPath);
+            if ($fileSize === false || $fileSize < 0 || $fileSize > StorageManagerService::MAX_FILE_BYTES) {
+                $failed++;
+                continue;
+            }
+
+            $content = file_get_contents($fullLocalPath);
+            if (!is_string($content) || strlen($content) !== $fileSize) {
+                $failed++;
+                continue;
+            }
             try {
                 $this->storageManager->storeRemoteFile($organizationId, $fPubId, $content, (string)$file['name']);
                 $synced++;
@@ -88,5 +96,47 @@ final class FileMigrationService
             'failed_count' => $failed,
             'has_more' => $remaining > 0,
         ];
+    }
+
+    private function resolveLocalPath(string $storedPath): ?string
+    {
+        $root = realpath($this->storageRoot);
+        $relative = str_replace('\\', '/', trim($storedPath));
+        if ($root === false || $relative === '' || preg_match('/[\x00-\x1F\x7F]/', $relative)) {
+            return null;
+        }
+
+        if (str_starts_with($relative, '/') || preg_match('/^[A-Za-z]:\//', $relative)) {
+            $candidate = $relative;
+        } else {
+            foreach (explode('/', $relative) as $segment) {
+                if ($segment === '' || $segment === '.' || $segment === '..') {
+                    return null;
+                }
+            }
+            $candidate = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        }
+
+        $resolved = realpath($candidate);
+        if ($resolved === false || is_link($candidate)) {
+            return null;
+        }
+
+        $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($candidate, $rootPrefix)) {
+            return null;
+        }
+        $cursor = rtrim($root, DIRECTORY_SEPARATOR);
+        foreach (explode(DIRECTORY_SEPARATOR, substr($candidate, strlen($rootPrefix))) as $segment) {
+            $cursor .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($cursor)) {
+                return null;
+            }
+        }
+        if (!str_starts_with($resolved, $rootPrefix)) {
+            return null;
+        }
+
+        return $resolved;
     }
 }

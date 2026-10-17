@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Module\Crm\StorageConnectors\Service\Adapter;
 
+use Module\Crm\StorageConnectors\Service\SafeEndpoint;
 use RuntimeException;
 
 /**
@@ -35,6 +36,7 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
         $url = $this->baseUrl . $this->remotePath;
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'PROPFIND',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
@@ -65,7 +67,7 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
 
     public function putObject(string $objectKey, string $content): array
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $url = $this->baseUrl . $this->remotePath . '/' . $cleanKey;
 
         $sha256 = hash('sha256', $content);
@@ -73,6 +75,7 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'PUT',
             CURLOPT_POSTFIELDS => $content,
             CURLOPT_RETURNTRANSFER => true,
@@ -104,26 +107,40 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
 
     public function getObject(string $objectKey): ?string
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $url = $this->baseUrl . $this->remotePath . '/' . $cleanKey;
+        $content = '';
+        $tooLarge = false;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_HTTPGET => true,
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$content, &$tooLarge): int {
+                if (strlen($content) + strlen($chunk) > 20971520) {
+                    $tooLarge = true;
+                    return 0;
+                }
+                $content .= $chunk;
+                return strlen($chunk);
+            },
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_USERPWD => "{$this->username}:{$this->password}",
         ]);
 
-        $content = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($tooLarge) {
+            throw new RuntimeException('Remote file exceeds the 20 MB storage limit.');
+        }
 
         if ($httpCode === 404) {
             return null;
         }
 
-        if ($httpCode >= 200 && $httpCode < 300 && is_string($content)) {
+        if ($httpCode >= 200 && $httpCode < 300) {
             return $content;
         }
 
@@ -132,11 +149,12 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
 
     public function deleteObject(string $objectKey): bool
     {
-        $cleanKey = ltrim($objectKey, '/');
+        $cleanKey = $this->normalizeObjectKey($objectKey);
         $url = $this->baseUrl . $this->remotePath . '/' . $cleanKey;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
+            ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'DELETE',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
@@ -154,5 +172,19 @@ final class NextcloudWebdavAdapter implements StorageAdapterInterface
     {
         // WebDAV does not provide standard client-side signed URLs; downloads route safely through FileService
         return null;
+    }
+
+    private function normalizeObjectKey(string $objectKey): string
+    {
+        $value = trim(str_replace('\\', '/', $objectKey), '/');
+        if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
+            throw new RuntimeException('Remote object key is invalid.');
+        }
+        foreach (explode('/', rawurldecode($value)) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                throw new RuntimeException('Remote object key traversal is not allowed.');
+            }
+        }
+        return implode('/', array_map('rawurlencode', explode('/', $value)));
     }
 }
