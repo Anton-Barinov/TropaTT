@@ -1793,12 +1793,15 @@ $auJs = [
       await loadStatus();
       return;
     }
+    const targetBuild = String(state.plan.target_build || '');
+    beginAutomaticInstall(targetBuild);
     // Reuse the failed download job only while it still targets the build the
     // update center currently offers. The kernel resumes package.tmp from its
     // verified byte offset; preflight would create a different job and discard
     // that resumable transfer.
     if (latestJobDownloadInterrupted()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
+      setAutomaticRetryPhase(targetBuild, 'install', state.lastJobId);
       state.preflight = {ok: true};
       await download();
       await applyUpdate();
@@ -1811,6 +1814,7 @@ $auJs = [
     // fail again and leave the update stuck at 'staging_ready').
     if (latestJobIsStaged()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
+      setAutomaticRetryPhase(targetBuild, 'install', state.lastJobId);
       await applyUpdate();
       return;
     }
@@ -1821,10 +1825,12 @@ $auJs = [
     // the installation stranded in maintenance mode.
     if (latestJobInterrupted()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
+      setAutomaticRetryPhase(targetBuild, 'install', state.lastJobId);
       await applyUpdate();
       return;
     }
     if (!state.preflight || !state.lastJobId) await preflight();
+    if (state.lastJobId) setAutomaticRetryPhase(targetBuild, 'install', state.lastJobId);
     if (!state.download) await download();
     await applyUpdate();
   }
@@ -1855,6 +1861,20 @@ $auJs = [
 
   function automaticRetryKey() {
     return 'tropatt:updater:auto-retry:v1';
+  }
+
+  function beginAutomaticInstall(targetBuild) {
+    const target = String(targetBuild || '').trim();
+    if (target === '') return;
+    try {
+      localStorage.setItem(automaticRetryKey(), JSON.stringify({
+        target,
+        attempts: 0,
+        job_id: '',
+        phase: 'install',
+        expires_at: Date.now() + 24 * 60 * 60 * 1000
+      }));
+    } catch (_err) {}
   }
 
   function readAutomaticRetry() {
@@ -1946,13 +1966,30 @@ $auJs = [
       return true;
     }
     if (retry.phase === 'install' && ['preflight_passed', 'staging_ready'].includes(String(latest.state || ''))) {
+      if (!claimAutomaticRetry(retry.target, String(latest.job_id))) {
+        showNotice(tr('autoResumeFailed', 'Автоматическая повторная попытка для этой версии исчерпана. Проверьте состояние и запустите обновление вручную.', {message: ''}), 'danger');
+        return false;
+      }
       state.lastJobId = String(latest.job_id);
+      setAutomaticRetryPhase(retry.target, 'install', state.lastJobId);
       if (latest.state === 'preflight_passed') {
         await download();
         await applyUpdate();
       } else {
-        await installUpdate();
+        await applyUpdate();
       }
+      return true;
+    }
+    if (retry.phase === 'install' && latestJobDownloadInterrupted()) {
+      if (!claimAutomaticRetry(retry.target, String(latest.job_id))) {
+        showNotice(tr('autoResumeFailed', 'Автоматическая повторная попытка для этой версии исчерпана. Проверьте состояние и запустите обновление вручную.', {message: ''}), 'danger');
+        return false;
+      }
+      state.lastJobId = String(latest.job_id);
+      state.preflight = {ok: true};
+      setAutomaticRetryPhase(retry.target, 'install', state.lastJobId);
+      await download();
+      await applyUpdate();
       return true;
     }
     return false;
