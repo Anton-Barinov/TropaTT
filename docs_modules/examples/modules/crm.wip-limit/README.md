@@ -15,7 +15,7 @@
 
 ## Архитектура
 
-- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`, версия `1.4.0`.
+- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`, версия `1.4.1`.
 - `api/Service/WipLimitService.php` — живой движок подсчёта WIP по пользователям/командам/проектам.
 - `api/Service/WipNotifier.php` — уведомления о превышении через ядерный `ModuleNotificationDispatcher`.
 - `api/Hook/WipHook.php` + `api/WipLimitServiceProvider.php` — регистрация хуков на `task.status_changed` / `task.assignee_changed` через ядерный `HookManager` (`boot()`).
@@ -27,7 +27,7 @@
 
 ## Миграции и тестирование
 
-Проверки: `php -l` всех PHP-файлов модуля, `node --check web/assets/js/module-wip-limit.js`, `php upload/api/scripts/module.php check crm.wip-limit`.
+Проверки: `php -l` всех PHP-файлов модуля, `node --check web/assets/js/module-wip-limit.js` и `node --check web/assets/js/wip-task-sidebar.js`, `php upload/api/scripts/module.php check crm.wip-limit`. Страница настроек передаёт CSP nonce встроенному скрипту; пакет без nonce блокируется политикой безопасности и оставляет таблицу в состоянии «Загрузка…».
 
 ## Безопасность
 
