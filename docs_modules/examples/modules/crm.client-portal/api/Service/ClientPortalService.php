@@ -62,8 +62,16 @@ final class ClientPortalService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function listRequests(int $organizationId, ?string $clientPublicId = null): array
+    public function listRequests(
+        int $organizationId,
+        ?string $clientPublicId = null,
+        bool $allowOrganizationWide = false
+    ): array
     {
+        if ($clientPublicId === null && !$allowOrganizationWide) {
+            return [];
+        }
+
         if ($clientPublicId !== null) {
             $stmt = $this->db->prepare(
                 "SELECT public_id, category, title, service_status, sla_status, sla_response_due_at, created_at, updated_at
@@ -159,24 +167,39 @@ final class ClientPortalService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function getMessages(int $organizationId, string $requestPublicId, bool $isClientCaller = false): array
+    public function getMessages(
+        int $organizationId,
+        string $requestPublicId,
+        ?string $clientPublicId = null,
+        bool $allowInternalMessages = false
+    ): array
     {
-        if ($isClientCaller) {
-            $stmt = $this->db->prepare(
-                "SELECT public_id, author_type, author_public_id, message_text, created_at
-                 FROM crm_client_service_messages
-                 WHERE organization_id = :org_id AND request_public_id = :req_id AND is_client_visible = 1
-                 ORDER BY id ASC"
-            );
-        } else {
-            $stmt = $this->db->prepare(
-                "SELECT public_id, author_type, author_public_id, is_client_visible, message_text, created_at
-                 FROM crm_client_service_messages
-                 WHERE organization_id = :org_id AND request_public_id = :req_id
-                 ORDER BY id ASC"
-            );
+        if ($clientPublicId === null && !$allowInternalMessages) {
+            return [];
         }
-        $stmt->execute([':org_id' => $organizationId, ':req_id' => $requestPublicId]);
+
+        $visibleClause = $clientPublicId !== null ? ' AND m.is_client_visible = 1' : '';
+        $selectVisibility = $clientPublicId !== null ? '' : ', m.is_client_visible';
+        $clientClause = $clientPublicId !== null ? ' AND r.client_public_id = :client_id' : '';
+        $stmt = $this->db->prepare(
+            "SELECT m.public_id, m.author_type, m.author_public_id{$selectVisibility}, m.message_text, m.created_at
+             FROM crm_client_service_messages m
+             INNER JOIN crm_client_service_requests r
+               ON r.public_id = m.request_public_id AND r.organization_id = m.organization_id
+             WHERE m.organization_id = :message_org_id
+               AND r.organization_id = :request_org_id
+               AND r.public_id = :req_id{$clientClause}{$visibleClause}
+             ORDER BY m.id ASC"
+        );
+        $params = [
+            ':message_org_id' => $organizationId,
+            ':request_org_id' => $organizationId,
+            ':req_id' => $requestPublicId,
+        ];
+        if ($clientPublicId !== null) {
+            $params[':client_id'] = $clientPublicId;
+        }
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 

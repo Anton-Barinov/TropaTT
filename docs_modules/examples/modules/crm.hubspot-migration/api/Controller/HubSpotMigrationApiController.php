@@ -4,39 +4,21 @@ declare(strict_types=1);
 
 namespace Module\Crm\HubSpotMigration\Controller;
 
+use Api\Controller\Common\BaseController;
+use Api\System\Library\Http\JsonResponse;
+use InvalidArgumentException;
 use Module\Crm\HubSpotMigration\Service\HubSpotMigrationService;
 
-class HubSpotMigrationApiController
+final class HubSpotMigrationApiController extends BaseController
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    public function getStatus(): JsonResponse
     {
-        $this->db = $db;
-    }
-
-    public function getStatus(): array
-    {
-        return [
-            'status' => 'not_configured',
+        return $this->success('HUBSPOT_MIGRATION_STATUS', 'Состояние модуля загружено.', [
+            'status' => 'not_implemented',
             'connected' => false,
-            'supported_objects' => ['contacts', 'companies', 'deals'],
-            'features' => [
-                'dry_run' => true,
-                'chunked_import' => true,
-                'idempotency' => true,
-                'rollback' => true
-            ]
-        ];
-    }
-
-    public function stageBatch(array $payload): array
-    {
-        $service = new HubSpotMigrationService($this->db);
-        $sessionId = $payload['session_id'] ?? ('hs_sess_' . uniqid());
-        $objectType = $payload['object_type'] ?? 'contacts';
-        $records = $payload['records'] ?? [];
-
-        return $service->stagePayload($sessionId, $objectType, $records);
+            'supported_objects' => [],
+            'features' => ['dry_run' => false, 'chunked_import' => false, 'idempotency' => false, 'rollback' => false],
+            'message' => 'The migration workflow is not available yet. No data can be imported.',
+        ]);
     }
 }

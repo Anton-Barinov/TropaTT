@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Module\Crm\WhatsAppBusiness\Service;
 
-use Api\System\Library\Security\KeyGuard;
 use PDO;
 use RuntimeException;
 
@@ -27,9 +26,13 @@ final class WhatsAppBusinessService
         string $verifyToken,
         string $appSecret
     ): string {
+        if ($apiToken === '' || $verifyToken === '' || $appSecret === '') {
+            throw new RuntimeException('WhatsApp API token, verification token and app secret are required.');
+        }
+
         $now = date('Y-m-d H:i:s');
-        $encToken = class_exists(KeyGuard::class) ? KeyGuard::encrypt($apiToken) : base64_encode($apiToken);
-        $encSecret = class_exists(KeyGuard::class) ? KeyGuard::encrypt($appSecret) : base64_encode($appSecret);
+        $encToken = $this->encryptCredential($apiToken);
+        $encSecret = $this->encryptCredential($appSecret);
 
         $stmt = $this->db->prepare(
             "SELECT public_id FROM crm_whatsapp_configs WHERE organization_id = :org_id LIMIT 1"
@@ -94,14 +97,21 @@ final class WhatsAppBusinessService
             throw new RuntimeException("WhatsApp config not found or inactive.");
         }
 
-        // Validate Meta signature if provided
-        if ($signatureHeader !== null && $rawBody !== null && !empty($cfg['app_secret_encrypted'])) {
-            $rawSecret = (string)$cfg['app_secret_encrypted'];
-            $appSecret = class_exists(KeyGuard::class) ? KeyGuard::decrypt($rawSecret) : base64_decode($rawSecret);
-            $expected = 'sha256=' . hash_hmac('sha256', $rawBody, (string)$appSecret);
-            if (!hash_equals($expected, $signatureHeader)) {
-                throw new RuntimeException("Invalid WhatsApp signature.");
-            }
+        $encryptedSecret = (string)($cfg['app_secret_encrypted'] ?? '');
+        if ($encryptedSecret === '') {
+            throw new RuntimeException('WhatsApp webhook signature validation is not configured.');
+        }
+        if ($rawBody === null || $rawBody === '') {
+            throw new RuntimeException('WhatsApp webhook raw body is required for signature validation.');
+        }
+        if ($signatureHeader === null || !preg_match('/^sha256=[a-f0-9]{64}$/i', $signatureHeader)) {
+            throw new RuntimeException('WhatsApp webhook signature is missing or malformed.');
+        }
+
+        $appSecret = $this->decryptCredential($encryptedSecret);
+        $expected = 'sha256=' . hash_hmac('sha256', $rawBody, $appSecret);
+        if (!hash_equals($expected, strtolower($signatureHeader))) {
+            throw new RuntimeException('Invalid WhatsApp signature.');
         }
 
         // Extract message from Meta Cloud API structure
@@ -202,5 +212,60 @@ final class WhatsAppBusinessService
         );
         $stmt->execute([':org_id' => $organizationId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function encryptCredential(string $plaintext): string
+    {
+        $key = $this->credentialEncryptionKey();
+        $iv = random_bytes(12);
+        $tag = '';
+        $ciphertext = openssl_encrypt($plaintext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag, '', 16);
+        if (!is_string($ciphertext) || $ciphertext === '' || strlen($tag) !== 16) {
+            throw new RuntimeException('Failed to encrypt WhatsApp credentials.');
+        }
+
+        return 'v1:' . base64_encode($iv . $tag . $ciphertext);
+    }
+
+    private function decryptCredential(string $encrypted): string
+    {
+        if (!str_starts_with($encrypted, 'v1:')) {
+            throw new RuntimeException('Stored WhatsApp credential is not encrypted with the supported format; save the credentials again.');
+        }
+
+        $payload = base64_decode(substr($encrypted, 3), true);
+        if (!is_string($payload) || strlen($payload) < 29) {
+            throw new RuntimeException('Stored WhatsApp credential is invalid.');
+        }
+
+        $plaintext = openssl_decrypt(
+            substr($payload, 28),
+            'aes-256-gcm',
+            $this->credentialEncryptionKey(),
+            OPENSSL_RAW_DATA,
+            substr($payload, 0, 12),
+            substr($payload, 12, 16),
+            ''
+        );
+        if (!is_string($plaintext) || $plaintext === '') {
+            throw new RuntimeException('Stored WhatsApp credential cannot be decrypted. Save the credentials again.');
+        }
+
+        return $plaintext;
+    }
+
+    private function credentialEncryptionKey(): string
+    {
+        $configuredKey = trim((string)(getenv('APP_KEY') ?: ($_SERVER['APP_KEY'] ?? $_ENV['APP_KEY'] ?? '')));
+        if (!preg_match('/^[a-f0-9]{64}$/i', $configuredKey)) {
+            throw new RuntimeException('APP_KEY must be configured as a 32-byte hexadecimal key to use WhatsApp credentials.');
+        }
+
+        $masterKey = hex2bin($configuredKey);
+        if (!is_string($masterKey) || strlen($masterKey) !== 32) {
+            throw new RuntimeException('APP_KEY is invalid.');
+        }
+
+        return hash_hkdf('sha256', $masterKey, 32, 'crm.module.crm.whatsapp-business.credentials', 'TropaTT CRM');
     }
 }

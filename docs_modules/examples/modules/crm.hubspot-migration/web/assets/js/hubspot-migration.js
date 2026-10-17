@@ -26,36 +26,19 @@
       return;
     }
     api(statusApiUrl).then(data => {
-      if (statusMeta) statusMeta.textContent = 'Соединение стабильно · Код 200 OK · Ошибок нет';
-      showMessage('Подключение успешно проверено.');
+      if (data.status === 'not_implemented') {
+        if (statusMeta) statusMeta.textContent = 'Импорт пока недоступен';
+        showMessage(data.message || 'Импорт пока недоступен. Данные не изменены.', true);
+        return;
+      }
+      if (statusMeta) statusMeta.textContent = 'Состояние модуля загружено';
+      showMessage('Состояние модуля обновлено.');
     }).catch(err => {
       if (statusMeta) statusMeta.textContent = 'Сервис активен (локальный режим) · ' + (err.message || 'Готов');
     });
   };
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (!$('hubmConfigForm') && !$('hubmStatusBox')) return;
-    $('hubmConfigForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      showMessage('Сохранение конфигурации…');
-      setTimeout(() => {
-        showMessage('Параметры сохранены и активированы в системе.');
-        loadStatus();
-      }, 400);
-    });
-    $('hubmTestBtn')?.addEventListener('click', () => {
-      showMessage('Тестирование шлюза связи…');
-      loadStatus();
-    });
-    $('hubmRefreshBtn')?.addEventListener('click', () => {
-      loadStatus();
-    });
-    $('hubmSaveBtn')?.addEventListener('click', () => {
-      $('hubmConfigForm')?.dispatchEvent(new Event('submit', { cancelable: true }));
-    });
-    $('hubmQuickActionBtn')?.addEventListener('click', () => {
-      showMessage('Тестовый вызов выполнен успешно.');
-    });
-    loadStatus();
+    if ($('hubmStatusBox')) loadStatus();
   });
 })();

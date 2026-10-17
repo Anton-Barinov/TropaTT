@@ -1,7 +1,10 @@
 # Модуль «HubSpot Data Migration» для TropaTT CRM
 
-## Назначение
-Модуль обеспечивает безопасный, воспроизводимый и контролируемый перенос данных из HubSpot в TropaTT CRM:
+## Текущий статус
+Пакет пока является информационной заглушкой. Импорт данных не реализован, не запускается через UI/API/MCP и не изменяет CRM. Не загружайте в него реальные данные.
+
+## Планируемый сценарий
+Будущий модуль должен обеспечить безопасный, воспроизводимый и контролируемый перенос данных из HubSpot в TropaTT CRM:
 - Контакты (HubSpot Contacts -> TropaTT Contacts/Clients)
 - Компании (HubSpot Companies -> TropaTT Companies/Clients)
 - Сделки (HubSpot Deals -> TropaTT Deals/Projects)
@@ -20,6 +23,5 @@
 5. **Совместимость с shared-хостингом**:
    - Работает на стандартном PHP 8.1+, MySQL 8.0/MariaDB, не требует очередей, демонов или root-прав.
 
-## MCP Инструменты
-- `hubspot_migration_status`: Сводка текущей сессии миграции и состояние staging-буфера.
-- `hubspot_migration_run`: Запуск preflight, chunked batch import или отката.
+## MCP
+- `hubspot_migration_status`: сообщает, что импорт пока не реализован.

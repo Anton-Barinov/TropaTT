@@ -14,7 +14,7 @@ use RuntimeException;
  * Storage manager orchestrating workspace storage configuration, adapter instantiation,
  * host preflight checks, file mapping and transparent upload/download.
  */
-final class StorageManagerService
+final class StorageManagerService implements FileMigrationStorageManagerInterface
 {
     public const MAX_FILE_BYTES = 20971520;
     private const CREDENTIAL_AAD = 'crm.storage-connectors.credentials.v1';

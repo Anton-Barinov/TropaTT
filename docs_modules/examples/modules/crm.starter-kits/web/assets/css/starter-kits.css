@@ -34,6 +34,33 @@
   background: var(--crm-surface-variant, #f8fafc);
   border: 1px solid var(--crm-border, #e2e8f0);
 }
+.crm-starter-kits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+}
+.crm-starter-kit-card {
+  min-width: 0;
+  height: 100%;
+}
+.crm-starter-kit-card .crm-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+}
+.crm-starter-kit-card ul {
+  padding-inline-start: 1.25rem;
+}
+.crm-starter-kit-card button {
+  margin-top: auto;
+}
+#skitsComponentChoices .form-check {
+  padding-inline-start: 1.75rem;
+}
+#skitsPreviewPanel {
+  scroll-margin-top: 1rem;
+}
 @media (max-width: 991px) {
   .skits-grid {
     grid-template-columns: 1fr;

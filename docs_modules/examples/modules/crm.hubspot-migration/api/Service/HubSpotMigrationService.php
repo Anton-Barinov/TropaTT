@@ -6,10 +6,15 @@ namespace Module\Crm\HubSpotMigration\Service;
 
 class HubSpotMigrationService
 {
+    private const SUPPORTED_OBJECTS = ['contacts', 'companies', 'deals'];
+    private const MAX_RECORDS_PER_BATCH = 100;
+    private const MAX_RECORD_BYTES = 16384;
+    private const MAX_BATCH_BYTES = 524288;
+
     private \PDO $db;
     private int $workspaceId;
 
-    public function __construct(\PDO $db, int $workspaceId = 1)
+    public function __construct(\PDO $db, int $workspaceId)
     {
         $this->db = $db;
         $this->workspaceId = $workspaceId;
@@ -39,7 +44,6 @@ class HubSpotMigrationService
             'phone' => $phone,
             'company_name' => $companyName,
             'type' => 'individual',
-            'notes' => (string)($props['notes_last_contacted'] ?? ''),
             'tags' => ['hubspot_import']
         ];
     }
@@ -109,41 +113,113 @@ class HubSpotMigrationService
      */
     public function stagePayload(string $sessionPublicId, string $objectType, array $records): array
     {
+        if ($this->workspaceId <= 0) {
+            throw new \RuntimeException('WORKSPACE_REQUIRED');
+        }
+        if (!in_array($objectType, self::SUPPORTED_OBJECTS, true)) {
+            throw new \InvalidArgumentException('Тип данных не поддерживается.');
+        }
+        if (count($records) > self::MAX_RECORDS_PER_BATCH) {
+            throw new \InvalidArgumentException('Пакет не должен превышать 100 записей.');
+        }
+        if ($records === []) {
+            throw new \InvalidArgumentException('Пакет должен содержать хотя бы одну запись.');
+        }
+        if ($sessionPublicId === '' || strlen($sessionPublicId) > 64 || preg_match('/^[A-Za-z0-9_-]+$/', $sessionPublicId) !== 1) {
+            throw new \InvalidArgumentException('Укажите корректную сессию миграции.');
+        }
+
+        $sessionStmt = $this->db->prepare(
+            'SELECT id FROM module_hubspot_migration_sessions WHERE public_id = :session_id AND workspace_id = :workspace_id LIMIT 1'
+        );
+        $sessionStmt->execute(['session_id' => $sessionPublicId, 'workspace_id' => $this->workspaceId]);
+        $sessionId = $sessionStmt->fetchColumn();
+        if ($sessionId === false) {
+            throw new \RuntimeException('SESSION_NOT_FOUND');
+        }
+
+        $validated = [];
+        $batchBytes = 0;
+        foreach ($records as $rec) {
+            if (!is_array($rec) || array_is_list($rec)) {
+                throw new \InvalidArgumentException('Каждая запись должна быть объектом.');
+            }
+            try {
+                $rawRecordJson = json_encode($rec, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw new \InvalidArgumentException('Запись содержит некорректные данные.');
+            }
+            $rawRecordBytes = strlen($rawRecordJson);
+            if ($rawRecordBytes > self::MAX_RECORD_BYTES) {
+                throw new \InvalidArgumentException('Размер записи превышает 16 КБ.');
+            }
+            $batchBytes += $rawRecordBytes;
+            if ($batchBytes > self::MAX_BATCH_BYTES) {
+                throw new \InvalidArgumentException('Общий размер пакета превышает 512 КБ.');
+            }
+            $properties = $rec['properties'] ?? $rec;
+            if (!is_array($properties) || count($properties) > 50) {
+                throw new \InvalidArgumentException('Структура записи некорректна.');
+            }
+            foreach ($properties as $value) {
+                if (!is_scalar($value) && $value !== null) {
+                    throw new \InvalidArgumentException('Вложенные данные в свойствах записи не поддерживаются.');
+                }
+            }
+
+            $hubspotId = trim((string)($rec['id'] ?? $properties['hs_object_id'] ?? ''));
+            if ($hubspotId === '' || strlen($hubspotId) > 128 || preg_match('/^[A-Za-z0-9_-]+$/', $hubspotId) !== 1) {
+                throw new \InvalidArgumentException('У каждой записи должен быть корректный HubSpot ID.');
+            }
+
+            $normalized = match ($objectType) {
+                'contacts' => $this->mapContact($rec),
+                'companies' => $this->mapCompany($rec),
+                'deals' => $this->mapDeal($rec),
+            };
+            $normalized['hubspot_id'] = $hubspotId;
+            $normalizedJson = json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $validated[] = [$hubspotId, $normalizedJson];
+        }
+
         $stagedCount = 0;
-        $errorCount = 0;
 
         $stmt = $this->db->prepare("
-            INSERT INTO module_hubspot_migration_staging 
+            INSERT INTO module_hubspot_migration_staging
             (session_public_id, object_type, hubspot_id, raw_payload_json, normalized_payload_json, status, created_at)
             VALUES (:session_id, :obj_type, :hs_id, :raw_json, :norm_json, 'pending', CURRENT_TIMESTAMP)
         ");
 
-        foreach ($records as $rec) {
-            $hsId = (string)($rec['id'] ?? $rec['properties']['hs_object_id'] ?? uniqid('hs_'));
-            $norm = match ($objectType) {
-                'contacts' => $this->mapContact($rec),
-                'companies' => $this->mapCompany($rec),
-                'deals' => $this->mapDeal($rec),
-                default => $rec
-            };
-
-            try {
+        $this->db->beginTransaction();
+        try {
+            foreach ($validated as [$hsId, $normalizedJson]) {
                 $stmt->execute([
                     'session_id' => $sessionPublicId,
                     'obj_type' => $objectType,
                     'hs_id' => $hsId,
-                    'raw_json' => json_encode($rec, JSON_UNESCAPED_UNICODE),
-                    'norm_json' => json_encode($norm, JSON_UNESCAPED_UNICODE),
+                    'raw_json' => '{}',
+                    'norm_json' => $normalizedJson,
                 ]);
                 $stagedCount++;
-            } catch (\Exception $e) {
-                $errorCount++;
             }
+            $updateSession = $this->db->prepare(
+                "UPDATE module_hubspot_migration_sessions SET total_records = total_records + :total WHERE id = :id AND workspace_id = :workspace_id AND status IN ('draft', 'staging')"
+            );
+            $updateSession->execute(['total' => $stagedCount, 'id' => $sessionId, 'workspace_id' => $this->workspaceId]);
+            if ($updateSession->rowCount() !== 1) {
+                throw new \RuntimeException('SESSION_NOT_FOUND');
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
         }
 
         return [
             'staged' => $stagedCount,
-            'errors' => $errorCount,
+            'errors' => 0,
             'total' => count($records)
         ];
     }
@@ -153,6 +229,17 @@ class HubSpotMigrationService
      */
     public function processBatch(string $sessionPublicId, int $limit = 50, bool $dryRun = true): array
     {
+        if ($this->workspaceId <= 0) {
+            throw new \RuntimeException('WORKSPACE_REQUIRED');
+        }
+        if (!$dryRun) {
+            throw new \RuntimeException('IMPORT_NOT_IMPLEMENTED');
+        }
+        $limit = max(1, min(self::MAX_RECORDS_PER_BATCH, $limit));
+        if ($sessionPublicId === '' || strlen($sessionPublicId) > 64 || preg_match('/^[A-Za-z0-9_-]+$/', $sessionPublicId) !== 1) {
+            throw new \InvalidArgumentException('Укажите корректную сессию миграции.');
+        }
+
         $stmt = $this->db->prepare("
             SELECT * FROM module_hubspot_migration_staging 
             WHERE session_public_id = :session_id AND status = 'pending'
@@ -165,7 +252,7 @@ class HubSpotMigrationService
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $processed = 0;
-        $imported = 0;
+        $previewed = 0;
         $skipped = 0;
         $errors = 0;
 
@@ -179,12 +266,6 @@ class HubSpotMigrationService
             SELECT crm_entity_id FROM module_hubspot_migration_id_map
             WHERE workspace_id = :ws_id AND object_type = :obj_type AND hubspot_id = :hs_id
             LIMIT 1
-        ");
-
-        $idMapInsertStmt = $this->db->prepare("
-            INSERT INTO module_hubspot_migration_id_map
-            (workspace_id, object_type, hubspot_id, crm_entity_type, crm_entity_id, imported_session_id, created_at)
-            VALUES (:ws_id, :obj_type, :hs_id, :crm_ent, :crm_id, :session_id, CURRENT_TIMESTAMP)
         ");
 
         foreach ($rows as $row) {
@@ -212,54 +293,20 @@ class HubSpotMigrationService
                 continue;
             }
 
-            if ($dryRun) {
-                $imported++;
-                $updateStmt->execute([
-                    'status' => 'dry_run_success',
-                    'entity' => $objType,
-                    'target_id' => 'simulated_' . $hsId,
-                    'err' => null,
-                    'id' => $row['id']
-                ]);
-                continue;
-            }
-
-            // Live execution: Generate deterministic CRM Entity ID or save to target tables
-            $generatedCrmId = 'crm_hs_' . substr(md5($objType . '_' . $hsId), 0, 16);
-
-            try {
-                $idMapInsertStmt->execute([
-                    'ws_id' => $this->workspaceId,
-                    'obj_type' => $objType,
-                    'hs_id' => $hsId,
-                    'crm_ent' => $objType,
-                    'crm_id' => $generatedCrmId,
-                    'session_id' => $sessionPublicId
-                ]);
-
-                $imported++;
-                $updateStmt->execute([
-                    'status' => 'imported',
-                    'entity' => $objType,
-                    'target_id' => $generatedCrmId,
-                    'err' => null,
-                    'id' => $row['id']
-                ]);
-            } catch (\Exception $e) {
-                $errors++;
-                $updateStmt->execute([
-                    'status' => 'error',
-                    'entity' => $objType,
-                    'target_id' => null,
-                    'err' => $e->getMessage(),
-                    'id' => $row['id']
-                ]);
-            }
+            $previewed++;
+            $updateStmt->execute([
+                'status' => 'dry_run_success',
+                'entity' => $objType,
+                'target_id' => null,
+                'err' => null,
+                'id' => $row['id']
+            ]);
         }
 
         return [
             'processed' => $processed,
-            'imported' => $imported,
+            'previewed' => $previewed,
+            'imported' => 0,
             'skipped' => $skipped,
             'errors' => $errors,
             'remaining' => $this->getPendingCount($sessionPublicId)
@@ -271,6 +318,18 @@ class HubSpotMigrationService
      */
     public function rollbackSession(string $sessionPublicId): array
     {
+        if ($this->workspaceId <= 0 || $sessionPublicId === '' || strlen($sessionPublicId) > 64
+            || preg_match('/^[A-Za-z0-9_-]+$/', $sessionPublicId) !== 1) {
+            throw new \InvalidArgumentException('Укажите корректную сессию миграции.');
+        }
+        $sessionStmt = $this->db->prepare(
+            'SELECT id FROM module_hubspot_migration_sessions WHERE public_id = :session_id AND workspace_id = :workspace_id LIMIT 1'
+        );
+        $sessionStmt->execute(['session_id' => $sessionPublicId, 'workspace_id' => $this->workspaceId]);
+        if ($sessionStmt->fetchColumn() === false) {
+            throw new \RuntimeException('SESSION_NOT_FOUND');
+        }
+
         $delMapStmt = $this->db->prepare("
             DELETE FROM module_hubspot_migration_id_map
             WHERE workspace_id = :ws_id AND imported_session_id = :session_id
@@ -297,6 +356,17 @@ class HubSpotMigrationService
 
     public function getPendingCount(string $sessionPublicId): int
     {
+        if ($this->workspaceId <= 0 || $sessionPublicId === '' || strlen($sessionPublicId) > 64
+            || preg_match('/^[A-Za-z0-9_-]+$/', $sessionPublicId) !== 1) {
+            return 0;
+        }
+        $sessionStmt = $this->db->prepare(
+            'SELECT id FROM module_hubspot_migration_sessions WHERE public_id = :session_id AND workspace_id = :workspace_id LIMIT 1'
+        );
+        $sessionStmt->execute(['session_id' => $sessionPublicId, 'workspace_id' => $this->workspaceId]);
+        if ($sessionStmt->fetchColumn() === false) {
+            return 0;
+        }
         $stmt = $this->db->prepare("
             SELECT COUNT(*) FROM module_hubspot_migration_staging
             WHERE session_public_id = :session_id AND status = 'pending'

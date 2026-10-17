@@ -5,6 +5,9 @@ namespace Api\System\Library\Http;
 
 final class Request
 {
+    private const PUBLIC_FORM_MAX_RAW_BODY_BYTES = 32769;
+    private const WHATSAPP_WEBHOOK_MAX_RAW_BODY_BYTES = 262145;
+
     /** @var array<string,mixed> */
     private array $jsonBody = [];
 
@@ -46,6 +49,16 @@ final class Request
         }
         $locale = (string)($headers['X-Locale'] ?? $headers['x-locale'] ?? $defaultLocale);
 
+        $rawBodyLimit = self::rawBodyLimit($method, $path);
+        $rawBodyStream = fopen('php://input', 'rb');
+        $rawBody = '';
+        if (is_resource($rawBodyStream)) {
+            $rawBody = $rawBodyLimit === null
+                ? (stream_get_contents($rawBodyStream) ?: '')
+                : (stream_get_contents($rawBodyStream, $rawBodyLimit) ?: '');
+            fclose($rawBodyStream);
+        }
+
         return new self(
             method: $method,
             uri: $uri,
@@ -56,11 +69,34 @@ final class Request
             files: $_FILES,
             server: $_SERVER,
             headers: $headers,
-            rawBody: file_get_contents('php://input') ?: '',
+            rawBody: $rawBody,
             requestId: $requestId,
             correlationId: $correlationId,
             locale: $locale,
         );
+    }
+
+    private static function rawBodyLimit(string $method, string $path): ?int
+    {
+        $normalizedPath = preg_replace('#^/api/index\.php#', '', $path) ?? $path;
+        $normalizedPath = preg_replace('#^/index\.php#', '', $normalizedPath) ?? $normalizedPath;
+        if (str_starts_with($normalizedPath, '/v1/')) {
+            $normalizedPath = '/api' . $normalizedPath;
+        }
+
+        if (strtoupper($method) !== 'POST') {
+            return null;
+        }
+
+        if (preg_match('#^/api/v1/_module/crm\.public-forms/forms/[A-Za-z0-9_-]{1,64}/submit$#D', $normalizedPath) === 1) {
+            return self::PUBLIC_FORM_MAX_RAW_BODY_BYTES;
+        }
+
+        if (preg_match('#^/api/v1/_module/crm\.whatsapp-business/webhook/[A-Za-z0-9_-]{1,128}$#D', $normalizedPath) === 1) {
+            return self::WHATSAPP_WEBHOOK_MAX_RAW_BODY_BYTES;
+        }
+
+        return null;
     }
 
     private static function collectHeaders(): array

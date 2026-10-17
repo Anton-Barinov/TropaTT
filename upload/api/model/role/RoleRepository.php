@@ -135,6 +135,7 @@ final class RoleRepository
             ->from('roles r')
             ->select(['r.public_id', 'r.code', 'r.title'])
             ->where('r.is_system', '=', 0)
+            ->whereRaw("SUBSTRING(r.code, 1, 11) <> 'starterkit_'")
             ->whereRaw('EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id)')
             ->orderBy('r.code', 'ASC')
             ->first();

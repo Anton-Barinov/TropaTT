@@ -6,6 +6,7 @@ namespace Module\Crm\PublicForms\Api\Controller;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Module\Crm\PublicForms\Service\PublicFormsService;
+use Module\Crm\PublicForms\Service\PublicFormSubmissionException;
 use Throwable;
 
 final class PublicFormsApiController extends BaseController
@@ -32,16 +33,32 @@ final class PublicFormsApiController extends BaseController
     {
         $slug = (string)($params['slug'] ?? '');
         $service = $this->getService();
+        $request = $this->request();
+        $contentLength = (int)($request->server('CONTENT_LENGTH') ?? 0);
+        if ($contentLength > 32768 || strlen($request->rawBody) > 32768) {
+            return $this->error('PAYLOAD_TOO_LARGE', 'Submission exceeds the 32 KB limit.', 413);
+        }
+        $contentType = strtolower(trim(explode(';', (string)($request->header('Content-Type') ?? ''))[0]));
+        if ($contentType !== 'application/json') {
+            return $this->error('UNSUPPORTED_MEDIA_TYPE', 'Submissions must use application/json.', 415);
+        }
         $data = $this->request()->allInput();
-        $ip = (string)($this->request()->server('REMOTE_ADDR') ?? '127.0.0.1');
+        $headerKey = trim((string)($request->header('Idempotency-Key') ?? ''));
+        if ($headerKey !== '') {
+            $data['_idempotency_key'] = $headerKey;
+        }
+        $ip = $request->ip();
 
         try {
             $result = $service->submit($slug, $data, $ip);
             return $this->success('PUBLIC_FORM_SUBMITTED', $result['message'], [
                 'submission_id' => $result['submission_id'],
+                'duplicate' => (bool)($result['duplicate'] ?? false),
             ]);
+        } catch (PublicFormSubmissionException $e) {
+            return $this->error($e->errorCode, $e->getMessage(), $e->httpStatus);
         } catch (Throwable $e) {
-            return $this->error('SUBMISSION_ERROR', $e->getMessage(), 422);
+            return $this->error('SUBMISSION_ERROR', 'Submission could not be processed.', 500);
         }
     }
 }
