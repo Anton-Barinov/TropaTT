@@ -22,6 +22,7 @@ $auJs = [
   'loadingRollback' => $au('loading_rollback', 'восстанавливаем backup'),
   'progressStep' => $au('progress_step', 'шаг {done} из {total}'),
   'phaseBackupFiles' => $au('phase_backup_files', 'бэкап файлов'),
+  'phaseDownload' => $au('phase_download', 'загрузка пакета'),
   'phaseApplyFiles' => $au('phase_apply_files', 'установка файлов'),
   'phaseHealth' => $au('phase_health', 'проверка состояния'),
   'phaseBackupDb' => $au('phase_backup_db', 'бэкап базы данных'),
@@ -1481,6 +1482,7 @@ $auJs = [
   }
 
   const phaseLabels = {
+    download: tr('phaseDownload', 'загрузка пакета'),
     backup_files: tr('phaseBackupFiles', 'бэкап файлов'),
     apply_files: tr('phaseApplyFiles', 'установка файлов'),
     health: tr('phaseHealth', 'проверка состояния'),
@@ -1509,6 +1511,10 @@ $auJs = [
       if (done > 0) return `${label}: ${tr('progressRows', 'строк {done}', {done})}`;
       return label;
     }
+    if (phase === 'download' && total > 0) {
+      const percent = Math.min(100, Math.floor((done / total) * 100));
+      return `${label} — ${formatBytes(done)} из ${formatBytes(total)} (${percent}%)`;
+    }
     if (total > 0) return `${label} — ${tr('progressStep', 'шаг {done} из {total}', {done, total})}`;
     return label;
   }
@@ -1533,6 +1539,9 @@ $auJs = [
       const tablesDone = Number(progress && progress.tables_done || 0);
       if (tablesTotal > 0) noticeParts.push(tr('progressTables', 'таблиц {done} из {total}', {done: tablesDone, total: tablesTotal}));
       else if (done > 0) noticeParts.push(tr('progressRows', 'строк {done}', {done}));
+    } else if (phase === 'download' && total > 0) {
+      const percent = Math.min(100, Math.floor((done / total) * 100));
+      noticeParts.push(`${formatBytes(done)} / ${formatBytes(total)} (${percent}%)`);
     } else if (total > 0) {
       noticeParts.push(tr('progressStep', 'шаг {done} из {total}', {done, total}));
     }
@@ -1544,6 +1553,20 @@ $auJs = [
 
   async function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function formatBytes(value) {
+    const bytes = Math.max(0, Number(value) || 0);
+    const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'];
+    let size = bytes;
+    let unit = 0;
+    while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit++; }
+    try {
+      const locale = document.documentElement.lang || undefined;
+      return new Intl.NumberFormat(locale, {style: 'unit', unit: units[unit], unitDisplay: 'narrow', maximumFractionDigits: size >= 10 ? 0 : 1}).format(size);
+    } catch (_error) {
+      return `${size.toFixed(size >= 10 ? 0 : 1)} ${units[unit]}`;
+    }
   }
 
   // Drive a resumable updater action: the updater runs each job as many short
@@ -1563,6 +1586,7 @@ $auJs = [
     let tokenRetries = 0;
     const maxNetworkRetries = 3;
     let networkRetries = 0;
+    let downloadRetries = 0;
     // A release snapshot / deployment may briefly own the installation mutex.
     // The updater returns an explicit 409 before running the requested step;
     // retrying the SAME job and cursor is therefore safe and avoids leaving
@@ -1577,15 +1601,12 @@ $auJs = [
     for (let guard = 0; guard < 2000; guard++) {
       let result;
       try {
-        // The updater step machine bounds every request (~20s of work), so a
-        // 90s client timeout only protects against a hung proxy/connection.
-        // The download action streams the whole package in one pass; the
-        // server lifts its own limit to 600s, so the client waits up to 10
-        // minutes to never cut off a slow-but-working shared-host download.
+        // Each package download request transfers one bounded Range chunk, so
+        // it stays under shared-host/proxy time limits like extraction does.
         // Apply steps copy/backup files on slow shared hosting and can take
         // longer than the default 90 s. Use 180 s for apply to reduce false
         // timeout errors that scare the admin into refreshing the page.
-        const stepTimeoutMs = action === 'download' ? 600000 : (action === 'apply' ? 180000 : 90000);
+        const stepTimeoutMs = action === 'apply' ? 180000 : 90000;
         try {
           result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
         } catch (fetchErr) {
@@ -1611,6 +1632,14 @@ $auJs = [
             seconds: Math.ceil(retryDelayMs / 1000), attempt: busyRetries, max: maxBusyRetries
           }), 'info');
           await sleep(retryDelayMs);
+          continue;
+        }
+        if (action === 'download' && result && result.success === false
+          && String(result.code || '').toUpperCase() === 'DOWNLOAD_FAILED'
+          && downloadRetries < maxNetworkRetries) {
+          downloadRetries++;
+          showNotice(tr('retry_in_progress', 'Сетевая ошибка, повторяем... ({attempt} из {max})', {attempt: downloadRetries, max: maxNetworkRetries}), 'info');
+          await sleep(1200 * downloadRetries);
           continue;
         }
         ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
@@ -1649,6 +1678,7 @@ $auJs = [
       // A successful request proves the installation mutex became available.
       // Start a fresh bounded retry allowance for the next step.
       busyRetries = 0;
+      downloadRetries = 0;
       if (!data.continue) return result;
       // A completed step resets the network retry budget: a flaky link must
       // not exhaust all retries on one early step and leave later steps

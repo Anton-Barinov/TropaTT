@@ -8232,6 +8232,7 @@ return array (
     'phase_health' => 'проверка состояния',
     'phase_backup_db' => 'бэкап базы данных',
     'phase_migrate' => 'миграции БД',
+    'phase_download' => 'загрузка пакета',
     'phase_extract' => 'распаковка архива',
     'phase_restore_db' => 'восстановление БД',
     'phase_restore_files' => 'восстановление файлов',

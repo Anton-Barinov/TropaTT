@@ -8037,6 +8037,7 @@ return array (
     'phase_health' => '正在检查运行状态',
     'phase_backup_db' => '正在备份数据库',
     'phase_migrate' => '正在应用数据库迁移',
+    'phase_download' => '正在下载安装包',
     'phase_extract' => '正在解压安装包',
     'phase_restore_db' => '正在恢复数据库',
     'phase_restore_files' => '正在恢复文件',

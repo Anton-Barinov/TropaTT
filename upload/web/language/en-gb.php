@@ -8112,6 +8112,7 @@ return array (
     'phase_health' => 'checking health',
     'phase_backup_db' => 'backing up database',
     'phase_migrate' => 'applying database migrations',
+    'phase_download' => 'downloading package',
     'phase_extract' => 'extracting package',
     'phase_restore_db' => 'restoring database',
     'phase_restore_files' => 'restoring files',
