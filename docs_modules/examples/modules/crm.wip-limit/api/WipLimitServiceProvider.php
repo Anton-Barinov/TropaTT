@@ -74,7 +74,18 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
     private function handleHook(array $context, string $event): void
     {
         try {
-            $notifier = $this->makeNotifier();
+            $organizationPublicId = trim((string)($context['organization_public_id'] ?? ''));
+            if ($organizationPublicId === '' || $this->container === null) {
+                return;
+            }
+            $pdo = $this->container->get('db.pdo');
+            $stmt = $pdo->prepare('SELECT id FROM organizations WHERE public_id = ? LIMIT 1');
+            $stmt->execute([$organizationPublicId]);
+            $organizationId = (int)($stmt->fetchColumn() ?: 0);
+            if ($organizationId <= 0) {
+                return;
+            }
+            $notifier = $this->makeNotifier($organizationId);
             if ($event === 'task.assignee_changed') {
                 WipHook::onAssigneeChanged($notifier, $context);
             } else {
@@ -85,7 +96,7 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
         }
     }
 
-    private function makeService(): WipLimitService
+    private function makeService(int $organizationId): WipLimitService
     {
         if ($this->container === null) {
             throw new \RuntimeException('WipLimitServiceProvider container not initialized');
@@ -95,20 +106,21 @@ final class WipLimitServiceProvider extends AbstractModuleServiceProvider
         $moduleConfig = $this->container->get('module.config');
         $config = $moduleConfig->getAll('crm.wip-limit');
 
-        return new WipLimitService($pdo, $config);
+        return new WipLimitService($pdo, $config, $organizationId);
     }
 
-    private function makeNotifier(): WipNotifier
+    private function makeNotifier(int $organizationId): WipNotifier
     {
         if ($this->container === null) {
             throw new \RuntimeException('WipLimitServiceProvider container not initialized');
         }
 
         return new WipNotifier(
-            $this->makeService(),
+            $this->makeService($organizationId),
             $this->container->get('module.notification_dispatcher'),
             $this->container->get('db.pdo'),
             $this->container->get('module.config')->getAll('crm.wip-limit'),
+            $organizationId,
         );
     }
 }

@@ -1,5 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php $title = $t('module_wip_limit.title', 'TropaTT — WIP Limits'); ?>
+<?php $canManage = (bool)($can_manage ?? false); ?>
 <body data-page="module-wip-limit" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> TropaTT</div><nav class="nav flex-column crm-nav"></nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-page crm-module-page"><?php crm_page_head([
@@ -17,7 +18,7 @@
 <div class="row g-4 mb-4">
   <div class="col-lg-7">
     <div class="crm-card crm-section-card p-0 table-responsive mb-3">
-      <table class="table crm-table mb-0"><thead><tr><th id="wipTargetHeader" data-i18n="module_wip_limit.th_user"><?= htmlspecialchars($t('module_wip_limit.th_user', 'User'), ENT_QUOTES, 'UTF-8') ?></th><th>WIP</th><th data-i18n="module_wip_limit.th_limit"><?= htmlspecialchars($t('module_wip_limit.th_limit', 'Limit'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="module_wip_limit.th_status"><?= htmlspecialchars($t('module_wip_limit.th_status', 'Status'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="module_wip_limit.th_actions"><?= htmlspecialchars($t('module_wip_limit.th_actions', 'Actions'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="summaryBody"><tr><td colspan="5" class="text-muted" data-i18n="module_wip_limit.loading"><?= htmlspecialchars($t('module_wip_limit.loading', 'Loading...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
+      <table class="table crm-table mb-0" id="wipSummaryTable"><thead><tr><th id="wipTargetHeader" data-i18n="module_wip_limit.th_user"><?= htmlspecialchars($t('module_wip_limit.th_user', 'User'), ENT_QUOTES, 'UTF-8') ?></th><th><?= htmlspecialchars($t('module_wip_limit.mobile_wip', 'WIP'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="module_wip_limit.th_limit"><?= htmlspecialchars($t('module_wip_limit.th_limit', 'Limit'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="module_wip_limit.th_status"><?= htmlspecialchars($t('module_wip_limit.th_status', 'Status'), ENT_QUOTES, 'UTF-8') ?></th><th data-i18n="module_wip_limit.th_actions"><?= htmlspecialchars($t('module_wip_limit.th_actions', 'Actions'), ENT_QUOTES, 'UTF-8') ?></th></tr></thead><tbody id="summaryBody"><tr><td colspan="5" class="text-muted" data-i18n="module_wip_limit.loading"><?= htmlspecialchars($t('module_wip_limit.loading', 'Loading...'), ENT_QUOTES, 'UTF-8') ?></td></tr></tbody></table>
     </div>
   </div>
   <div class="col-lg-5">
@@ -25,14 +26,14 @@
       <div class="crm-section-head"><h2 class="h6 mb-0" data-i18n="module_wip_limit.set_title"><?= htmlspecialchars($t('module_wip_limit.set_title', 'Set limit'), ENT_QUOTES, 'UTF-8') ?></h2></div>
       <div class="mb-3">
         <label class="form-label" id="wipTargetLabel" data-i18n="module_wip_limit.field_user"><?= htmlspecialchars($t('module_wip_limit.field_user', 'User'), ENT_QUOTES, 'UTF-8') ?></label>
-        <select class="form-select" id="wipTargetSelect"><option value="" data-i18n="module_wip_limit.loading"><?= htmlspecialchars($t('module_wip_limit.loading', 'Loading...'), ENT_QUOTES, 'UTF-8') ?></option></select>
+        <select class="form-select" id="wipTargetSelect"<?= $canManage ? '' : ' disabled' ?>><option value="" data-i18n="module_wip_limit.loading"><?= htmlspecialchars($t('module_wip_limit.loading', 'Loading...'), ENT_QUOTES, 'UTF-8') ?></option></select>
       </div>
       <div class="mb-3">
         <label class="form-label" data-i18n="module_wip_limit.field_max"><?= htmlspecialchars($t('module_wip_limit.field_max', 'Maximum tasks in progress'), ENT_QUOTES, 'UTF-8') ?></label>
-        <input type="number" class="form-control" id="wipMaxInput" min="1" max="100" value="5">
+        <input type="number" class="form-control" id="wipMaxInput" min="1" max="100" value="5"<?= $canManage ? '' : ' disabled' ?>>
         <div class="form-text" data-i18n="module_wip_limit.field_hint"><?= htmlspecialchars($t('module_wip_limit.field_hint', 'Default: 5 (user), 10 (team/project). The current WIP load is computed live.'), ENT_QUOTES, 'UTF-8') ?></div>
       </div>
-      <button class="btn crm-btn-primary" id="wipSetBtn"><i class="fa-solid fa-floppy-disk me-1"></i> <span data-i18n="module_wip_limit.btn_set"><?= htmlspecialchars($t('module_wip_limit.btn_set', 'Set limit'), ENT_QUOTES, 'UTF-8') ?></span></button>
+      <button class="btn crm-btn-primary" id="wipSetBtn"<?= $canManage ? '' : ' disabled aria-disabled="true"' ?>><i class="fa-solid fa-floppy-disk me-1"></i> <span data-i18n="module_wip_limit.btn_set"><?= htmlspecialchars($t('module_wip_limit.btn_set', 'Set limit'), ENT_QUOTES, 'UTF-8') ?></span></button>
       <span id="wipSetStatus" class="ms-2 small"></span>
     </div>
 
@@ -53,6 +54,7 @@
 
 <script nonce="<?= $csp_nonce ?>">
 (function () {
+    var canManage = <?= $canManage ? 'true' : 'false' ?>;
     function apiReady() { return window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function' && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function'; }
     function waitForApi(cb) { if (apiReady()) cb(); else setTimeout(function () { waitForApi(cb); }, 200); }
 
@@ -69,6 +71,12 @@
         team: '<?= htmlspecialchars($t('module_wip_limit.th_team', 'Team'), ENT_QUOTES, 'UTF-8') ?>',
         project: '<?= htmlspecialchars($t('module_wip_limit.th_project', 'Project'), ENT_QUOTES, 'UTF-8') ?>'
     };
+    var valueLabels = {
+        wip: '<?= htmlspecialchars($t('module_wip_limit.mobile_wip', 'WIP'), ENT_QUOTES, 'UTF-8') ?>',
+        limit: '<?= htmlspecialchars($t('module_wip_limit.th_limit', 'Limit'), ENT_QUOTES, 'UTF-8') ?>',
+        status: '<?= htmlspecialchars($t('module_wip_limit.th_status', 'Status'), ENT_QUOTES, 'UTF-8') ?>',
+        actions: '<?= htmlspecialchars($t('module_wip_limit.th_actions', 'Actions'), ENT_QUOTES, 'UTF-8') ?>'
+    };
 
     function rowHtml(u) {
         var pct = u.limit_value > 0 ? Math.round(u.current_count / u.limit_value * 100) : 0;
@@ -81,11 +89,11 @@
                 : '<span class="badge bg-success">OK</span>');
         var name = u.full_name || u.login || u.title || '';
         return '<tr class="' + rowClass + '">'
-            + '<td><strong>' + window.CRM.text.escapeHtml(name || ('#' + (u.user_id || u.scope_id))) + '</strong></td>'
-            + '<td><div class="d-flex align-items-center"><div class="progress flex-grow-1 me-2" style="height:6px"><div class="progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div><small>' + u.current_count + '/' + u.limit_value + '</small></div></td>'
-            + '<td>' + u.limit_value + '</td>'
-            + '<td>' + statusBadge + '</td>'
-            + '<td><button class="btn btn-sm crm-btn-muted edit-limit" data-value="' + window.CRM.text.escapeHtml(String(u.user_id != null ? u.user_id : u.public_id)) + '" data-limit="' + u.limit_value + '"><i class="fa-solid fa-pen"></i></button></td>'
+            + '<td class="wip-summary-name"><strong>' + window.CRM.text.escapeHtml(name || ('#' + (u.user_id || u.scope_id))) + '</strong></td>'
+            + '<td data-label="' + window.CRM.text.escapeHtml(valueLabels.wip) + '"><div class="d-flex align-items-center"><div class="progress flex-grow-1 me-2" style="height:6px"><div class="progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div><small>' + u.current_count + '/' + u.limit_value + '</small></div></td>'
+            + '<td data-label="' + window.CRM.text.escapeHtml(valueLabels.limit) + '">' + u.limit_value + '</td>'
+            + '<td data-label="' + window.CRM.text.escapeHtml(valueLabels.status) + '">' + statusBadge + '</td>'
+            + '<td data-label="' + window.CRM.text.escapeHtml(valueLabels.actions) + '">' + (canManage ? '<button class="btn btn-sm crm-btn-muted edit-limit" data-value="' + window.CRM.text.escapeHtml(String(u.user_id != null ? u.user_id : u.public_id)) + '" data-limit="' + u.limit_value + '"><i class="fa-solid fa-pen"></i></button>' : '<span class="text-muted">—</span>') + '</td>'
             + '</tr>';
     }
 
@@ -196,4 +204,3 @@
     }
 })();
 </script>
-</body>

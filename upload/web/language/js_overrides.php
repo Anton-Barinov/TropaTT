@@ -311,6 +311,7 @@ return array (
       'paste_hint' => 'Скопируйте скриншот, затем нажмите Ctrl+V в редакторе',
       'spoiler' => 'Спойлер',
       'spoiler_summary' => 'Разворачивание',
+      'image_unavailable' => 'недоступно',
     ),
     'webhook' =>
     array (
@@ -802,6 +803,7 @@ return array (
       'paste_hint' => 'Copy a screenshot, then press Ctrl+V in the editor',
       'spoiler' => 'Spoiler',
       'spoiler_summary' => 'Expand/collapse',
+      'image_unavailable' => 'unavailable',
     ),
     'webhook' =>
     array (
@@ -1478,6 +1480,7 @@ return array (
       'paste_hint' => '复制截图，然后在编辑器中按 Ctrl+V',
       'spoiler' => '折叠内容',
       'spoiler_summary' => '展开/折叠',
+      'image_unavailable' => '不可用',
     ),
     'webhook' =>
     array (

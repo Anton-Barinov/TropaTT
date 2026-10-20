@@ -2464,6 +2464,10 @@ final class App
             $token = trim((string)$request->cookie($cookieName, ''));
             $transport = 'cookie';
         }
+        if (!$token && $request->method === 'GET' && !empty($request->query['token'])) {
+            $token = trim((string)$request->query['token']);
+            $transport = 'query';
+        }
         if (!$token) {
             return null;
         }
@@ -2772,9 +2776,34 @@ final class App
         }
 
         $path = (string)$result['path'];
+        if (!is_file($path) || !is_readable($path)) {
+            $resp = JsonResponse::error(
+                code: 'FILE_NOT_FOUND',
+                message: $this->container->get('lang')->get('file/messages.not_found', 'File not found'),
+                status: 404,
+                requestId: $request->requestId,
+                correlationId: $request->correlationId
+            );
+            $resp->send();
+            return;
+        }
+
+        $fp = @fopen($path, 'rb');
+        if ($fp === false) {
+            $resp = JsonResponse::error(
+                code: 'FILE_NOT_FOUND',
+                message: $this->container->get('lang')->get('file/messages.not_found', 'File not found'),
+                status: 404,
+                requestId: $request->requestId,
+                correlationId: $request->correlationId
+            );
+            $resp->send();
+            return;
+        }
+
         $name = (string)($result['name'] ?? basename($path));
         $mime = (string)($result['mime'] ?? 'application/octet-stream');
-        $size = (int)($result['size'] ?? filesize($path));
+        $size = (int)($result['size'] ?? (filesize($path) ?: 0));
 
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . $size);
@@ -2785,19 +2814,6 @@ final class App
         header('Content-Disposition: ' . $disposition);
         if (!empty($result['inline'])) {
             header('Cache-Control: private, max-age=86400');
-        }
-
-        $fp = fopen($path, 'rb');
-        if ($fp === false) {
-            $resp = JsonResponse::error(
-                code: 'FILE_READ_ERROR',
-                message: $this->container->get('lang')->get('file/messages.read_error', 'Failed to read file'),
-                status: 500,
-                requestId: $request->requestId,
-                correlationId: $request->correlationId
-            );
-            $resp->send();
-            return;
         }
 
         while (!feof($fp)) {

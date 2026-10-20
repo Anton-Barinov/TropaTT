@@ -15,7 +15,9 @@
 
 ## Архитектура
 
-- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`, версия `1.4.1`.
+- `manifest.json` — имя `crm.wip-limit`, вендор `crm`, категория `productivity`, версия `1.4.2`.
+
+Все API-запросы и счётчики ограничены активным рабочим пространством. Таблицы лимитов получают `organization_id` миграцией `004_workspace_scope.sql`; ранее сохранённые глобальные настройки закрепляются за первым рабочим пространством, чтобы сохранить существующее поведение без раскрытия данных между пространствами. Просмотр и управление разделены правами `module.wip-limit.view` и `module.wip-limit.manage`.
 - `api/Service/WipLimitService.php` — живой движок подсчёта WIP по пользователям/командам/проектам.
 - `api/Service/WipNotifier.php` — уведомления о превышении через ядерный `ModuleNotificationDispatcher`.
 - `api/Hook/WipHook.php` + `api/WipLimitServiceProvider.php` — регистрация хуков на `task.status_changed` / `task.assignee_changed` через ядерный `HookManager` (`boot()`).

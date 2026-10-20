@@ -5,6 +5,7 @@ namespace Module\Crm\WhatsAppBusiness\Api\Controller;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Support\AppLog;
 use Module\Crm\WhatsAppBusiness\Service\WhatsAppBusinessService;
 use Throwable;
 
@@ -23,7 +24,7 @@ final class WhatsAppBusinessApiController extends BaseController
         }
         $request = $this->request();
         $rawBody = $request->rawBody;
-        $contentLength = (int)($request->server('CONTENT_LENGTH') ?? 0);
+        $contentLength = (int)($request->server['CONTENT_LENGTH'] ?? $request->server['HTTP_CONTENT_LENGTH'] ?? 0);
         if ($contentLength > 262144 || strlen($rawBody) > 262144) {
             return $this->error('PAYLOAD_TOO_LARGE', 'Webhook payload exceeds the 256 KB limit.', 413);
         }
@@ -39,7 +40,8 @@ final class WhatsAppBusinessApiController extends BaseController
             $res = $service->handleWebhook($orgId, $payload, $rawBody, $signature !== '' ? $signature : null);
             return $this->success('WHATSAPP_WEBHOOK_PROCESSED', 'Webhook handled', $res);
         } catch (Throwable $e) {
-            return $this->error('WHATSAPP_ERROR', $e->getMessage(), 400);
+            AppLog::error('[WhatsAppBusinessApiController::handleWebhook] Webhook processing failed (' . get_class($e) . ').');
+            return $this->error('WHATSAPP_ERROR', 'Webhook could not be processed.', 400);
         }
     }
 

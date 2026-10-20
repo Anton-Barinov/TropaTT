@@ -71,9 +71,12 @@ final class LockManager
         $path = $dir . '/update.lock';
         $state = $this->lockStateAt($path);
         if ($state !== null && ($state['stale'] ?? false) !== true) {
-            throw new \RuntimeException('Another update is already running.');
+            $owner = (string)($state['owner_job_id'] ?? '');
+            if ($owner !== '' && $owner !== $jobId) {
+                throw new \RuntimeException('Another update is already running.');
+            }
         }
-        // A stale lock (dead PID or past TTL) is safe to reclaim.
+        // A stale lock (dead PID or past TTL) or our own existing lock is safe to reclaim.
         if ($state !== null) {
             @unlink($path);
         }
