@@ -358,7 +358,7 @@ final class TaskService
                 $this->tasks->create($createPayload, $organizationId);
                 break;
             } catch (PDOException $e) {
-                if (!$this->isDuplicateTaskKey($e) || $attempt >= 3) {
+                if (!$this->isDuplicateTaskKey($e) || $attempt >= 10) {
                     throw $e;
                 }
 

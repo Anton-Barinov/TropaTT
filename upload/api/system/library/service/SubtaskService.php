@@ -94,35 +94,58 @@ final class SubtaskService
             ? (int)$actor['organization_id']
             : (isset($parentTask['organization_id']) && (int)$parentTask['organization_id'] > 0 ? (int)$parentTask['organization_id'] : null);
 
-        $this->subtasks->createTask([
-            'public_id' => $childPublicId,
-            'organization_id' => $organizationId,
-            'project_id' => $childProjectId,
-            // A subtask belongs to the same work context as its parent: the
-            // project was already inherited above, and the parent's own client
-            // must travel with it — otherwise the child shows up in the task
-            // lists as a loose task with no client even though its parent has
-            // one (the project's client is a read-time join and does not count
-            // as the task's own client).
-            'client_public_id' => $parentTask['client_public_id'] ?? null,
-            'task_key' => $taskKeyData['task_key'] ?? null,
-            'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
-            'task_sequence_number' => $taskKeyData['task_sequence_number'] ?? null,
-            'title' => trim((string)$input['title']),
-            'description' => $description,
-            'status_code' => (string)($input['status'] ?? 'new'),
-            'priority_code' => (string)($input['priority'] ?? ($parentTask['priority_code'] ?? 'normal')),
-            'due_at' => !empty($input['due_at']) ? $this->normalizeDueAt((string)$input['due_at']) : null,
-            'start_at' => null,
-            'end_at' => null,
-            'assignee_user_id' => $assigneeUserId,
-            'creator_user_id' => (int)($actor['id'] ?? 0) ?: (int)($parentTask['creator_user_id'] ?? 0),
-            'archived_at' => null,
-            'deleted_at' => null,
-            'created_at' => $now,
-            'updated_at' => $updatedAt,
-            'row_version' => 1,
-        ]);
+        $directClientPublicId = !empty($input['client_public_id']) ? trim((string)$input['client_public_id']) : null;
+        $parentClientPublicId = !empty($parentTask['client_public_id'])
+            ? (string)$parentTask['client_public_id']
+            : (!empty($task['task_client_public_id']) ? (string)$task['task_client_public_id'] : null);
+        if ($parentClientPublicId === null && !empty($task['client_public_id'])) {
+            $parentClientPublicId = (string)$task['client_public_id'];
+        }
+        $clientPublicId = $directClientPublicId ?? ($parentClientPublicId ?? ($parentTask['client_public_id'] ?? null));
+
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $this->subtasks->createTask([
+                    'public_id' => $childPublicId,
+                    'organization_id' => $organizationId,
+                    'project_id' => $childProjectId,
+                    // A subtask belongs to the same work context as its parent: the
+                    // project was already inherited above, and the parent's own client
+                    // must travel with it — otherwise the child shows up in the task
+                    // lists as a loose task with no client even though its parent has
+                    // one (the project's client is a read-time join and does not count
+                    // as the task's own client). Can be overridden via explicit client_public_id.
+                    'client_public_id' => $clientPublicId,
+                    'task_key' => $taskKeyData['task_key'] ?? null,
+                    'task_key_prefix' => $taskKeyData['task_key_prefix'] ?? null,
+                    'task_sequence_number' => $taskKeyData['task_sequence_number'] ?? null,
+                    'title' => trim((string)$input['title']),
+                    'description' => $description,
+                    'status_code' => (string)($input['status'] ?? 'new'),
+                    'priority_code' => (string)($input['priority'] ?? ($parentTask['priority_code'] ?? 'normal')),
+                    'due_at' => !empty($input['due_at']) ? $this->normalizeDueAt((string)$input['due_at']) : null,
+                    'start_at' => null,
+                    'end_at' => null,
+                    'assignee_user_id' => $assigneeUserId,
+                    'creator_user_id' => (int)($actor['id'] ?? 0) ?: (int)($parentTask['creator_user_id'] ?? 0),
+                    'archived_at' => null,
+                    'deleted_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $updatedAt,
+                    'row_version' => 1,
+                ]);
+                break;
+            } catch (\PDOException $e) {
+                if (!$this->isDuplicateTaskKey($e) || $attempt >= 10) {
+                    throw $e;
+                }
+
+                AppLog::warning('[SubtaskService::create] task key already taken, assigning the next one: ' . ($taskKeyData['task_key'] ?? 'null'));
+                if ($this->taskKeys !== null) {
+                    $taskKeyData = $this->taskKeys->assignNextTaskKey($childProjectId, $keyPrefix);
+                }
+            }
+        }
 
         $childTaskId = $this->subtasks->taskIdByPublicId($childPublicId);
         if ($childTaskId === null) {
@@ -180,6 +203,9 @@ final class SubtaskService
         }
 
         $taskSet = [];
+        if (!isset($input['status']) && isset($input['status_code']) && is_string($input['status_code'])) {
+            $input['status'] = trim($input['status_code']);
+        }
         if (array_key_exists('title', $input)) {
             $taskSet['title'] = trim((string)$input['title']);
         }
@@ -188,6 +214,10 @@ final class SubtaskService
         }
         if (array_key_exists('status', $input)) {
             $taskSet['status_code'] = (string)$input['status'];
+        }
+        if (array_key_exists('client_public_id', $input)) {
+            $clientPublicId = trim((string)$input['client_public_id']);
+            $taskSet['client_public_id'] = $clientPublicId !== '' ? $clientPublicId : null;
         }
         if (array_key_exists('priority', $input)) {
             $taskSet['priority_code'] = (string)$input['priority'];
@@ -318,6 +348,14 @@ final class SubtaskService
         }
 
         return $item;
+    }
+
+    private function isDuplicateTaskKey(\PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return (string)$exception->getCode() === '23000'
+            && (str_contains($message, 'uq_tasks_task_key') || str_contains($message, 'task_key'));
     }
 
     private function normalizeDueAt(string $value): string

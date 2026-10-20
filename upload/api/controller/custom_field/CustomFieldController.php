@@ -245,6 +245,12 @@ final class CustomFieldController extends BaseController
         }
 
         $input = $this->request()->allInput();
+        if (isset($input['values']) && is_string($input['values']) && trim($input['values']) !== '') {
+            $decodedValues = json_decode($input['values'], true);
+            if (is_array($decodedValues)) {
+                $input['values'] = $decodedValues;
+            }
+        }
         $v = new Validator();
         $v->require($input, 'entity_type', $this->t('common/messages.field_required'))
             ->require($input, 'entity_public_id', $this->t('common/messages.field_required'))

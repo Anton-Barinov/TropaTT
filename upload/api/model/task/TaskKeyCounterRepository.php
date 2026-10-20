@@ -153,8 +153,30 @@ final class TaskKeyCounterRepository
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $currentValue = $row !== false ? (int)$row['current_value'] : 0;
-            $nextValue = $currentValue + 1;
             $counterId = $row !== false ? (int)$row['id'] : null;
+
+            // Advance current_value if the actual maximum sequence in the tasks table is higher
+            // (e.g. if the counter was reset, cleared, or tasks were inserted outside the counter).
+            $maxExisting = $this->maxSequenceFromTasks($prefix, $projectId);
+            if ($maxExisting > $currentValue) {
+                $currentValue = $maxExisting;
+            }
+
+            // Find next free sequence number, verifying no task already holds this task_key
+            $nextValue = $currentValue + 1;
+            try {
+                $checkKeyStmt = $this->pdo->prepare('SELECT 1 FROM tasks WHERE task_key = :task_key LIMIT 1');
+                while (true) {
+                    $candidateKey = $prefix . '-' . $nextValue;
+                    $checkKeyStmt->execute(['task_key' => $candidateKey]);
+                    if ($checkKeyStmt->fetchColumn() === false) {
+                        break;
+                    }
+                    $nextValue++;
+                }
+            } catch (\Throwable) {
+                // tasks table may not exist in minimal test environments or early schema migrations
+            }
 
             // Update counter
             if ($counterId !== null) {
@@ -181,6 +203,27 @@ final class TaskKeyCounterRepository
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             throw $e;
+        }
+    }
+
+    private function maxSequenceFromTasks(string $prefix, ?int $projectId): int
+    {
+        try {
+            if ($projectId !== null && $projectId > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT MAX(task_sequence_number) FROM tasks WHERE project_id = :project_id AND task_key_prefix = :prefix'
+                );
+                $stmt->execute(['project_id' => $projectId, 'prefix' => $prefix]);
+            } else {
+                $stmt = $this->pdo->prepare(
+                    'SELECT MAX(task_sequence_number) FROM tasks WHERE task_key_prefix = :prefix'
+                );
+                $stmt->execute(['prefix' => $prefix]);
+            }
+            $val = $stmt->fetchColumn();
+            return $val !== false && $val !== null ? (int)$val : 0;
+        } catch (\Throwable) {
+            return 0;
         }
     }
 
