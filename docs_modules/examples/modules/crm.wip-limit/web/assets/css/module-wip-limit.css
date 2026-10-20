@@ -1,1 +1,69 @@
-/* WIP Limit module CSS */
+@media (max-width: 767.98px) {
+    .crm-module-page .crm-card.table-responsive {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+    }
+
+    #wipSummaryTable,
+    #wipSummaryTable tbody,
+    #wipSummaryTable tr,
+    #wipSummaryTable td {
+        display: block;
+        width: 100%;
+    }
+
+    #wipSummaryTable thead {
+        display: none;
+    }
+
+    #wipSummaryTable tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    #wipSummaryTable tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem 0.9rem;
+        padding: 0.9rem;
+        border: 1px solid var(--crm-border, #dce5e2);
+        border-radius: 0.75rem;
+        background: var(--crm-surface, #fff);
+    }
+
+    #wipSummaryTable tbody td {
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        overflow-wrap: anywhere;
+    }
+
+    #wipSummaryTable tbody td::before {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: var(--crm-text-muted, #71817d);
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    #wipSummaryTable tbody td.wip-summary-name {
+        grid-column: 1 / -1;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid var(--crm-border, #dce5e2);
+        font-size: 1rem;
+    }
+
+    #wipSummaryTable tbody td.wip-summary-name::before {
+        content: none;
+    }
+
+    #wipSummaryTable tbody td:nth-child(2) .d-flex {
+        min-width: 0;
+    }
+
+    #wipSummaryTable tbody td:nth-child(5) {
+        grid-column: 1 / -1;
+    }
+}

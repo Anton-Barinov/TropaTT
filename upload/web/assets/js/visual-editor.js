@@ -3267,6 +3267,30 @@ window.CRM.VisualEditor = (function () {
       figure.parentNode.insertBefore(wrapper, figure);
       wrapper.appendChild(figure);
     });
+
+    root.querySelectorAll('img').forEach(function (img) {
+      if (img.dataset.crmVeFallbackAttached) return;
+      img.dataset.crmVeFallbackAttached = '1';
+      var handleImgError = function () {
+        if (img.dataset.crmVeFailed) return;
+        img.dataset.crmVeFailed = '1';
+        var placeholder = document.createElement('div');
+        placeholder.className = 'crm-ve-image-fallback alert alert-secondary d-flex align-items-center gap-2 p-2 my-2';
+        placeholder.style.maxWidth = '100%';
+        placeholder.style.fontSize = '0.875rem';
+        var label = (img.alt ? img.alt : 'image.png') + ' (' + (window.CRM && window.CRM.i18n ? window.CRM.i18n.t('visual_editor.image_unavailable', 'недоступно') : 'недоступно') + ')';
+        placeholder.textContent = '🖼️ ' + label;
+        if (img.parentNode) {
+          img.parentNode.insertBefore(placeholder, img);
+          img.style.display = 'none';
+        }
+      };
+      if (img.complete && img.naturalWidth === 0 && img.src) {
+        handleImgError();
+      } else {
+        img.addEventListener('error', handleImgError);
+      }
+    });
   }
 
   Editor.prototype.clear = function () {

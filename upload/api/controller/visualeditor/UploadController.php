@@ -20,6 +20,19 @@ final class UploadController extends BaseController
 
     private const MAX_RESOLUTION = 8000;
 
+    private function visualEditorStorageDir(): string
+    {
+        $uploadsDir = '';
+        if ($this->container->has('config')) {
+            $uploadsDir = (string)$this->container->get('config')->get('default.storage.uploads');
+        }
+        if ($uploadsDir === '') {
+            $storageBase = (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 3) . '/storage_api');
+            $uploadsDir = rtrim($storageBase, '/\\') . '/uploads';
+        }
+        return rtrim($uploadsDir, '/\\') . '/visual-editor';
+    }
+
     public function upload(): JsonResponse
     {
         $authUser = $this->user();
@@ -76,7 +89,7 @@ final class UploadController extends BaseController
         $safeName = bin2hex(random_bytes(16)) . '.' . $extension;
 
         // Determine storage path
-        $baseDir = dirname(__DIR__, 3) . '/storage_api/uploads/visual-editor';
+        $baseDir = $this->visualEditorStorageDir();
         $yearMonth = date('Y/m');
         $targetDir = $baseDir . '/' . $yearMonth;
 
@@ -93,7 +106,7 @@ final class UploadController extends BaseController
                 'file' => [$this->t('file/messages.upload_error', 'Ошибка при сохранении файла.')],
             ]);
         }
-        @chmod($targetPath, 0640);
+        @chmod($targetPath, 0644);
 
         $url = '/api/index.php?route=api/v1/visual-editor/image/' . $yearMonth . '/' . $safeName;
 
@@ -135,15 +148,34 @@ final class UploadController extends BaseController
             return ['error' => 'FILE_NOT_FOUND'];
         }
 
-        $baseDir = dirname(__DIR__, 3) . '/storage_api/uploads/visual-editor';
+        $baseDir = $this->visualEditorStorageDir();
         $path = $baseDir . '/' . $year . '/' . $month . '/' . $name;
 
+        // Try primary path first
         $realBase = realpath($baseDir);
         $realPath = realpath($path);
+
+        // Fallback: if not found in primary path, also check default legacy relative path if primary baseDir differs
+        if ($realBase === false || $realPath === false) {
+            $legacyBase = dirname(__DIR__, 3) . '/storage_api/uploads/visual-editor';
+            $legacyPath = $legacyBase . '/' . $year . '/' . $month . '/' . $name;
+            $legacyRealBase = realpath($legacyBase);
+            $legacyRealPath = realpath($legacyPath);
+            if ($legacyRealBase !== false && $legacyRealPath !== false && str_starts_with($legacyRealPath, $legacyRealBase . DIRECTORY_SEPARATOR)) {
+                $realBase = $legacyRealBase;
+                $realPath = $legacyRealPath;
+            }
+        }
+
         if ($realBase === false || $realPath === false || !str_starts_with($realPath, $realBase . DIRECTORY_SEPARATOR)) {
             return ['error' => 'FILE_NOT_FOUND'];
         }
-        if (!is_file($realPath)) {
+        if (!is_file($realPath) || !is_readable($realPath)) {
+            return ['error' => 'FILE_NOT_FOUND'];
+        }
+
+        $size = filesize($realPath);
+        if ($size === false) {
             return ['error' => 'FILE_NOT_FOUND'];
         }
 
@@ -159,7 +191,7 @@ final class UploadController extends BaseController
             'path' => $realPath,
             'name' => $name,
             'mime' => $mime,
-            'size' => (int)filesize($realPath),
+            'size' => (int)$size,
             'inline' => true,
         ];
     }

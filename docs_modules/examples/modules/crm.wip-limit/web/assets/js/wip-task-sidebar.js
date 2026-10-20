@@ -61,7 +61,7 @@
 
                     nameEl.textContent = w.full_name || w.login || ('#' + w.user_id);
                     input.value = w.limit_value;
-                    editor.classList.remove('d-none');
+                    editor.classList.toggle('d-none', !w.can_manage);
                 })
                 .catch(function () {
                     renderLoad('<span class="text-muted small">Нет данных</span>');

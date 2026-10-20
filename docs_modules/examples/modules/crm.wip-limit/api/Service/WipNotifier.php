@@ -23,6 +23,7 @@ final class WipNotifier
         private readonly ModuleNotificationDispatcher $dispatcher,
         private readonly PDO $pdo,
         private readonly array $config,
+        private readonly int $organizationId,
     ) {
     }
 
@@ -130,6 +131,7 @@ final class WipNotifier
      */
     private function send(string $title, string $body, array $recipients): void
     {
+        $recipients = $this->filterWorkspaceRecipients($recipients);
         $recipients = $this->dedupe($title, $recipients);
         if ($recipients === []) {
             return;
@@ -143,6 +145,34 @@ final class WipNotifier
             'warning',
             'index.php?route=module-wip-limit'
         );
+    }
+
+    /**
+     * @param array<int, int> $recipients
+     * @return array<int, int>
+     */
+    private function filterWorkspaceRecipients(array $recipients): array
+    {
+        if ($this->organizationId <= 0 || $recipients === []) {
+            return [];
+        }
+
+        $recipients = array_values(array_unique(array_filter(array_map('intval', $recipients), static fn(int $id): bool => $id > 0)));
+        if ($recipients === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($recipients), '?'));
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT user_id FROM organization_memberships WHERE organization_id = ? AND user_id IN ({$placeholders})"
+            );
+            $stmt->execute(array_merge([$this->organizationId], $recipients));
+            return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+        } catch (\Throwable $e) {
+            error_log('[WipNotifier::filterWorkspaceRecipients] ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

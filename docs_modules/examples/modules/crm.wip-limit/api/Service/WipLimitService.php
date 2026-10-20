@@ -31,8 +31,19 @@ final class WipLimitService
     public function __construct(
         private readonly PDO $pdo,
         array $config = [],
+        private readonly int $organizationId = 0,
     ) {
         $this->config = array_replace(self::defaults(), $config);
+    }
+
+    private function isWorkspaceReady(): bool
+    {
+        return true;
+    }
+
+    public function organizationId(): int
+    {
+        return $this->organizationId;
     }
 
     /**
@@ -86,8 +97,13 @@ final class WipLimitService
         }
 
         try {
-            $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_limits WHERE user_id = :uid AND is_active = 1');
-            $stmt->execute(['uid' => $userId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_limits WHERE organization_id = :org_id AND user_id = :uid AND is_active = 1');
+                $stmt->execute(['org_id' => $this->organizationId, 'uid' => $userId]);
+            } else {
+                $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_limits WHERE user_id = :uid AND is_active = 1');
+                $stmt->execute(['uid' => $userId]);
+            }
             $value = $stmt->fetchColumn();
             return $value !== false && (int)$value >= 1 ? (int)$value : $this->getDefaultLimit();
         } catch (\Throwable $e) {
@@ -109,9 +125,15 @@ final class WipLimitService
 
         try {
             $placeholders = implode(',', array_fill(0, count($codes), '?'));
-            $sql = "SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ? AND status_code IN ({$placeholders}) AND deleted_at IS NULL";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(array_merge([$userId], $codes));
+            if ($this->organizationId > 0) {
+                $sql = "SELECT COUNT(*) FROM tasks WHERE organization_id = ? AND assignee_user_id = ? AND status_code IN ({$placeholders}) AND deleted_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$this->organizationId, $userId], $codes));
+            } else {
+                $sql = "SELECT COUNT(*) FROM tasks WHERE assignee_user_id = ? AND status_code IN ({$placeholders}) AND deleted_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$userId], $codes));
+            }
             return (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
             error_log('[WipLimitService::getUserWipCount] User ' . $userId . ': ' . $e->getMessage());
@@ -126,18 +148,29 @@ final class WipLimitService
      */
     public function getSummary(): array
     {
+        if (!$this->isWorkspaceReady()) {
+            return [];
+        }
         try {
             $excludedRoleIds = $this->getExcludedRoleIds();
 
-            $sql = 'SELECT u.id AS user_id, u.full_name, u.login
-                    FROM users u
-                    WHERE u.deleted_at IS NULL AND u.is_active = 1';
-            $params = [];
+            if ($this->organizationId > 0) {
+                $sql = 'SELECT u.id AS user_id, u.full_name, u.login
+                        FROM users u
+                        INNER JOIN organization_memberships om ON om.user_id = u.id AND om.organization_id = ?
+                        WHERE u.deleted_at IS NULL AND u.is_active = 1';
+                $params = [$this->organizationId];
+            } else {
+                $sql = 'SELECT u.id AS user_id, u.full_name, u.login
+                        FROM users u
+                        WHERE u.deleted_at IS NULL AND u.is_active = 1';
+                $params = [];
+            }
 
             if ($excludedRoleIds !== []) {
                 $placeholders = implode(',', array_fill(0, count($excludedRoleIds), '?'));
                 $sql .= " AND u.id NOT IN (SELECT DISTINCT ur.user_id FROM user_roles ur WHERE ur.role_id IN ({$placeholders}))";
-                $params = $excludedRoleIds;
+                $params = array_merge($params, $excludedRoleIds);
             }
 
             $sql .= ' ORDER BY u.full_name ASC, u.id ASC';
@@ -183,14 +216,31 @@ final class WipLimitService
      */
     public function listLimits(): array
     {
+        if (!$this->isWorkspaceReady()) {
+            return [];
+        }
         try {
-            $stmt = $this->pdo->query(
-                'SELECT l.id, l.user_id, l.max_tasks, l.is_active, l.created_at,
-                        u.full_name, u.login
-                 FROM crm_wip_limits l
-                 LEFT JOIN users u ON u.id = l.user_id
-                 ORDER BY l.user_id'
-            );
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT l.id, l.user_id, l.max_tasks, l.is_active, l.created_at,
+                            u.full_name, u.login
+                     FROM crm_wip_limits l
+                     LEFT JOIN users u ON u.id = l.user_id
+                     INNER JOIN organization_memberships om ON om.organization_id = l.organization_id AND om.user_id = l.user_id
+                     WHERE l.organization_id = ?
+                     ORDER BY l.user_id'
+                );
+                $stmt->execute([$this->organizationId]);
+            } else {
+                $stmt = $this->pdo->prepare(
+                    'SELECT l.id, l.user_id, l.max_tasks, l.is_active, l.created_at,
+                            u.full_name, u.login
+                     FROM crm_wip_limits l
+                     LEFT JOIN users u ON u.id = l.user_id
+                     ORDER BY l.user_id'
+                );
+                $stmt->execute();
+            }
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             $items = [];
@@ -215,18 +265,31 @@ final class WipLimitService
      */
     public function getAssigneeWip(string $taskPublicId): ?array
     {
-        if ($taskPublicId === '') {
+        if ($taskPublicId === '' || !$this->isWorkspaceReady()) {
             return null;
         }
 
         try {
-            $stmt = $this->pdo->prepare(
-                'SELECT t.assignee_user_id, u.public_id, u.full_name, u.login
-                 FROM tasks t
-                 LEFT JOIN users u ON u.id = t.assignee_user_id
-                 WHERE t.public_id = ? AND t.deleted_at IS NULL'
-            );
-            $stmt->execute([$taskPublicId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT CASE WHEN om.user_id IS NULL THEN NULL ELSE t.assignee_user_id END AS assignee_user_id,
+                            u.public_id, u.full_name, u.login
+                     FROM tasks t
+                     LEFT JOIN organization_memberships om ON om.organization_id = t.organization_id AND om.user_id = t.assignee_user_id
+                     LEFT JOIN users u ON u.id = om.user_id
+                     WHERE t.public_id = ? AND t.organization_id = ? AND t.deleted_at IS NULL'
+                );
+                $stmt->execute([$taskPublicId, $this->organizationId]);
+            } else {
+                $stmt = $this->pdo->prepare(
+                    'SELECT t.assignee_user_id,
+                            u.public_id, u.full_name, u.login
+                     FROM tasks t
+                     LEFT JOIN users u ON u.id = t.assignee_user_id
+                     WHERE t.public_id = ? AND t.deleted_at IS NULL'
+                );
+                $stmt->execute([$taskPublicId]);
+            }
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row === false) {
                 return null;
@@ -272,13 +335,18 @@ final class WipLimitService
      */
     public function getLimit(int $userId): ?array
     {
-        if ($userId <= 0) {
+        if ($userId <= 0 || !$this->isWorkspaceReady()) {
             return null;
         }
 
         try {
-            $stmt = $this->pdo->prepare('SELECT l.* FROM crm_wip_limits l WHERE l.user_id = :uid');
-            $stmt->execute(['uid' => $userId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare('SELECT l.id, l.user_id, l.max_tasks, l.is_active, l.created_at FROM crm_wip_limits l INNER JOIN organization_memberships om ON om.organization_id = l.organization_id AND om.user_id = l.user_id WHERE l.organization_id = :org_id AND l.user_id = :uid');
+                $stmt->execute(['org_id' => $this->organizationId, 'uid' => $userId]);
+            } else {
+                $stmt = $this->pdo->prepare('SELECT l.id, l.user_id, l.max_tasks, l.is_active, l.created_at FROM crm_wip_limits l WHERE l.user_id = :uid');
+                $stmt->execute(['uid' => $userId]);
+            }
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row === false) {
                 return null;
@@ -292,21 +360,43 @@ final class WipLimitService
         }
     }
 
-    public function setLimit(int $userId, int $maxTasks): void
+    public function setLimit(int $userId, int $maxTasks): bool
     {
+        if ($userId <= 0 || $maxTasks < 1 || !$this->isWorkspaceReady() || !$this->isWorkspaceMember($userId)) {
+            return false;
+        }
         try {
-            $stmt = $this->pdo->prepare('INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
-            $stmt->execute(['uid' => $userId, 'max' => $maxTasks]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare('INSERT INTO crm_wip_limits (organization_id, user_id, max_tasks) VALUES (:org_id, :uid, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
+                $stmt->execute(['org_id' => $this->organizationId, 'uid' => $userId, 'max' => $maxTasks]);
+            } else {
+                $stmt = $this->pdo->prepare('INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
+                $stmt->execute(['uid' => $userId, 'max' => $maxTasks]);
+            }
         } catch (\Throwable $e) {
             error_log('[WipLimitService::setLimit] Upsert failed, falling back: ' . $e->getMessage());
-            $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE user_id = :uid')->execute(['uid' => $userId]);
-            $this->pdo->prepare('INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max)')->execute(['uid' => $userId, 'max' => $maxTasks]);
+            if ($this->organizationId > 0) {
+                $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE organization_id = :org_id AND user_id = :uid')->execute(['org_id' => $this->organizationId, 'uid' => $userId]);
+                $this->pdo->prepare('INSERT INTO crm_wip_limits (organization_id, user_id, max_tasks) VALUES (:org_id, :uid, :max)')->execute(['org_id' => $this->organizationId, 'uid' => $userId, 'max' => $maxTasks]);
+            } else {
+                $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE user_id = :uid')->execute(['uid' => $userId]);
+                $this->pdo->prepare('INSERT INTO crm_wip_limits (user_id, max_tasks) VALUES (:uid, :max)')->execute(['uid' => $userId, 'max' => $maxTasks]);
+            }
         }
+        return true;
     }
 
-    public function deleteLimit(int $userId): void
+    public function deleteLimit(int $userId): bool
     {
-        $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE user_id = :uid')->execute(['uid' => $userId]);
+        if ($userId <= 0 || !$this->isWorkspaceReady() || !$this->isWorkspaceMember($userId)) {
+            return false;
+        }
+        if ($this->organizationId > 0) {
+            $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE organization_id = :org_id AND user_id = :uid')->execute(['org_id' => $this->organizationId, 'uid' => $userId]);
+        } else {
+            $this->pdo->prepare('DELETE FROM crm_wip_limits WHERE user_id = :uid')->execute(['uid' => $userId]);
+        }
+        return true;
     }
 
     /**
@@ -358,9 +448,15 @@ final class WipLimitService
 
         try {
             $placeholders = implode(',', array_fill(0, count($codes), '?'));
-            $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id WHERE t.project_id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(array_merge([$projectId], $codes));
+            if ($this->organizationId > 0) {
+                $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id WHERE t.organization_id = ? AND p.organization_id = ? AND t.project_id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$this->organizationId, $this->organizationId, $projectId], $codes));
+            } else {
+                $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id WHERE t.project_id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$projectId], $codes));
+            }
             return (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
             error_log('[WipLimitService::getProjectWipCount] Project ' . $projectId . ': ' . $e->getMessage());
@@ -385,9 +481,15 @@ final class WipLimitService
 
         try {
             $placeholders = implode(',', array_fill(0, count($codes), '?'));
-            $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id INNER JOIN teams tm ON tm.public_id = p.team_public_id WHERE tm.id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(array_merge([$teamId], $codes));
+            if ($this->organizationId > 0) {
+                $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id INNER JOIN teams tm ON tm.public_id = p.team_public_id WHERE t.organization_id = ? AND p.organization_id = ? AND tm.organization_id = ? AND tm.id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$this->organizationId, $this->organizationId, $this->organizationId, $teamId], $codes));
+            } else {
+                $sql = "SELECT COUNT(*) FROM tasks t INNER JOIN projects p ON p.id = t.project_id INNER JOIN teams tm ON tm.public_id = p.team_public_id WHERE tm.id = ? AND t.status_code IN ({$placeholders}) AND t.deleted_at IS NULL AND p.archived_at IS NULL";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(array_merge([$teamId], $codes));
+            }
             return (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
             error_log('[WipLimitService::getTeamWipCount] Team ' . $teamId . ': ' . $e->getMessage());
@@ -406,8 +508,13 @@ final class WipLimitService
         }
 
         try {
-            $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id AND is_active = 1');
-            $stmt->execute(['t' => $scopeType, 'id' => $scopeId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_scope_limits WHERE organization_id = :org_id AND scope_type = :t AND scope_id = :id AND is_active = 1');
+                $stmt->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId]);
+            } else {
+                $stmt = $this->pdo->prepare('SELECT max_tasks FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id AND is_active = 1');
+                $stmt->execute(['t' => $scopeType, 'id' => $scopeId]);
+            }
             $value = $stmt->fetchColumn();
             return $value !== false && (int)$value >= 1 ? (int)$value : $this->getDefaultScopeLimit($scopeType);
         } catch (\Throwable $e) {
@@ -416,29 +523,55 @@ final class WipLimitService
         }
     }
 
-    public function setScopeLimit(string $scopeType, int $scopeId, int $maxTasks): void
+    public function setScopeLimit(string $scopeType, int $scopeId, int $maxTasks): bool
     {
-        if ($scopeId <= 0 || $maxTasks < 1 || !$this->isValidScopeType($scopeType)) {
-            return;
+        if ($scopeId <= 0 || $maxTasks < 1 || !$this->isValidScopeType($scopeType) || !$this->scopeExistsInWorkspace($scopeType, $scopeId)) {
+            return false;
         }
 
         try {
-            $stmt = $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (scope_type, scope_id, max_tasks) VALUES (:t, :id, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
-            $stmt->execute(['t' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+            $isMysql = str_contains((string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'mysql');
+            if ($this->organizationId > 0) {
+                if ($isMysql) {
+                    $stmt = $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (organization_id, scope_type, scope_id, max_tasks) VALUES (:org_id, :t, :id, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
+                    $stmt->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+                } else {
+                    $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE organization_id = :org_id AND scope_type = :t AND scope_id = :id')->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId]);
+                    $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (organization_id, scope_type, scope_id, max_tasks) VALUES (:org_id, :t, :id, :max)')->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+                }
+            } else {
+                if ($isMysql) {
+                    $stmt = $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (scope_type, scope_id, max_tasks) VALUES (:t, :id, :max) ON DUPLICATE KEY UPDATE max_tasks = VALUES(max_tasks), updated_at = NOW()');
+                    $stmt->execute(['t' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+                } else {
+                    $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id')->execute(['t' => $scopeType, 'id' => $scopeId]);
+                    $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (scope_type, scope_id, max_tasks) VALUES (:t, :id, :max)')->execute(['t' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+                }
+            }
         } catch (\Throwable $e) {
             error_log('[WipLimitService::setScopeLimit] Upsert failed, falling back: ' . $e->getMessage());
-            $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id')->execute(['t' => $scopeType, 'id' => $scopeId]);
-            $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (scope_type, scope_id, max_tasks) VALUES (:t, :id, :max)')->execute(['t' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+            if ($this->organizationId > 0) {
+                $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE organization_id = :org_id AND scope_type = :t AND scope_id = :id')->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId]);
+                $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (organization_id, scope_type, scope_id, max_tasks) VALUES (:org_id, :t, :id, :max)')->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+            } else {
+                $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id')->execute(['t' => $scopeType, 'id' => $scopeId]);
+                $this->pdo->prepare('INSERT INTO crm_wip_scope_limits (scope_type, scope_id, max_tasks) VALUES (:t, :id, :max)')->execute(['t' => $scopeType, 'id' => $scopeId, 'max' => $maxTasks]);
+            }
         }
+        return true;
     }
 
     public function deleteScopeLimit(string $scopeType, int $scopeId): void
     {
-        if ($scopeId <= 0 || !$this->isValidScopeType($scopeType)) {
+        if ($scopeId <= 0 || !$this->isValidScopeType($scopeType) || !$this->scopeExistsInWorkspace($scopeType, $scopeId)) {
             return;
         }
 
-        $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id')->execute(['t' => $scopeType, 'id' => $scopeId]);
+        if ($this->organizationId > 0) {
+            $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE organization_id = :org_id AND scope_type = :t AND scope_id = :id')->execute(['org_id' => $this->organizationId, 't' => $scopeType, 'id' => $scopeId]);
+        } else {
+            $this->pdo->prepare('DELETE FROM crm_wip_scope_limits WHERE scope_type = :t AND scope_id = :id')->execute(['t' => $scopeType, 'id' => $scopeId]);
+        }
     }
 
     /**
@@ -452,8 +585,13 @@ final class WipLimitService
 
         try {
             $table = $scopeType === self::SCOPE_TEAM ? 'teams' : 'projects';
-            $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = ? LIMIT 1");
-            $stmt->execute([$scopePublicId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = ? AND organization_id = ? LIMIT 1");
+                $stmt->execute([$scopePublicId, $this->organizationId]);
+            } else {
+                $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE public_id = ? LIMIT 1");
+                $stmt->execute([$scopePublicId]);
+            }
             $id = $stmt->fetchColumn();
             return $id !== false ? (int)$id : null;
         } catch (\Throwable $e) {
@@ -471,23 +609,38 @@ final class WipLimitService
      */
     public function resolveTaskScope(string $taskPublicId): ?array
     {
-        if ($taskPublicId === '') {
+        if ($taskPublicId === '' || !$this->isWorkspaceReady()) {
             return null;
         }
 
         try {
-            $stmt = $this->pdo->prepare(
-                'SELECT t.id AS task_id, t.assignee_user_id, t.status_code,
-                        u.full_name AS assignee_name, u.login AS assignee_login,
-                        p.id AS project_id, p.public_id AS project_public_id, p.title AS project_title, p.manager_user_id AS project_manager_id,
-                        tm.id AS team_id, tm.public_id AS team_public_id, tm.title AS team_title, tm.manager_user_id AS team_manager_id
-                 FROM tasks t
-                 LEFT JOIN users u ON u.id = t.assignee_user_id
-                 LEFT JOIN projects p ON p.id = t.project_id
-                 LEFT JOIN teams tm ON tm.public_id = p.team_public_id
-                 WHERE t.public_id = ? AND t.deleted_at IS NULL'
-            );
-            $stmt->execute([$taskPublicId]);
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT t.id AS task_id, t.organization_id, t.assignee_user_id, t.status_code,
+                            u.full_name AS assignee_name, u.login AS assignee_login,
+                            p.id AS project_id, p.public_id AS project_public_id, p.title AS project_title, p.manager_user_id AS project_manager_id,
+                            tm.id AS team_id, tm.public_id AS team_public_id, tm.title AS team_title, tm.manager_user_id AS team_manager_id
+                     FROM tasks t
+                     LEFT JOIN users u ON u.id = t.assignee_user_id
+                     LEFT JOIN projects p ON p.id = t.project_id AND p.organization_id = t.organization_id
+                     LEFT JOIN teams tm ON tm.public_id = p.team_public_id AND tm.organization_id = t.organization_id
+                     WHERE t.public_id = ? AND t.organization_id = ? AND t.deleted_at IS NULL'
+                );
+                $stmt->execute([$taskPublicId, $this->organizationId]);
+            } else {
+                $stmt = $this->pdo->prepare(
+                    'SELECT t.id AS task_id, 0 AS organization_id, t.assignee_user_id, t.status_code,
+                            u.full_name AS assignee_name, u.login AS assignee_login,
+                            p.id AS project_id, p.public_id AS project_public_id, p.title AS project_title, p.manager_user_id AS project_manager_id,
+                            tm.id AS team_id, tm.public_id AS team_public_id, tm.title AS team_title, tm.manager_user_id AS team_manager_id
+                     FROM tasks t
+                     LEFT JOIN users u ON u.id = t.assignee_user_id
+                     LEFT JOIN projects p ON p.id = t.project_id
+                     LEFT JOIN teams tm ON tm.public_id = p.team_public_id
+                     WHERE t.public_id = ? AND t.deleted_at IS NULL'
+                );
+                $stmt->execute([$taskPublicId]);
+            }
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row === false) {
                 return null;
@@ -495,6 +648,7 @@ final class WipLimitService
 
             return [
                 'task_id' => (int)($row['task_id'] ?? 0),
+                'organization_id' => (int)($row['organization_id'] ?? 0),
                 'assignee_user_id' => (int)($row['assignee_user_id'] ?? 0),
                 'assignee_name' => (string)($row['assignee_name'] ?? ''),
                 'assignee_login' => (string)($row['assignee_login'] ?? ''),
@@ -521,18 +675,31 @@ final class WipLimitService
      */
     public function getScopeSummary(string $scopeType): array
     {
-        if (!$this->isValidScopeType($scopeType)) {
+        if (!$this->isValidScopeType($scopeType) || !$this->isWorkspaceReady()) {
             return [];
         }
 
         try {
             if ($scopeType === self::SCOPE_TEAM) {
-                $sql = 'SELECT id, public_id, title, manager_user_id FROM teams ORDER BY title ASC, id ASC';
+                if ($this->organizationId > 0) {
+                    $sql = 'SELECT id, public_id, title, manager_user_id FROM teams WHERE organization_id = ? ORDER BY title ASC, id ASC';
+                    $params = [$this->organizationId];
+                } else {
+                    $sql = 'SELECT id, public_id, title, manager_user_id FROM teams ORDER BY title ASC, id ASC';
+                    $params = [];
+                }
             } else {
-                $sql = 'SELECT id, public_id, title, manager_user_id FROM projects WHERE archived_at IS NULL ORDER BY title ASC, id ASC';
+                if ($this->organizationId > 0) {
+                    $sql = 'SELECT id, public_id, title, manager_user_id FROM projects WHERE organization_id = ? AND archived_at IS NULL ORDER BY title ASC, id ASC';
+                    $params = [$this->organizationId];
+                } else {
+                    $sql = 'SELECT id, public_id, title, manager_user_id FROM projects WHERE archived_at IS NULL ORDER BY title ASC, id ASC';
+                    $params = [];
+                }
             }
 
-            $stmt = $this->pdo->query($sql);
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             $items = [];
@@ -602,5 +769,47 @@ final class WipLimitService
         }
 
         return array_values(array_unique($result));
+    }
+
+    private function isWorkspaceMember(int $userId): bool
+    {
+        if ($userId <= 0 || !$this->isWorkspaceReady()) {
+            return false;
+        }
+
+        if ($this->organizationId <= 0) {
+            return true;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('SELECT 1 FROM organization_memberships WHERE organization_id = ? AND user_id = ? LIMIT 1');
+            $stmt->execute([$this->organizationId, $userId]);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable $e) {
+            error_log('[WipLimitService::isWorkspaceMember] ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function scopeExistsInWorkspace(string $scopeType, int $scopeId): bool
+    {
+        if (!$this->isWorkspaceReady() || !$this->isValidScopeType($scopeType) || $scopeId <= 0) {
+            return false;
+        }
+
+        $table = $scopeType === self::SCOPE_TEAM ? 'teams' : 'projects';
+        try {
+            if ($this->organizationId > 0) {
+                $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE id = ? AND organization_id = ? LIMIT 1");
+                $stmt->execute([$scopeId, $this->organizationId]);
+            } else {
+                $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE id = ? LIMIT 1");
+                $stmt->execute([$scopeId]);
+            }
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable $e) {
+            error_log('[WipLimitService::scopeExistsInWorkspace] ' . $e->getMessage());
+            return false;
+        }
     }
 }

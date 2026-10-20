@@ -745,11 +745,15 @@ $auJs = [
       const diagnosticKey = safeDiagnostics[String(payload && payload.message || '').trim()];
       if (diagnosticKey === 'errCheck') return tr('errCheck', 'Не удалось проверить обновления.');
       if (diagnosticKey === 'errDownload') return tr('errDownload', 'Не удалось подготовить архив.');
+      return tr('errGeneric', 'Не удалось выполнить действие.');
     }
     if (code === 'INVALID_JSON' && [408, 425, 429, 500, 502, 503, 504].includes(status)) {
       return tr('errTransientHttp', 'Сервер временно вернул ошибку HTTP {status}. Повторите попытку позже; состояние обновления сохранено.', {status});
     }
-    if (code === 'UPDATER_ERROR') return tr('errGeneric', 'Не удалось выполнить действие.');
+    const serverMsg = String(payload && (payload.message || payload.error) || '').trim();
+    if (serverMsg && serverMsg !== 'UPDATER_ERROR' && serverMsg !== 'Internal server error') {
+      return fallback ? fallback + ' (' + serverMsg + ')' : serverMsg;
+    }
     return fallback || tr('errGeneric', 'Не удалось выполнить действие.');
   }
 
@@ -1636,7 +1640,10 @@ $auJs = [
     const retryableBusyCodes = new Set([
       'DEPLOYMENT_BUSY',
       'HOST_RELEASE_BUSY',
-      'HOST_LEASE_RECONCILIATION_REQUIRED'
+      'HOST_LEASE_RECONCILIATION_REQUIRED',
+      'UPDATE_RUNNING',
+      'BUSY',
+      'LOCK_BUSY'
     ]);
     const retryableHttpStatuses = new Set([408, 425, 500, 502, 503, 504]);
     const maxBusyRetries = 30;
@@ -1653,19 +1660,23 @@ $auJs = [
         try {
           result = await api(`/updater/index.php?action=${action}`, {method: 'POST', body: JSON.stringify(stepBody), timeoutMs: stepTimeoutMs});
         } catch (fetchErr) {
-          // During maintenance mode the regular API endpoints return 503.
-          // The updater itself is whitelisted and should still work, but a
-          // transient proxy/CDN cache may briefly serve a 503 for the
-          // updater URL too. Retry once after a short delay.
-          if (action === 'apply' && networkRetries < maxNetworkRetries) {
+          // Network errors or transient 503 during maintenance mode:
+          // The updater itself is whitelisted, but transient network or proxy
+          // drops can happen. Retry after a short delay.
+          if ((action === 'apply' || action === 'download' || action === 'rollback') && networkRetries < maxNetworkRetries) {
             networkRetries++;
             await sleep(2000);
             continue;
           }
           throw fetchErr;
         }
-        if (result && result.success === false
-          && retryableBusyCodes.has(String(result.code || '').toUpperCase())) {
+        const msgLower = String(result && (result.message || result.error) || '').toLowerCase();
+        const isBusy = (result && result.success === false) && (
+          retryableBusyCodes.has(String(result.code || '').toUpperCase())
+          || msgLower.includes('already running')
+          || msgLower.includes('is running')
+        );
+        if (isBusy) {
           if (busyRetries >= maxBusyRetries) {
             ensureSuccess(result, tr('errGeneric', 'Не удалось выполнить действие.'));
           }
@@ -1815,8 +1826,19 @@ $auJs = [
     if (latestJobIsStaged()) {
       state.lastJobId = String(state.status.latest_job.job_id || '');
       setAutomaticRetryPhase(targetBuild, 'install', state.lastJobId);
-      await applyUpdate();
-      return;
+      try {
+        await applyUpdate();
+        return;
+      } catch (stagedErr) {
+        const msg = String(stagedErr && stagedErr.message ? stagedErr.message : stagedErr || '');
+        if (msg.includes('PREFLIGHT') || msg.includes('errPreflight') || msg.includes('проверку') || msg.includes('STREAM_MISMATCH')) {
+          state.preflight = null;
+          state.download = null;
+          state.lastJobId = null;
+        } else {
+          throw stagedErr;
+        }
+      }
     }
     // An apply that was interrupted mid-way (closed tab, reload, dropped
     // connection) is continued, not restarted: the step machine keeps a cursor
