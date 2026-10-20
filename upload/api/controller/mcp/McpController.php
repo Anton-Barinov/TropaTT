@@ -768,6 +768,7 @@ MD;
                 'title' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'project_public_id' => ['type' => 'string'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id (cnt_... or cln_...) to associate the task with a client.'],
                 'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
                 'parent_task_public_id' => ['type' => 'string'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent'], 'default' => 'normal'],
@@ -784,6 +785,7 @@ MD;
                 'description' => ['type' => 'string'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'status' => ['type' => 'string'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id (cnt_... or cln_...) to associate the task with a client.'],
                 'due_at' => ['type' => 'string'],
                 'start_at' => ['type' => 'string'],
                 'end_at' => ['type' => 'string'],
@@ -838,6 +840,7 @@ MD;
                 'task_public_id' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id (cnt_... or cln_...) to associate the subtask with a client. Defaults to parent task client.'],
                 'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
@@ -850,6 +853,7 @@ MD;
                 'title' => ['type' => 'string'],
                 'description' => ['type' => 'string'],
                 'status' => ['type' => 'string'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id (cnt_... or cln_...) to associate the subtask with a client.'],
                 'assignee_user_id' => ['type' => 'integer', 'description' => 'Legacy internal numeric user id. Prefer assignee_user_public_id.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as public usr_... id (recommended).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
@@ -3125,6 +3129,7 @@ $tools[] = $this->tool(
                 'status_reason' => ['type' => 'string', 'description' => 'Reason for status change (audit trail and notifications).'],
                 'priority' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'urgent']],
                 'project_public_id' => ['type' => 'string', 'description' => 'Project public_id (prj_...). Filter or assign task to project.'],
+                'client_public_id' => ['type' => 'string', 'description' => 'Client public_id (cnt_... or cln_...). Filter or assign task/subtask to client.'],
                 'include_archived_projects' => ['type' => 'boolean', 'description' => 'Task list/board: include tasks that belong to archived projects. Off by default so the list matches the dashboard KPIs.'],
                 'include_ancestors' => ['type' => 'boolean', 'description' => 'Task list/tree: with a status filter, also return parent tasks of matching children even if the parents have a different status. For hierarchy view.'],
                 'assignee_user_public_id' => ['type' => 'string', 'description' => 'Assignee as usr_... id (recommended).'],
@@ -3567,7 +3572,7 @@ $tools[] = $this->tool(
                 'source_type' => ['type' => 'string', 'description' => 'Value.'],
                 'status' => ['type' => 'string', 'description' => 'Status code.'],
                 'type' => ['type' => 'string', 'description' => 'Type discriminator.'],
-                'values' => ['type' => 'string', 'description' => 'Values map.'],
+                'values' => ['type' => 'object', 'additionalProperties' => true, 'description' => 'Key-value map of custom field public IDs or codes to values.'],
                 'weight' => ['type' => 'integer', 'description' => 'Numeric value (integer).'],
                 'endpoint' => ['type' => 'string', 'description' => 'Webhook endpoint URL.'],
             ],
@@ -8008,8 +8013,14 @@ $tools[] = $this->tool(
                 $input[$field] = $arguments[$field];
             }
         }
+        if (!isset($input['status']) && isset($arguments['status_code']) && is_string($arguments['status_code'])) {
+            $input['status'] = trim($arguments['status_code']);
+        }
         if (!empty($arguments['project_public_id'])) {
             $input['project_public_id'] = (string)$arguments['project_public_id'];
+        }
+        if (!empty($arguments['client_public_id'])) {
+            $input['client_public_id'] = (string)$arguments['client_public_id'];
         }
         if (!empty($arguments['assignee_user_public_id'])) {
             $input['assignee_user_public_id'] = (string)$arguments['assignee_user_public_id'];
@@ -8038,10 +8049,16 @@ $tools[] = $this->tool(
         }
 
         $input = [];
+        if (array_key_exists('status_code', $arguments) && !array_key_exists('status', $arguments)) {
+            $arguments['status'] = $arguments['status_code'];
+        }
         foreach (['title', 'description', 'status', 'priority', 'due_at'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
                 $input[$field] = $arguments[$field];
             }
+        }
+        if (array_key_exists('client_public_id', $arguments) && $arguments['client_public_id'] !== null) {
+            $input['client_public_id'] = (string)$arguments['client_public_id'];
         }
         if (array_key_exists('project_public_id', $arguments) && $arguments['project_public_id'] !== null) {
             $input['project_public_id'] = (string)$arguments['project_public_id'];
@@ -12499,6 +12516,13 @@ $tools[] = $this->tool(
         $entityType = trim((string)($arguments['entity_type'] ?? ''));
         $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
         $values = $arguments['values'] ?? null;
+        if (is_string($values) && trim($values) !== '') {
+            $decoded = json_decode($values, true);
+            if (is_array($decoded)) {
+                $values = $decoded;
+                $arguments['values'] = $decoded;
+            }
+        }
         if ($entityType === '' || $entityPublicId === '' || !is_array($values) || $values === []) {
             return ['error' => 'entity_type, entity_public_id and non-empty values object are required.'];
         }
