@@ -39,6 +39,7 @@
 
 </main></div></div>
 
+<script nonce="<?= $csp_nonce ?>" src="assets/js/module-update-queue.js?v=20261021-1"></script>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
     var name = '<?= e($moduleName) ?>';
@@ -102,7 +103,7 @@
                         var items = (res.data && res.data.items) || [];
                         var update = items.find(function (it) { return it.full_code === name; });
                         var updateBanner = document.getElementById('moduleUpdateBanner');
-                        if (update && update.update_supported && updateBanner) {
+                        if (update && update.update_supported && res.data.can_update === true && updateBanner) {
                             updateBanner.style.display = '';
                             updateBanner.innerHTML = '<div class="alert alert-warning p-3 d-flex align-items-center justify-content-between flex-wrap gap-3 shadow-sm border-warning">' +
                                 '<div class="d-flex align-items-center">' +
@@ -121,16 +122,22 @@
                                 btn.addEventListener('click', function () {
                                     btn.disabled = true;
                                     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.updating', 'Обновление…'));
-                                    window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_code: name }, timeoutMs: 300000 })
-                                        .then(function () {
+                                    window.CRMModuleUpdateQueue.run([{ code: name, version: update.latest_version }], function () {
+                                        return window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_code: name }, timeoutMs: 330000, retry: false });
+                                    }, function (item) {
+                                        return window.CRM.api.request('api/v1/modules/' + encodeURIComponent(name), { method: 'GET', noCache: true, timeoutMs: 15000, retry: false }).then(function (env) {
+                                            var data = env.data || {};
+                                            return data.version === item.version && data.registry_version === item.version && data.update_in_progress === false && data.status !== 'not_installed';
+                                        });
+                                    }, function () {}).then(function (result) {
+                                        if (result.updated.length) {
                                             if (window.CRM.toast) window.CRM.toast.success(window.CRM.i18n.t('admin_module_detail.update_success', 'Модуль успешно обновлён'));
                                             setTimeout(function () { window.location.reload(); }, 1200);
-                                        })
-                                        .catch(function (err) {
-                                            btn.disabled = false;
-                                            btn.innerHTML = '<i class="fa-solid fa-arrow-up me-2" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.btn_update_now', 'Обновить модуль') + ' v' + update.latest_version);
-                                            if (window.CRM.toast) window.CRM.toast.error((err.envelope && err.envelope.message) || err.message || 'Ошибка обновления');
-                                        });
+                                        } else {
+                                            btn.disabled = result.uncertain.length > 0;
+                                            btn.textContent = window.CRM.i18n.t(result.uncertain.length ? 'admin_modules.queue_uncertain' : 'admin_modules.queue_failed', 'Ошибка обновления');
+                                        }
+                                    });
                                 });
                             }
                         }
