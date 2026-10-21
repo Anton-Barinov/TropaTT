@@ -37,6 +37,7 @@
   const esc = str => window.CRM?.text?.escapeHtml ? window.CRM.text.escapeHtml(String(str ?? '')) : String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   let currentBotUsername = '';
+  let currentOrgId = 1;
 
   const showAlert = (message, type = 'success') => {
     const el = $('tgAlertContainer');
@@ -58,9 +59,9 @@
   };
 
   // Compute standard webhook URL for current host
-  const getComputedWebhookUrl = () => {
+  const getComputedWebhookUrl = (orgId = 1) => {
     const origin = window.location.origin;
-    return `${origin}/api/index.php?route=_module/crm.telegram-bot/webhook/1`;
+    return `${origin}/api/index.php?route=_module/crm.telegram-bot/webhook/${orgId}`;
   };
 
   // Load Status and config
@@ -74,6 +75,7 @@
         const isActive = !!data.is_active;
         const username = data.bot_username ? (data.bot_username.startsWith('@') ? data.bot_username : '@' + data.bot_username) : '';
         currentBotUsername = username;
+        currentOrgId = data.organization_id || 1;
 
         let badgeHtml = isActive
           ? `<span class="badge bg-success fs-6"><i class="fa-solid fa-circle-check me-1"></i> Подключён · Активен</span>`
@@ -118,7 +120,7 @@
         // keep existing if populated
       }
       if ($('tgWebhookUrl')) {
-        $('tgWebhookUrl').value = data.webhook_url || getComputedWebhookUrl();
+        $('tgWebhookUrl').value = data.webhook_url || getComputedWebhookUrl(currentOrgId);
       }
       if ($('tgAutoIntake')) {
         $('tgAutoIntake').checked = data.auto_create_intake !== false;
@@ -383,7 +385,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Установка...';
       }
 
-      const webhookUrl = $('tgWebhookUrl')?.value || getComputedWebhookUrl();
+      const webhookUrl = $('tgWebhookUrl')?.value || getComputedWebhookUrl(currentOrgId);
       const secret = $('tgSecretToken')?.value || '';
 
       try {
