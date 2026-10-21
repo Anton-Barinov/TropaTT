@@ -710,6 +710,23 @@ final class TelegramBotService
         bool $skipSecretCheck = false
     ): array {
         $this->ensureSchema();
+
+        // Validate if organizationId exists in organizations table
+        try {
+            $checkOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
+            if ($checkOrg <= 0) {
+                $activeConfigOrg = (int)$this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 ORDER BY id DESC LIMIT 1")->fetchColumn();
+                if ($activeConfigOrg > 0) {
+                    $organizationId = $activeConfigOrg;
+                } else {
+                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
+                    if ($primaryOrg > 0) {
+                        $organizationId = $primaryOrg;
+                    }
+                }
+            }
+        } catch (Throwable) {}
+
         $cfg = $this->getConfig($organizationId);
 
         if (!$cfg || empty($cfg['bot_token'])) {
@@ -893,6 +910,17 @@ final class TelegramBotService
             try {
                 $colCheck = $this->db->query("SELECT organization_id FROM intake_items LIMIT 0");
                 $hasOrgIdCol = ($colCheck !== false);
+            } catch (Throwable) {}
+
+            // Validate that organizationId exists in organizations table
+            try {
+                $validOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
+                if ($validOrg <= 0) {
+                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
+                    if ($primaryOrg > 0) {
+                        $organizationId = $primaryOrg;
+                    }
+                }
             } catch (Throwable) {}
 
             if ($hasOrgIdCol) {
@@ -1099,6 +1127,23 @@ final class TelegramBotService
     public function getStatus(int $organizationId): array
     {
         $this->ensureSchema();
+
+        // Validate if organizationId exists in organizations table
+        try {
+            $checkOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
+            if ($checkOrg <= 0) {
+                $activeConfigOrg = (int)$this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 ORDER BY id DESC LIMIT 1")->fetchColumn();
+                if ($activeConfigOrg > 0) {
+                    $organizationId = $activeConfigOrg;
+                } else {
+                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
+                    if ($primaryOrg > 0) {
+                        $organizationId = $primaryOrg;
+                    }
+                }
+            }
+        } catch (Throwable) {}
+
         $cfg = $this->getConfig($organizationId);
         $env = $this->detectEnvConfig();
 

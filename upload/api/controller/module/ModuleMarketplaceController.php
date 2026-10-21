@@ -11,6 +11,7 @@ use Api\System\Library\Module\ModuleRemoteInstaller;
 use Api\System\Library\Support\AppLog;
 use Api\System\Library\Update\CoreUpdateConfig;
 use Api\System\Library\Update\CoreVersion;
+use RuntimeException;
 
 /**
  * Official module marketplace bridge (marketplace.tropatt.com).
@@ -175,7 +176,7 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             $page = 1;
             $pages = 1;
             do {
-                $result = $client->catalog(['page' => $page, 'limit' => 48, 'core_version' => $this->coreVersion()]);
+                $result = $client->catalog(['page' => $page, 'limit' => 48, 'core_version' => $this->coreVersion(), 'refresh' => (string)$this->request()->input('refresh', '') === '1']);
                 foreach ($result['items'] as $item) {
                     $code = (string)($item['full_code'] ?? '');
                     if (!isset($installed[$code])) continue;
@@ -191,10 +192,7 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
                         'latest_version' => $latestVersion,
                         'min_core_version' => (string)($item['min_core_version'] ?? ''),
                         'is_active' => $installed[$code]['is_active'],
-                        // Language packs use a separate locale installer and are
-                        // intentionally withheld until that installer has an
-                        // atomic update/rollback path of its own.
-                        'update_supported' => !$installed[$code]['is_language_pack'],
+                        'update_supported' => true,
                     ];
                 }
                 $pages = max(1, min(20, (int)($result['meta']['pages'] ?? 1)));
@@ -227,9 +225,6 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         $manifest = $pm->getManifest($fullCode);
         if ($registry === null || $manifest === null || !is_dir($pm->getModulesDir() . '/' . $fullCode)) {
             throw new RuntimeException($this->t('module/messages.not_found'));
-        }
-        if (str_starts_with($fullCode, 'crm.language-pack-')) {
-            throw new RuntimeException($this->t('module/messages.marketplace_update_unsupported'));
         }
 
         $client = $this->client();
@@ -268,19 +263,26 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             throw new RuntimeException($this->t('module/messages.marketplace_php_incompatible'));
         }
 
-        $installer = new ModuleRemoteInstaller(
-            $pm,
-            $mc,
-            $this->container->get('module.migrations'),
-            dirname(__DIR__, 3),
-        );
-        $installer->updateFromUrl(
-            (string)$release['download_url'],
-            $fullCode,
-            $targetVersion,
-            $this->coreVersion(),
-            $sha256,
-        );
+        if (str_starts_with($fullCode, 'crm.language-pack-')) {
+            $this->container->get('service.language_pack_updater')->updateFromUrl(
+                (string)$release['download_url'], $fullCode, $targetVersion, $sha256, $this->coreVersion()
+            );
+            $pm->discover();
+        } else {
+            $installer = new ModuleRemoteInstaller(
+                $pm,
+                $mc,
+                $this->container->get('module.migrations'),
+                dirname(__DIR__, 3),
+            );
+            $installer->updateFromUrl(
+                (string)$release['download_url'],
+                $fullCode,
+                $targetVersion,
+                $this->coreVersion(),
+                $sha256,
+            );
+        }
 
         $this->dispatchModuleHook('module.updated', ['name' => $fullCode, 'source' => 'marketplace', 'version' => $targetVersion]);
 
@@ -301,7 +303,17 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         $isAll = !empty($input['all']);
         $fullCodes = $input['full_codes'] ?? null;
         if (is_array($fullCodes)) {
-            $codes = array_values(array_filter(array_map('trim', array_map('strval', $fullCodes)), [ModuleMarketplaceClient::class, 'isValidCode']));
+            if (count($fullCodes) > 200) {
+                return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+            }
+            $codes = [];
+            foreach ($fullCodes as $code) {
+                if (!is_string($code) || !ModuleMarketplaceClient::isValidCode(trim($code))) {
+                    return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
+                }
+                $codes[] = trim($code);
+            }
+            $codes = array_values(array_unique($codes));
         } elseif ($isAll) {
             $updatesResult = $this->updates();
             $updatesPayload = $updatesResult->payload();
@@ -335,11 +347,17 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
                     'total' => 0,
                     'success_count' => 0,
                     'fail_count' => 0,
+                    'processed_count' => 0,
+                    'remaining' => [],
+                    'complete' => true,
                 ]);
             }
 
             $updated = [];
             $failed = [];
+            $remaining = array_slice($codes, 1);
+            $total = count($codes);
+            $codes = array_slice($codes, 0, 1);
             foreach ($codes as $code) {
                 try {
                     $res = $this->performUpdate($code);
@@ -356,7 +374,10 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             return $this->success('MODULE_MARKETPLACE_BATCH_UPDATED', $this->t('module/messages.marketplace_updated'), [
                 'updated' => $updated,
                 'failed' => $failed,
-                'total' => count($codes),
+                'total' => $total,
+                'processed_count' => count($codes),
+                'remaining' => $remaining,
+                'complete' => $remaining === [],
                 'success_count' => count($updated),
                 'fail_count' => count($failed),
             ]);

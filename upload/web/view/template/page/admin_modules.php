@@ -35,6 +35,12 @@
     </div>
 </div>
 
+<div class="crm-card crm-section-card p-3 mb-3" id="moduleUpdateProgress" hidden role="status" aria-live="polite">
+    <p id="moduleUpdateProgressText" class="mb-2"></p>
+    <progress id="moduleUpdateProgressBar" class="w-100" value="0" max="1" aria-label="<?= htmlspecialchars($t('admin_modules.update_progress', 'Ход обновления модулей'), ENT_QUOTES, 'UTF-8') ?>"></progress>
+    <ul id="moduleUpdateProgressItems" class="small mb-0 mt-2"></ul>
+</div>
+
 <div class="crm-card crm-section-card p-0 mb-3 crm-admin-modules-table-card">
 <div class="crm-bulk-actions d-none align-items-center flex-wrap gap-2 p-2 border-bottom" id="moduleBulkToolbar">
     <span class="me-1 small text-muted" id="moduleBulkLabel"><strong id="bulkCount">0</strong> <span data-i18n="admin_modules.bulk_selected"><?= htmlspecialchars($t('admin_modules.bulk_selected', 'выбрано'), ENT_QUOTES, 'UTF-8') ?></span></span>
@@ -81,6 +87,7 @@
 
 </main></div></div>
 
+<script nonce="<?= $csp_nonce ?>" src="assets/js/module-update-queue.js?v=20261021-1"></script>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
     var tableBody = document.getElementById('moduleTableBody');
@@ -91,7 +98,7 @@
     // treated "list not here yet" as "module not installed" and offered an
     // install button for a module that is registered or already on disk — the
     // click could then only answer 409 ALREADY_INSTALLED / MODULE_DISCOVERED_LOCALLY.
-    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {}, canUpdate: false };
+    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {}, canUpdate: false, updateRunning: false };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
     var canInstall = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
@@ -336,7 +343,7 @@
 
     function loadMarketplaceUpdates() {
         if (!window.CRM.api) return;
-        window.CRM.api.request('api/v1/marketplace/updates', { method: 'GET', timeoutMs: 30000, noCache: true })
+        window.CRM.api.request('api/v1/marketplace/updates', { method: 'GET', query: { refresh: 1 }, timeoutMs: 30000, noCache: true })
             .then(function (env) {
                 var data = env.data || {};
                 var updates = {};
@@ -377,6 +384,72 @@
             });
     }
 
+    function startModuleUpdateQueue(names) {
+        if (state.updateRunning || !state.canUpdate) return;
+        if (!window.CRMModuleUpdateQueue || typeof window.CRMModuleUpdateQueue.run !== 'function') {
+            notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модули.'), 'error');
+            return;
+        }
+        var plan = names.filter(function (name, index) {
+            return names.indexOf(name) === index && state.updates[name] && state.updates[name].update_supported;
+        }).map(function (name) {
+            return { code: name, version: state.updates[name].latest_version };
+        });
+        if (!plan.length) return;
+        state.updateRunning = true;
+        var controls = Array.from(document.querySelectorAll('.crm-admin-modules-page button, .crm-admin-modules-page input, .crm-admin-modules-page select'));
+        var previousDisabled = controls.map(function (control) { return control.disabled; });
+        controls.forEach(function (control) { control.disabled = true; });
+        var panel = document.getElementById('moduleUpdateProgress');
+        var text = document.getElementById('moduleUpdateProgressText');
+        var bar = document.getElementById('moduleUpdateProgressBar');
+        var list = document.getElementById('moduleUpdateProgressItems');
+        panel.hidden = false;
+        list.textContent = '';
+        bar.max = plan.length;
+        bar.value = 0;
+        var rows = plan.map(function (item) {
+            var row = document.createElement('li');
+            row.textContent = item.code + ' → ' + item.version;
+            list.appendChild(row);
+            return row;
+        });
+        var statuses = {
+            running: window.CRM.i18n.t('admin_modules.update_running', 'Обновление…'),
+            updated: window.CRM.i18n.t('admin_modules.queue_updated', 'Обновлён'),
+            failed: window.CRM.i18n.t('admin_modules.queue_failed', 'Ошибка'),
+            uncertain: window.CRM.i18n.t('admin_modules.queue_uncertain', 'Результат не подтверждён. Проверьте версию перед повтором.')
+        };
+        return window.CRMModuleUpdateQueue.run(plan, function (item) {
+            return window.CRM.api.request('api/v1/marketplace/update', {
+                method: 'POST', body: { full_code: item.code }, timeoutMs: 330000, retry: false
+            });
+        }, function (item) {
+            return window.CRM.api.request('api/v1/modules/' + encodeURIComponent(item.code), {
+                method: 'GET', noCache: true, timeoutMs: 15000, retry: false
+            }).then(function (env) {
+                var data = env.data || {};
+                return data.version === item.version && data.registry_version === item.version
+                    && data.update_in_progress === false && data.status !== 'not_installed';
+            });
+        }, function (index, item, status) {
+            rows[index].textContent = item.code + ' → ' + item.version + ': ' + statuses[status];
+            bar.value = status === 'running' ? index : index + 1;
+            text.textContent = window.CRM.i18n.t('admin_modules.queue_progress', 'Обработано {done} из {total}.').replace('{done}', String(bar.value)).replace('{total}', String(plan.length));
+        }).then(function (result) {
+            text.textContent = result.uncertain.length
+                ? window.CRM.i18n.t('admin_modules.queue_stopped', 'Очередь остановлена: результат последнего запроса не подтверждён. Проверьте установленную версию перед повтором; остальные модули не запускались.')
+                : window.CRM.i18n.t('admin_modules.batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.').replace('{success}', String(result.updated.length)).replace('{fail}', String(result.failed.length));
+            state.updates = {};
+            return loadModules();
+        }).catch(function () {
+            text.textContent = window.CRM.i18n.t('admin_modules.queue_stopped', 'Очередь остановлена: результат последнего запроса не подтверждён. Проверьте установленную версию перед повтором; остальные модули не запускались.');
+        }).finally(function () {
+            state.updateRunning = false;
+            controls.forEach(function (control, index) { control.disabled = previousDisabled[index]; });
+        });
+    }
+
     function updateAllMarketplaceModules() {
         var supported = Object.keys(state.updates).filter(function (code) { return state.updates[code].update_supported; });
         if (supported.length === 0) return;
@@ -387,31 +460,7 @@
             actionClass: 'crm-btn-primary'
         }).then(function (ok) {
             if (!ok) return;
-            var btn = document.getElementById('btnUpdateAllModulesBanner');
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + esc(window.CRM.i18n.t('admin_modules.update_running', 'Обновление…'));
-            }
-            window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { all: true }, timeoutMs: 600000 })
-                .then(function (res) {
-                    var data = (res && res.data) || {};
-                    var succ = data.success_count || 0;
-                    var fail = data.fail_count || 0;
-                    if (fail === 0) {
-                        notify(window.CRM.i18n.t('admin_modules.batch_update_success', 'Обновлено модулей: {success}.').replace('{success}', String(succ)), 'success');
-                    } else {
-                        notify(window.CRM.i18n.t('admin_modules.batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.').replace('{success}', String(succ)).replace('{fail}', String(fail)), 'warning');
-                    }
-                    state.updates = {};
-                    return loadModules();
-                })
-                .catch(function (err) {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_all_btn', 'Обновить все модули'));
-                    }
-                    notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модули.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
-                });
+            return startModuleUpdateQueue(supported);
         });
     }
 
@@ -425,19 +474,7 @@
             actionClass: 'crm-btn-primary'
         }).then(function (ok) {
             if (!ok) return;
-            button.disabled = true;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + esc(window.CRM.i18n.t('admin_modules.update_running', 'Обновление…'));
-            window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_code: name }, timeoutMs: 300000 })
-                .then(function () {
-                    notify(window.CRM.i18n.t('admin_modules.update_success', 'Модуль успешно обновлён.'), 'success');
-                    state.updates = {};
-                    return loadModules();
-                })
-                .catch(function (err) {
-                    button.disabled = false;
-                    button.innerHTML = '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить'));
-                    notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модуль.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
-                });
+            return startModuleUpdateQueue([name]);
         });
     }
 
@@ -659,25 +696,7 @@
                     actionClass: 'crm-btn-primary'
                 }).then(function (ok) {
                     if (!ok) return;
-                    setBulkBusy(true);
-                    window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_codes: selectedNames }, timeoutMs: 600000 })
-                        .then(function (res) {
-                            var data = (res && res.data) || {};
-                            var succ = data.success_count || 0;
-                            var fail = data.fail_count || 0;
-                            if (fail === 0) {
-                                notify(window.CRM.i18n.t('admin_modules.batch_update_success', 'Обновлено модулей: {success}.').replace('{success}', String(succ)), 'success');
-                            } else {
-                                notify(window.CRM.i18n.t('admin_modules.batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.').replace('{success}', String(succ)).replace('{fail}', String(fail)), 'warning');
-                            }
-                            state.updates = {};
-                            resetSelection();
-                            return loadModules();
-                        })
-                        .catch(function (err) {
-                            setBulkBusy(false);
-                            notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модули.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
-                        });
+                    return startModuleUpdateQueue(selectedNames);
                 });
             });
         }

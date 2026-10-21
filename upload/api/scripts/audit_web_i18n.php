@@ -2,15 +2,17 @@
 declare(strict_types=1);
 
 /**
- * Audit web translation references against every supported web locale.
+ * Audit web translation references against the bundled web locales.
  *
- * Usage: php upload/api/scripts/audit_web_i18n.php
+ * Usage: php upload/api/scripts/audit_web_i18n.php [--include-installed]
  * Exit code 1 means at least one referenced key is absent from a locale.
  */
 
 $projectRoot = dirname(__DIR__, 2);
 $webRoot = $projectRoot . '/web';
 $languageRoot = $webRoot . '/language';
+$includeInstalled = in_array('--include-installed', $argv ?? [], true);
+$coreLocales = ['ru-ru', 'en-gb', 'zh-cn'];
 
 /** @var array<string, array<int, array{file: string, line: int, fallback: string}>> $references */
 $references = [];
@@ -127,6 +129,12 @@ $flatten = static function (mixed $value, string $prefix = '') use (&$flatten): 
 };
 
 $failed = false;
+foreach ($coreLocales as $requiredLocale) {
+    if (!is_file($languageRoot . '/' . $requiredLocale . '.php')) {
+        $failed = true;
+        echo "[FAIL] {$requiredLocale}: bundled dictionary is missing\n";
+    }
+}
 
 // Locale-independent: a key missing from an inline map shows the Russian literal
 // in every locale, so it is reported once, before the per-locale comparison.
@@ -145,6 +153,9 @@ foreach (glob($languageRoot . '/*.php') ?: [] as $languageFile) {
     // locale in the file.
     $localeName = basename($languageFile, '.php');
     if (in_array($localeName, ['overrides', 'js_overrides'], true)) {
+        continue;
+    }
+    if (!$includeInstalled && !in_array($localeName, $coreLocales, true)) {
         continue;
     }
     $messages = require $languageFile;

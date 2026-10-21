@@ -547,6 +547,10 @@ $auJs = [
       </div>
       <div class="mt-3">
         <div id="moduleUpdatesContent" class="updates-empty"><?= htmlspecialchars($au('loading_initial', 'Загружаем обновления модулей...'), ENT_QUOTES, 'UTF-8') ?></div>
+        <div id="moduleCenterProgress" class="mt-3" hidden role="status" aria-live="polite">
+          <p id="moduleCenterProgressText" class="mb-2"></p>
+          <ul id="moduleCenterProgressItems" class="small mb-0"></ul>
+        </div>
         <div class="mt-3 text-end">
           <a href="index.php?route=admin-modules" class="small text-muted text-decoration-none">
             <i class="fa-solid fa-cubes me-1" aria-hidden="true"></i><?= htmlspecialchars($au('modules_manage_link', 'Перейти в каталог и управление модулями'), ENT_QUOTES, 'UTF-8') ?> &rarr;
@@ -556,6 +560,7 @@ $auJs = [
     </section>
   </div>
 </main></div></div>
+<script nonce="<?= $csp_nonce ?>" src="assets/js/module-update-queue.js?v=20261021-1"></script>
 <script nonce="<?= $csp_nonce ?>">
 (function () {
   const i18n = <?= json_encode($auJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -1465,6 +1470,7 @@ $auJs = [
   }
 
   async function withAction(name, fn) {
+    if (moduleState.updating) return;
     setLoading(name, true);
     try {
       clearNotice();
@@ -2297,7 +2303,8 @@ $auJs = [
     moduleState.checking = true;
     if (badge) { badge.className = 'updates-badge neutral'; badge.textContent = tr('statusChecking', 'Проверяем...'); }
     try {
-      const res = await api('/api/v1/marketplace/updates');
+      const res = await api('/api/v1/marketplace/updates', { query: { refresh: 1 }, noCache: true });
+      if (!res || res.success !== true) throw new Error((res && res.message) || tr('errCheck', 'Не удалось проверить обновления.'));
       const data = (res && res.data) || {};
       const items = (data.items || []).filter(item => item && item.full_code);
       moduleState.updates = items;
@@ -2336,6 +2343,9 @@ $auJs = [
         });
       }
     } catch (e) {
+      moduleState.updates = [];
+      moduleState.canUpdate = false;
+      if (updateAllBtn) updateAllBtn.style.display = 'none';
       if (badge) { badge.className = 'updates-badge danger'; badge.textContent = tr('statusFailed', 'Ошибка проверки'); }
       content.className = 'updates-empty';
       content.innerHTML = '<div class="text-danger py-2">' + esc(e.message || 'Не удалось проверить обновления модулей') + '</div>';
@@ -2344,57 +2354,72 @@ $auJs = [
     }
   }
 
-  async function updateSingleModule(code, btn) {
-    if (!code || !btn) return;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + esc(tr('stepWorking', 'выполняется...'));
+  async function runModuleUpdateSelection(codes) {
+    if (moduleState.updating || !moduleState.canUpdate || !window.CRMModuleUpdateQueue) return;
+    const plan = moduleState.updates.filter(item => codes.includes(item.full_code) && item.update_supported)
+      .map(item => ({ code: item.full_code, version: item.latest_version }));
+    if (!plan.length) return;
+    moduleState.updating = true;
+    const controls = Array.from(document.querySelectorAll('.crm-admin-updates-page button'));
+    const previousDisabled = controls.map(control => control.disabled);
+    controls.forEach(control => { control.disabled = true; });
+    const panel = $('moduleCenterProgress');
+    const text = $('moduleCenterProgressText');
+    const list = $('moduleCenterProgressItems');
+    const moduleText = (key, fallback) => window.CRM.i18n.t('admin_modules.' + key, fallback);
+    panel.hidden = false;
+    list.textContent = '';
+    const rows = plan.map(item => {
+      const row = document.createElement('li');
+      row.textContent = item.code + ' → ' + item.version;
+      list.appendChild(row);
+      return row;
+    });
+    const statusText = {
+      running: moduleText('update_running', 'Обновление…'),
+      updated: moduleText('queue_updated', 'Обновлён'),
+      failed: moduleText('queue_failed', 'Ошибка'),
+      uncertain: moduleText('queue_uncertain', 'Результат не подтверждён. Проверьте версию перед повтором.')
+    };
     try {
-      const res = await api('/api/v1/marketplace/update', { method: 'POST', body: { full_code: code }, timeoutMs: 300000 });
-      if (res && res.success) {
-        btn.className = 'btn btn-sm btn-success disabled';
-        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>' + esc(tr('stateApplied', 'установлено'));
-        setTimeout(loadModuleUpdates, 1500);
-      } else {
-        alert((res && res.message) || 'Ошибка обновления модуля');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-arrow-up me-1"></i>' + esc(tr('btnUpdate', 'Обновить'));
-      }
-    } catch (err) {
-      alert(err.message || 'Ошибка обновления модуля');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-arrow-up me-1"></i>' + esc(tr('btnUpdate', 'Обновить'));
+      const crmApi = await waitForCrmApi();
+      if (!crmApi) throw new Error(tr('errCheck', 'Не удалось проверить обновления.'));
+      const result = await window.CRMModuleUpdateQueue.run(plan, item => crmApi.request('api/v1/marketplace/update', {
+        method: 'POST', body: { full_code: item.code }, timeoutMs: 330000, retry: false
+      }), async item => {
+        const env = await crmApi.request('api/v1/modules/' + encodeURIComponent(item.code), {
+          method: 'GET', noCache: true, timeoutMs: 15000, retry: false
+        });
+        const data = env.data || {};
+        return data.version === item.version && data.registry_version === item.version
+          && data.update_in_progress === false && data.status !== 'not_installed';
+      }, (index, item, status) => {
+        rows[index].textContent = item.code + ' → ' + item.version + ': ' + statusText[status];
+        text.textContent = moduleText('queue_progress', 'Обработано {done} из {total}.')
+          .replace('{done}', String(status === 'running' ? index : index + 1)).replace('{total}', String(plan.length));
+      });
+      text.textContent = result.uncertain.length
+        ? moduleText('queue_stopped', 'Очередь остановлена: результат последнего запроса не подтверждён. Проверьте установленную версию перед повтором; остальные модули не запускались.')
+        : moduleText('batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.')
+          .replace('{success}', String(result.updated.length)).replace('{fail}', String(result.failed.length));
+      await loadModuleUpdates();
+    } catch (error) {
+      text.textContent = moduleText('queue_stopped', 'Очередь остановлена: результат последнего запроса не подтверждён. Проверьте установленную версию перед повтором; остальные модули не запускались.');
+    } finally {
+      moduleState.updating = false;
+      controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
     }
   }
 
+  async function updateSingleModule(code, btn) {
+    if (!code || !btn) return;
+    await runModuleUpdateSelection([code]);
+  }
+
   async function updateAllModules() {
-    const btn = $('btnUpdateAllModules');
-    if (!btn || moduleState.updating) return;
-    if (!confirm('Обновить все доступные модули?')) return;
-    moduleState.updating = true;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + esc(tr('stepWorking', 'выполняется...'));
-    try {
-      const res = await api('/api/v1/marketplace/update', { method: 'POST', body: { all: true }, timeoutMs: 600000 });
-      if (res && res.success) {
-        const data = res.data || {};
-        const successCount = data.success_count || 0;
-        const failCount = data.fail_count || 0;
-        if (failCount === 0) {
-          alert(`Все модули успешно обновлены (${successCount} шт.)`);
-        } else {
-          alert(`Обновлено модулей: ${successCount}, с ошибками: ${failCount}`);
-        }
-        await loadModuleUpdates();
-      } else {
-        alert((res && res.message) || 'Ошибка обновления модулей');
-      }
-    } catch (err) {
-      alert(err.message || 'Ошибка обновления модулей');
-    } finally {
-      moduleState.updating = false;
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down me-1"></i> ' + esc(tr('modulesUpdateAllBtn', 'Обновить все модули'));
-    }
+    if (moduleState.updating) return;
+    if (!confirm(tr('modulesUpdateAllBtn', 'Обновить все модули') + '?')) return;
+    await runModuleUpdateSelection(moduleState.updates.filter(item => item.update_supported).map(item => item.full_code));
   }
 
   const btnCheckModules = $('btnCheckModuleUpdates');

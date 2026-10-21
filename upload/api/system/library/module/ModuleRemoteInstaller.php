@@ -22,6 +22,31 @@ final class ModuleRemoteInstaller
         private readonly string $projectRoot,
     ) {}
 
+    public static function isUpdateRunning(string $projectRoot, string $name): bool
+    {
+        if (!ModuleMarketplaceClient::isValidCode($name)) {
+            return true;
+        }
+        $lockDir = $projectRoot . '/storage_api/locks';
+        $path = $lockDir . '/module-' . hash('sha256', $name) . '.lock';
+        if (is_link($lockDir) || is_link($path)) {
+            return true;
+        }
+        if (!file_exists($path)) {
+            return false;
+        }
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return true;
+        }
+        $available = flock($handle, LOCK_EX | LOCK_NB);
+        if ($available) {
+            flock($handle, LOCK_UN);
+        }
+        fclose($handle);
+        return !$available;
+    }
+
     /**
      * Install a module from a remote URL.
      *
@@ -93,7 +118,7 @@ final class ModuleRemoteInstaller
             throw new RuntimeException('Installed module directory is missing or unsafe');
         }
         $currentManifest = json_decode((string)@file_get_contents($currentDir . '/manifest.json'), true);
-        if (!is_array($currentManifest) || (string)($currentManifest['name'] ?? '') !== $expectedName) {
+        if (is_link($currentDir . '/manifest.json') || !is_array($currentManifest) || (string)($currentManifest['name'] ?? '') !== $expectedName) {
             throw new RuntimeException('Installed module manifest does not match its directory');
         }
         $oldVersion = is_array($currentManifest) ? (string)($currentManifest['version'] ?? '') : '';
@@ -135,6 +160,14 @@ final class ModuleRemoteInstaller
         $backupDir = $modulesDir . '/.crm-backup-' . bin2hex(random_bytes(8));
         $swapped = false;
         try {
+            $lockedManifest = json_decode((string)@file_get_contents($currentDir . '/manifest.json'), true);
+            $oldVersion = is_array($lockedManifest) ? (string)($lockedManifest['version'] ?? '') : '';
+            if ($this->mc->getRegistry($expectedName) === null || !is_array($lockedManifest)
+                || (string)($lockedManifest['name'] ?? '') !== $expectedName
+                || !preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $oldVersion)
+                || version_compare($expectedVersion, $oldVersion, '<=')) {
+                throw new RuntimeException('Installed module changed before the update lock was acquired');
+            }
             $this->extract($filePath, $extractDir);
             $manifestPath = $extractDir . '/manifest.json';
             $manifestData = json_decode((string)@file_get_contents($manifestPath), true);
@@ -154,10 +187,6 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException('Invalid module update manifest');
             }
             $candidateManifest = Manifest::fromArray($manifestData);
-            $candidateErrors = $this->pm->validate($candidateManifest);
-            if ($candidateErrors !== []) {
-                throw new RuntimeException('Updated module manifest is invalid');
-            }
             if (!$this->pm->checkCoreCompatibility($candidateManifest, $coreVersion)) {
                 throw new RuntimeException('Updated module is incompatible with this CRM core version');
             }
@@ -167,6 +196,9 @@ final class ModuleRemoteInstaller
             }
             if (!$this->copyDir($extractDir, $stageDir)) {
                 throw new RuntimeException('Cannot stage module update');
+            }
+            if ($this->pm->validate($candidateManifest, $stageDir, false) !== []) {
+                throw new RuntimeException('Updated module manifest is invalid');
             }
             // Hidden sibling staging/backup folders are denied by modules/.htaccess.
             if (file_put_contents($stageDir . '/.htaccess', "Require all denied\n", LOCK_EX) === false) {
@@ -184,13 +216,14 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException('Cannot activate staged module files');
             }
             $swapped = true;
+            $this->invalidateModuleBytecode($currentDir, $backupDir);
 
             $this->pm->discover();
             $manifest = $this->pm->getManifest($expectedName);
             if ($manifest === null || $manifest->version !== $expectedVersion) {
                 throw new RuntimeException('Updated module manifest failed discovery');
             }
-            $errors = $this->pm->validate($manifest);
+            $errors = $this->pm->validate($manifest, $currentDir, false);
             if ($errors !== []) {
                 throw new RuntimeException('Updated module validation failed');
             }
@@ -212,8 +245,8 @@ final class ModuleRemoteInstaller
             $this->mc->setVersion($expectedName, $expectedVersion);
             // Do not reset module configuration or the active flag.
             $this->mc->initFromManifest($expectedName, $manifest);
-            $this->cleanDir($backupDir);
             $this->pm->discover();
+            $this->cleanDir($backupDir);
             return $expectedName;
         } catch (\Throwable $e) {
             if ($swapped) {
@@ -229,6 +262,7 @@ final class ModuleRemoteInstaller
                 }
                 $this->mc->setVersion($expectedName, $oldVersion);
                 $this->mc->setInactive($expectedName);
+                $this->invalidateModuleBytecode($currentDir);
                 $this->pm->discover();
             }
             throw $e;
@@ -237,6 +271,29 @@ final class ModuleRemoteInstaller
             $this->cleanDir($extractDir);
             flock($lock, LOCK_UN);
             fclose($lock);
+        }
+    }
+
+    private function invalidateModuleBytecode(string $currentDir, ?string $previousDir = null): void
+    {
+        clearstatcache();
+        if (!function_exists('opcache_is_script_cached') || !function_exists('opcache_invalidate')) {
+            return;
+        }
+        $paths = [];
+        foreach (array_filter([$currentDir, $previousDir]) as $directory) {
+            if (!is_dir($directory) || is_link($directory)) continue;
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
+            foreach ($files as $file) {
+                if ($file->isFile() && !$file->isLink() && strtolower($file->getExtension()) === 'php') {
+                    $paths[$currentDir . substr($file->getPathname(), strlen($directory))] = true;
+                }
+            }
+        }
+        foreach (array_keys($paths) as $path) {
+            if (opcache_is_script_cached($path) && !opcache_invalidate($path, true)) {
+                throw new RuntimeException('Cannot invalidate cached module code; module must remain inactive');
+            }
         }
     }
 
@@ -564,7 +621,7 @@ final class ModuleRemoteInstaller
         // Сравниваем реальные пути: на macOS /var — симлинк на /private/var,
         // поэтому realpath('/var/folders/…') не начинается с сырого sys_get_temp_dir().
         $realTempDir = realpath(sys_get_temp_dir()) ?: sys_get_temp_dir();
-        if ($realDestDir === false || !str_starts_with($realDestDir, $realTempDir)) {
+        if ($realDestDir === false || is_link($destDir) || !str_starts_with($realDestDir, rtrim($realTempDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('Invalid extraction directory');
         }
 
@@ -587,6 +644,7 @@ final class ModuleRemoteInstaller
                 throw new RuntimeException('Archive contains too many entries');
             }
             $totalUncompressedBytes = 0;
+            $seen = [];
             for ($i = 0; $i < $entryCount; $i++) {
                 $name = $zip->getNameIndex($i);
                 if ($name === false) continue;
@@ -602,24 +660,36 @@ final class ModuleRemoteInstaller
                 if (
                     str_contains($normalizedName, '..')
                     || str_starts_with($normalizedName, '/')
+                    || str_contains($normalizedName, '\\')
+                    || preg_match('/[\x00-\x1f\x7f]/', $normalizedName)
                     || preg_match('/^[a-zA-Z]:\\//', $normalizedName)
                 ) {
                     $zip->close();
                     throw new RuntimeException("Archive entry contains path traversal: {$name}");
                 }
+                $entryKey = strtolower(rtrim($normalizedName, '/'));
+                if ($entryKey === '' || isset($seen[$entryKey]) || str_contains($normalizedName, '//')
+                    || in_array('.', explode('/', $normalizedName), true)) {
+                    $zip->close();
+                    throw new RuntimeException('Archive contains duplicate or ambiguous paths');
+                }
+                $seen[$entryKey] = true;
                 $opsys = 0;
                 $attributes = 0;
                 if ($zip->getExternalAttributesIndex($i, $opsys, $attributes)) {
                     $fileType = ($attributes >> 16) & 0170000;
-                    if ($fileType === 0120000) {
+                    if (!in_array($fileType, [0, 0100000, 0040000], true)) {
                         $zip->close();
                         throw new RuntimeException("Archive entry is a symbolic link: {$name}");
                     }
                 }
             }
 
-            $zip->extractTo($destDir);
+            $extracted = $zip->extractTo($destDir);
             $zip->close();
+            if (!$extracted) {
+                throw new RuntimeException('Archive extraction failed');
+            }
 
             // Verify no files escaped the target directory
             $iterator = new \RecursiveIteratorIterator(
@@ -628,7 +698,7 @@ final class ModuleRemoteInstaller
             );
             foreach ($iterator as $file) {
                 $realPath = $file->getRealPath();
-                if ($realPath === false || !str_starts_with($realPath, $realDestDir)) {
+                if ($realPath === false || $file->isLink() || !str_starts_with($realPath, $realDestDir . DIRECTORY_SEPARATOR)) {
                     throw new RuntimeException('Archive extraction escaped target directory');
                 }
             }
@@ -637,34 +707,89 @@ final class ModuleRemoteInstaller
         }
 
         if (str_ends_with($archive, '.tar.gz') || str_ends_with($archive, '.tgz')) {
-            $phar = new \PharData($archive);
-
-            // Validate tar entries before extraction
-            foreach (new \RecursiveIteratorIterator($phar) as $entry) {
-                $entryPath = str_replace('\\', '/', $entry->getPathname());
-                if (str_contains($entryPath, '..') || str_starts_with($entryPath, '/')) {
-                    throw new RuntimeException("Archive entry contains path traversal: {$entryPath}");
-                }
-            }
-
-            $phar->extractTo($destDir);
-
-            // Verify no files escaped
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($destDir, \RecursiveDirectoryIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::SELF_FIRST
-            );
-            foreach ($iterator as $file) {
-                $realPath = $file->getRealPath();
-                if ($realPath === false || !str_starts_with($realPath, $realDestDir)) {
-                    throw new RuntimeException('Archive extraction escaped target directory');
-                }
-            }
-
+            $this->extractTar($archive, $realDestDir);
             return;
         }
 
         throw new RuntimeException("Unsupported archive format: {$archive}");
+    }
+
+    private function extractTar(string $archive, string $destDir): void
+    {
+        $stream = @gzopen($archive, 'rb');
+        if ($stream === false) throw new RuntimeException('Cannot open compressed module archive');
+        $read = static function (int $bytes) use ($stream): string {
+            $content = '';
+            while (strlen($content) < $bytes) {
+                $chunk = gzread($stream, min(65536, $bytes - strlen($content)));
+                if ($chunk === false || $chunk === '') throw new RuntimeException('Truncated module archive');
+                $content .= $chunk;
+            }
+            return $content;
+        };
+        $seen = [];
+        $expanded = 0;
+        try {
+            while (true) {
+                $header = $read(512);
+                if ($header === str_repeat("\0", 512)) {
+                    if ($read(512) !== str_repeat("\0", 512)) throw new RuntimeException('Invalid archive terminator');
+                    return;
+                }
+                if (count($seen) >= self::MAX_ARCHIVE_ENTRIES) throw new RuntimeException('Archive contains too many entries');
+                $checksum = trim(substr($header, 148, 8), "\0 ");
+                $sizeField = trim(substr($header, 124, 12), "\0 ");
+                if (!preg_match('/^[0-7]+$/', $checksum) || !preg_match('/^[0-7]+$/', $sizeField)) {
+                    throw new RuntimeException('Invalid archive header');
+                }
+                $sum = array_sum(unpack('C*', substr_replace($header, str_repeat(' ', 8), 148, 8)));
+                if (octdec($checksum) !== $sum) throw new RuntimeException('Archive header checksum mismatch');
+                $name = rtrim(substr($header, 0, 100), "\0");
+                $prefix = rtrim(substr($header, 345, 155), "\0");
+                if ($prefix !== '') $name = $prefix . '/' . $name;
+                $type = $header[156];
+                if (!in_array($type, ["\0", '0', '5'], true)) throw new RuntimeException('Archive links and special entries are forbidden');
+                $name = rtrim($name, '/');
+                if ($name === '' || str_starts_with($name, '/') || str_contains($name, '\\')
+                    || preg_match('/[\x00-\x1f\x7f]/', $name) || preg_match('/^[a-zA-Z]:/', $name)
+                    || array_intersect(['', '.', '..'], explode('/', $name)) !== []) {
+                    throw new RuntimeException('Unsafe archive entry path');
+                }
+                $key = strtolower($name);
+                if (isset($seen[$key])) throw new RuntimeException('Archive contains duplicate paths');
+                $seen[$key] = true;
+                $size = (int)octdec($sizeField);
+                $expanded += $size;
+                if ($size > self::MAX_PACKAGE_BYTES || $expanded > self::MAX_EXTRACTED_BYTES || ($type === '5' && $size !== 0)) {
+                    throw new RuntimeException('Archive expands beyond allowed limits');
+                }
+                $target = $destDir . '/' . $name;
+                $directory = $type === '5' ? $target : dirname($target);
+                if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+                    throw new RuntimeException('Cannot create archive entry directory');
+                }
+                $parent = realpath($directory);
+                if ($parent === false || ($parent !== $destDir && !str_starts_with($parent, $destDir . DIRECTORY_SEPARATOR))) {
+                    throw new RuntimeException('Archive entry escaped its destination');
+                }
+                if ($type !== '5') {
+                    $file = @fopen($target, 'xb');
+                    if ($file === false) throw new RuntimeException('Cannot create archive entry');
+                    try {
+                        for ($left = $size; $left > 0;) {
+                            $chunk = $read(min(65536, $left));
+                            if (fwrite($file, $chunk) !== strlen($chunk)) throw new RuntimeException('Cannot write archive entry');
+                            $left -= strlen($chunk);
+                        }
+                    } finally {
+                        fclose($file);
+                    }
+                }
+                if ($size % 512 !== 0) $read(512 - $size % 512);
+            }
+        } finally {
+            gzclose($stream);
+        }
     }
 
     private function createArchive(string $sourceDir, string $outputPath): void

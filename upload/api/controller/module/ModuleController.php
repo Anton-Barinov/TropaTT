@@ -157,6 +157,8 @@ final class ModuleController
                 'service_provider' => $manifest->serviceProvider,
                 'is_loaded' => $pm->isLoaded($name),
                 'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
+                'registry_version' => $registry ? (string)($registry['version'] ?? '') : null,
+                'update_in_progress' => ModuleRemoteInstaller::isUpdateRunning(dirname(__DIR__, 3), (string)$name),
                 'status' => !$registry ? 'not_installed' : ((bool)($registry['is_active'] ?? false) ? 'active' : 'installed'),
                 'installed_at' => $registry['installed_at'] ?? null,
                 'activated_at' => $registry['activated_at'] ?? null,
@@ -443,6 +445,10 @@ final class ModuleController
         $results = [];
         $succeeded = 0;
         $failed = 0;
+        $remaining = $action === 'update' ? array_slice($modules, 1) : [];
+        if ($action === 'update') {
+            $modules = array_slice($modules, 0, 1);
+        }
 
         foreach ($modules as $name) {
             try {
@@ -498,6 +504,8 @@ final class ModuleController
             'succeeded' => $succeeded,
             'failed' => $failed,
             'results' => $results,
+            'remaining' => $remaining,
+            'complete' => $remaining === [],
         ]);
     }
 
