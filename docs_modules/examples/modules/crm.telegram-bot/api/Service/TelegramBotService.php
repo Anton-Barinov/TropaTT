@@ -36,6 +36,42 @@ final class TelegramBotService
             // Check driver
             $driver = (string)$this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
             if ($driver === 'sqlite') {
+                $this->db->exec("CREATE TABLE IF NOT EXISTS crm_telegram_dialogs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    public_id VARCHAR(32) UNIQUE,
+                    organization_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    first_name TEXT,
+                    last_name TEXT,
+                    username TEXT,
+                    title TEXT,
+                    last_message_text TEXT,
+                    last_message_at TEXT,
+                    unread_count INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'open',
+                    linked_task_id INTEGER,
+                    linked_intake_id INTEGER,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    UNIQUE(organization_id, chat_id)
+                )");
+
+                $this->db->exec("CREATE TABLE IF NOT EXISTS crm_telegram_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    public_id VARCHAR(32) UNIQUE,
+                    organization_id INTEGER NOT NULL,
+                    dialog_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    direction TEXT DEFAULT 'inbound',
+                    sender_type TEXT DEFAULT 'client',
+                    sender_user_id INTEGER,
+                    sender_name TEXT,
+                    telegram_message_id INTEGER,
+                    message_text TEXT NOT NULL,
+                    delivery_status TEXT DEFAULT 'delivered',
+                    created_at TEXT
+                )");
+
                 // SQLite table_info check
                 $cols = [];
                 $q = $this->db->query("PRAGMA table_info(crm_telegram_configs)");
@@ -55,6 +91,47 @@ final class TelegramBotService
                 }
             } else {
                 // MySQL / MariaDB
+                $this->db->exec("CREATE TABLE IF NOT EXISTS crm_telegram_dialogs (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    public_id VARCHAR(32) NOT NULL UNIQUE,
+                    organization_id INT UNSIGNED NOT NULL,
+                    chat_id BIGINT NOT NULL,
+                    first_name VARCHAR(128) NULL,
+                    last_name VARCHAR(128) NULL,
+                    username VARCHAR(128) NULL,
+                    title VARCHAR(255) NOT NULL,
+                    last_message_text TEXT NULL,
+                    last_message_at DATETIME NOT NULL,
+                    unread_count INT UNSIGNED NOT NULL DEFAULT 0,
+                    status VARCHAR(32) NOT NULL DEFAULT 'open',
+                    linked_task_id INT UNSIGNED NULL,
+                    linked_intake_id INT UNSIGNED NULL,
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL,
+                    UNIQUE KEY uq_tg_org_chat (organization_id, chat_id),
+                    INDEX idx_tg_dlg_org_status (organization_id, status),
+                    INDEX idx_tg_dlg_last_msg (organization_id, last_message_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+                $this->db->exec("CREATE TABLE IF NOT EXISTS crm_telegram_messages (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    public_id VARCHAR(32) NOT NULL UNIQUE,
+                    organization_id INT UNSIGNED NOT NULL,
+                    dialog_id INT UNSIGNED NOT NULL,
+                    chat_id BIGINT NOT NULL,
+                    direction VARCHAR(16) NOT NULL DEFAULT 'inbound',
+                    sender_type VARCHAR(32) NOT NULL DEFAULT 'client',
+                    sender_user_id INT UNSIGNED NULL,
+                    sender_name VARCHAR(128) NULL,
+                    telegram_message_id BIGINT NULL,
+                    message_text TEXT NOT NULL,
+                    delivery_status VARCHAR(32) NOT NULL DEFAULT 'delivered',
+                    created_at DATETIME NOT NULL,
+                    INDEX idx_tg_msg_dialog (dialog_id, id),
+                    INDEX idx_tg_msg_org_chat (organization_id, chat_id),
+                    INDEX idx_tg_msg_created (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
                 $cols = [];
                 $q = $this->db->query("SHOW COLUMNS FROM crm_telegram_configs");
                 if ($q) {
@@ -782,60 +859,76 @@ final class TelegramBotService
 
         $action = 'message_received';
 
-        if (str_starts_with($text, '/start')) {
-            $welcome = (string)($cfg['welcome_message'] ?: "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.");
-            if ($chatId !== 0) {
-                $this->sendMessage($organizationId, $chatId, $welcome);
-            }
-            $action = 'start_greeted';
-        } elseif (str_starts_with($text, '/bind ')) {
-            $code = trim(substr($text, 6));
-            $bindResult = $this->verifyUserBinding($organizationId, $chatId, $fromUsername, $code);
-            if ($bindResult === 'bind_success') {
+        if ($text !== '') {
+            $dialogResult = $this->recordIncomingMessageToDialog(
+                $organizationId,
+                $chatId,
+                $senderName,
+                $fromUsername,
+                $fromFirstName,
+                $fromLastName,
+                $text,
+                $messageId
+            );
+
+            if (str_starts_with($text, '/start')) {
+                $welcome = (string)($cfg['welcome_message'] ?: "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.");
                 if ($chatId !== 0) {
-                    $this->sendMessage(
-                        $organizationId,
-                        $chatId,
-                        "✅ <b>Аккаунт успешно привязан!</b>\nТеперь вы будете получать персональные уведомления CRM в этот чат."
-                    );
+                    $this->sendMessage($organizationId, $chatId, $welcome);
                 }
-                $action = 'bind_success';
-            } else {
-                if ($chatId !== 0) {
-                    $this->sendMessage(
-                        $organizationId,
-                        $chatId,
-                        "❌ <b>Код не распознан.</b>\nПроверьте правильность одноразового кода или сгенерируйте новый в CRM."
-                    );
-                }
-                $action = 'bind_failed';
-            }
-        } elseif ($text !== '') {
-            // Customer intake creation
-            $autoIntake = !empty($cfg['auto_create_intake']);
-            if ($autoIntake) {
-                $intakeCreated = $this->createIntakeItemFromMessage(
-                    $organizationId,
-                    $chatId,
-                    $senderName,
-                    $fromUsername,
-                    $text,
-                    $updateId,
-                    $messageId,
-                    $cfg['default_project_public_id'] ?? null,
-                    $cfg['default_assignee_user_public_id'] ?? null
-                );
-                if ($intakeCreated) {
-                    $action = 'intake_created';
+                $action = 'start_greeted';
+            } elseif (str_starts_with($text, '/bind ')) {
+                $code = trim(substr($text, 6));
+                $bindResult = $this->verifyUserBinding($organizationId, $chatId, $fromUsername, $code);
+                if ($bindResult === 'bind_success') {
                     if ($chatId !== 0) {
-                        try {
-                            $this->sendMessage(
-                                $organizationId,
-                                $chatId,
-                                "Спасибо, <b>" . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . "</b>!\nВаше обращение принято в CRM. Наш менеджер скоро свяжется с вами."
-                            );
-                        } catch (Throwable) {}
+                        $this->sendMessage(
+                            $organizationId,
+                            $chatId,
+                            "✅ <b>Аккаунт успешно привязан!</b>\nТеперь вы будете получать персональные уведомления CRM в этот чат."
+                        );
                     }
+                    $action = 'bind_success';
+                } else {
+                    if ($chatId !== 0) {
+                        $this->sendMessage(
+                            $organizationId,
+                            $chatId,
+                            "❌ <b>Код не распознан.</b>\nПроверьте правильность одноразового кода или сгенерируйте новый в CRM."
+                        );
+                    }
+                    $action = 'bind_failed';
+                }
+            } else {
+                $action = 'dialog_message_received';
+                $autoIntake = !empty($cfg['auto_create_intake']);
+
+                if ($dialogResult['is_new_dialog'] && $autoIntake) {
+                    $intakeCreated = $this->createIntakeItemFromMessage(
+                        $organizationId,
+                        $chatId,
+                        $senderName,
+                        $fromUsername,
+                        $text,
+                        $updateId,
+                        $messageId,
+                        $cfg['default_project_public_id'] ?? null,
+                        $cfg['default_assignee_user_public_id'] ?? null
+                    );
+                    if ($intakeCreated) {
+                        $action = 'intake_created';
+                        if ($chatId !== 0) {
+                            try {
+                                $this->sendMessage(
+                                    $organizationId,
+                                    $chatId,
+                                    "Спасибо, <b>" . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . "</b>!\nВаше обращение принято в CRM. Наш менеджер скоро свяжется с вами."
+                                );
+                            } catch (Throwable) {}
+                        }
+                    }
+                } else {
+                    $this->appendMessageToIntakeItem($organizationId, (int)$dialogResult['dialog_id'], $senderName, $text);
                 }
             }
         }
@@ -1175,6 +1268,17 @@ final class TelegramBotService
         $botUsername = $cfg['bot_username'] ?? ($env['bot_username'] ?: null);
         $statusLabel = $isActive ? 'Подключён · Активен' : 'Установлен · не подключён';
 
+        $totalDialogs = 0;
+        $unreadDialogs = 0;
+        try {
+            $dlgStmt = $this->db->prepare("SELECT COUNT(*), SUM(CASE WHEN unread_count > 0 THEN 1 ELSE 0 END) FROM crm_telegram_dialogs WHERE organization_id = :org_id");
+            if ($dlgStmt->execute([':org_id' => $organizationId])) {
+                $r = $dlgStmt->fetch(PDO::FETCH_NUM);
+                $totalDialogs = (int)($r[0] ?? 0);
+                $unreadDialogs = (int)($r[1] ?? 0);
+            }
+        } catch (Throwable) {}
+
         return [
             'configured' => $configured,
             'is_active' => $isActive,
@@ -1189,9 +1293,560 @@ final class TelegramBotService
             'welcome_message' => $cfg['welcome_message'] ?? "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
             'has_env_token' => $env['has_env'],
             'total_updates' => $totalUpdates,
+            'total_dialogs' => $totalDialogs,
+            'unread_dialogs' => $unreadDialogs,
             'verified_bindings' => $verifiedBindings,
             'pending_bindings' => $pendingBindings,
             'public_id' => $cfg['public_id'] ?? null,
         ];
+    }
+
+    /**
+     * Record incoming customer message to the persistent dialog thread.
+     */
+    public function recordIncomingMessageToDialog(
+        int $organizationId,
+        int $chatId,
+        string $senderName,
+        string $username,
+        string $firstName,
+        string $lastName,
+        string $text,
+        int $messageId
+    ): array {
+        $this->ensureSchema();
+        $now = date('Y-m-d H:i:s');
+
+        // Check if dialog exists for this org and chat
+        $stmt = $this->db->prepare(
+            "SELECT * FROM crm_telegram_dialogs WHERE organization_id = :org_id AND chat_id = :cid LIMIT 1"
+        );
+        $stmt->execute([':org_id' => $organizationId, ':cid' => $chatId]);
+        $dialog = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $isNew = false;
+        if (!$dialog) {
+            $isNew = true;
+            $dialogPubId = 'tgd_' . bin2hex(random_bytes(10));
+            $insDlg = $this->db->prepare(
+                "INSERT INTO crm_telegram_dialogs
+                 (public_id, organization_id, chat_id, first_name, last_name, username, title, last_message_text, last_message_at, unread_count, status, created_at, updated_at)
+                 VALUES (:pub_id, :org_id, :cid, :fn, :ln, :un, :title, :lmsg, :lmsg_at, 1, 'open', :now, :now)"
+            );
+            $insDlg->execute([
+                ':pub_id' => $dialogPubId,
+                ':org_id' => $organizationId,
+                ':cid' => $chatId,
+                ':fn' => $firstName ?: null,
+                ':ln' => $lastName ?: null,
+                ':un' => $username ?: null,
+                ':title' => $senderName,
+                ':lmsg' => mb_substr($text, 0, 255),
+                ':lmsg_at' => $now,
+                ':now' => $now,
+            ]);
+            $dialogId = (int)$this->db->lastInsertId();
+        } else {
+            $dialogId = (int)$dialog['id'];
+            $dialogPubId = (string)$dialog['public_id'];
+            $newStatus = in_array((string)$dialog['status'], ['resolved', 'archived'], true) ? 'open' : (string)$dialog['status'];
+            $updDlg = $this->db->prepare(
+                "UPDATE crm_telegram_dialogs
+                 SET last_message_text = :lmsg,
+                     last_message_at = :lmsg_at,
+                     unread_count = unread_count + 1,
+                     status = :status,
+                     first_name = COALESCE(:fn, first_name),
+                     last_name = COALESCE(:ln, last_name),
+                     username = COALESCE(:un, username),
+                     updated_at = :now
+                 WHERE id = :id"
+            );
+            $updDlg->execute([
+                ':lmsg' => mb_substr($text, 0, 255),
+                ':lmsg_at' => $now,
+                ':status' => $newStatus,
+                ':fn' => $firstName ?: null,
+                ':ln' => $lastName ?: null,
+                ':un' => $username ?: null,
+                ':now' => $now,
+                ':id' => $dialogId,
+            ]);
+            if (in_array((string)$dialog['status'], ['resolved', 'archived'], true)) {
+                $isNew = true;
+            }
+        }
+
+        // Insert message record
+        $msgPubId = 'tgm_' . bin2hex(random_bytes(10));
+        $insMsg = $this->db->prepare(
+            "INSERT INTO crm_telegram_messages
+             (public_id, organization_id, dialog_id, chat_id, direction, sender_type, sender_name, telegram_message_id, message_text, delivery_status, created_at)
+             VALUES (:pub_id, :org_id, :did, :cid, 'inbound', 'client', :sname, :mid, :text, 'delivered', :now)"
+        );
+        $insMsg->execute([
+            ':pub_id' => $msgPubId,
+            ':org_id' => $organizationId,
+            ':did' => $dialogId,
+            ':cid' => $chatId,
+            ':sname' => $senderName,
+            ':mid' => $messageId ?: null,
+            ':text' => $text,
+            ':now' => $now,
+        ]);
+
+        return [
+            'dialog_id' => $dialogId,
+            'dialog_public_id' => $dialogPubId,
+            'message_public_id' => $msgPubId,
+            'is_new_dialog' => $isNew,
+        ];
+    }
+
+    /**
+     * Append incoming follow-up message to active Intake item.
+     */
+    private function appendMessageToIntakeItem(int $organizationId, int $dialogId, string $senderName, string $text): void
+    {
+        try {
+            $dStmt = $this->db->prepare("SELECT linked_intake_id FROM crm_telegram_dialogs WHERE id = :did LIMIT 1");
+            $dStmt->execute([':did' => $dialogId]);
+            $intakeId = (int)$dStmt->fetchColumn();
+            if ($intakeId > 0) {
+                $iStmt = $this->db->prepare("SELECT description FROM intake_items WHERE id = :id LIMIT 1");
+                $iStmt->execute([':id' => $intakeId]);
+                $curDesc = (string)$iStmt->fetchColumn();
+                $time = date('H:i');
+                $newDesc = $curDesc . "\n\n[{$time}] {$senderName}:\n" . $text;
+                $now = date('Y-m-d H:i:s');
+                $this->db->prepare(
+                    "UPDATE intake_items SET description = :desc, updated_at = :now WHERE id = :id"
+                )->execute([':desc' => $newDesc, ':now' => $now, ':id' => $intakeId]);
+            }
+        } catch (Throwable) {}
+    }
+
+    /**
+     * List client dialogs.
+     */
+    public function listDialogs(
+        int $organizationId,
+        string $status = 'all',
+        string $search = '',
+        int $limit = 50,
+        int $offset = 0
+    ): array {
+        $this->ensureSchema();
+        $this->backfillExistingUpdates($organizationId);
+
+        $where = ["d.organization_id = :org_id"];
+        $params = [':org_id' => $organizationId];
+
+        if ($status !== 'all' && in_array($status, ['open', 'in_progress', 'resolved', 'archived'], true)) {
+            $where[] = "d.status = :status";
+            $params[':status'] = $status;
+        }
+
+        if ($search !== '') {
+            $where[] = "(d.title LIKE :search OR d.username LIKE :search OR d.last_message_text LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        $sql = "SELECT d.*, t.public_id AS linked_task_public_id, t.title AS linked_task_title
+                FROM crm_telegram_dialogs d
+                LEFT JOIN tasks t ON t.id = d.linked_task_id
+                WHERE " . implode(' AND ', $where) . "
+                ORDER BY d.last_message_at DESC
+                LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $unreadStmt = $this->db->prepare("SELECT SUM(unread_count) FROM crm_telegram_dialogs WHERE organization_id = :org_id");
+        $unreadStmt->execute([':org_id' => $organizationId]);
+        $totalUnread = (int)$unreadStmt->fetchColumn();
+
+        return [
+            'dialogs' => $items,
+            'total_unread' => $totalUnread,
+        ];
+    }
+
+    /**
+     * Get single dialog with message thread.
+     */
+    public function getDialog(int $organizationId, string $dialogPubId): ?array
+    {
+        $this->ensureSchema();
+
+        $stmt = $this->db->prepare(
+            "SELECT d.*, t.public_id AS linked_task_public_id, t.title AS linked_task_title
+             FROM crm_telegram_dialogs d
+             LEFT JOIN tasks t ON t.id = d.linked_task_id
+             WHERE d.organization_id = :org_id AND d.public_id = :pub_id LIMIT 1"
+        );
+        $stmt->execute([':org_id' => $organizationId, ':pub_id' => $dialogPubId]);
+        $dialog = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$dialog) {
+            return null;
+        }
+
+        if ((int)$dialog['unread_count'] > 0) {
+            $this->db->prepare("UPDATE crm_telegram_dialogs SET unread_count = 0 WHERE id = :id")->execute([':id' => $dialog['id']]);
+            $dialog['unread_count'] = 0;
+        }
+
+        $msgStmt = $this->db->prepare(
+            "SELECT * FROM crm_telegram_messages
+             WHERE dialog_id = :did
+             ORDER BY id ASC"
+        );
+        $msgStmt->execute([':did' => $dialog['id']]);
+        $dialog['messages'] = $msgStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $dialog;
+    }
+
+    /**
+     * Send outbound reply to Telegram client from CRM.
+     */
+    public function replyDialog(
+        int $organizationId,
+        string $dialogPubId,
+        string $text,
+        ?int $staffUserId = null,
+        string $staffName = 'Менеджер CRM'
+    ): array {
+        $this->ensureSchema();
+        $text = trim($text);
+        if ($text === '') {
+            throw new RuntimeException("Текст сообщения не может быть пустым.");
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM crm_telegram_dialogs WHERE organization_id = :org_id AND public_id = :pub_id LIMIT 1"
+        );
+        $stmt->execute([':org_id' => $organizationId, ':pub_id' => $dialogPubId]);
+        $dialog = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$dialog) {
+            throw new RuntimeException("Диалог не найден.");
+        }
+
+        $chatId = (int)$dialog['chat_id'];
+        $dialogId = (int)$dialog['id'];
+
+        // Send via official Telegram Bot API (or record failure if API unreachable)
+        $deliveryStatus = 'sent';
+        $tgMsgId = null;
+        $errorMsg = null;
+        try {
+            $res = $this->sendMessage($organizationId, $chatId, $text);
+            $tgMsgId = (int)($res['result']['message_id'] ?? 0);
+        } catch (\Throwable $e) {
+            $deliveryStatus = 'failed';
+            $errorMsg = $e->getMessage();
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $msgPubId = 'tgm_' . bin2hex(random_bytes(10));
+
+        $insMsg = $this->db->prepare(
+            "INSERT INTO crm_telegram_messages
+             (public_id, organization_id, dialog_id, chat_id, direction, sender_type, sender_user_id, sender_name, telegram_message_id, message_text, delivery_status, created_at)
+             VALUES (:pub_id, :org_id, :did, :cid, 'outbound', 'staff', :uid, :sname, :mid, :text, :deliv, :now)"
+        );
+        $insMsg->execute([
+            ':pub_id' => $msgPubId,
+            ':org_id' => $organizationId,
+            ':did' => $dialogId,
+            ':cid' => $chatId,
+            ':uid' => $staffUserId,
+            ':sname' => $staffName,
+            ':mid' => $tgMsgId ?: null,
+            ':text' => $text,
+            ':deliv' => $deliveryStatus,
+            ':now' => $now,
+        ]);
+
+        $this->db->prepare(
+            "UPDATE crm_telegram_dialogs
+             SET last_message_text = :lmsg,
+                 last_message_at = :now,
+                 unread_count = 0,
+                 status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
+                 updated_at = :now
+             WHERE id = :id"
+        )->execute([
+            ':lmsg' => mb_substr($text, 0, 255),
+            ':now' => $now,
+            ':id' => $dialogId,
+        ]);
+
+        if ($deliveryStatus === 'failed') {
+            throw new RuntimeException("Не удалось доставить сообщение в Telegram: " . $errorMsg);
+        }
+
+        return [
+            'public_id' => $msgPubId,
+            'direction' => 'outbound',
+            'sender_type' => 'staff',
+            'sender_name' => $staffName,
+            'message_text' => $text,
+            'delivery_status' => $deliveryStatus,
+            'created_at' => $now,
+        ];
+    }
+
+    /**
+     * Update status of dialog.
+     */
+    public function updateDialogStatus(int $organizationId, string $dialogPubId, string $status): bool
+    {
+        $this->ensureSchema();
+        if (!in_array($status, ['open', 'in_progress', 'resolved', 'archived'], true)) {
+            throw new RuntimeException("Недопустимый статус диалога: {$status}");
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $stmt = $this->db->prepare(
+            "UPDATE crm_telegram_dialogs
+             SET status = :status, updated_at = :now
+             WHERE organization_id = :org_id AND public_id = :pub_id"
+        );
+        return $stmt->execute([':status' => $status, ':now' => $now, ':org_id' => $organizationId, ':pub_id' => $dialogPubId]) && $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Create CRM Task from Telegram dialog.
+     */
+    public function createTaskFromDialog(
+        int $organizationId,
+        string $dialogPubId,
+        string $title,
+        string $description = '',
+        ?int $projectId = null,
+        string $priority = 'normal',
+        ?int $assigneeId = null,
+        ?int $creatorUserId = 1
+    ): array {
+        $this->ensureSchema();
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM crm_telegram_dialogs WHERE organization_id = :org_id AND public_id = :pub_id LIMIT 1"
+        );
+        $stmt->execute([':org_id' => $organizationId, ':pub_id' => $dialogPubId]);
+        $dialog = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$dialog) {
+            throw new RuntimeException("Диалог не найден.");
+        }
+
+        $title = trim($title);
+        if ($title === '') {
+            $clientName = $dialog['title'] ?: ($dialog['username'] ? '@' . $dialog['username'] : 'Клиент');
+            $title = "Обращение из Telegram: " . $clientName;
+        }
+
+        $msgStmt = $this->db->prepare(
+            "SELECT * FROM crm_telegram_messages WHERE dialog_id = :did ORDER BY id ASC LIMIT 50"
+        );
+        $msgStmt->execute([':did' => $dialog['id']]);
+        $messages = $msgStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $transcriptLines = [];
+        foreach ($messages as $m) {
+            $sender = $m['direction'] === 'inbound' ? ($m['sender_name'] ?: 'Клиент') : ($m['sender_name'] ?: 'Менеджер CRM');
+            $time = substr((string)$m['created_at'], 11, 5);
+            $transcriptLines[] = "[{$time}] {$sender}: " . $m['message_text'];
+        }
+        $transcript = implode("\n", $transcriptLines);
+
+        if ($description !== '') {
+            $desc = $description;
+        } else {
+            $clientHandle = $dialog['username'] ? '@' . $dialog['username'] : 'нет';
+            $desc = "### Обращение из Telegram-бота\n\n"
+                  . "| Параметр | Значение |\n"
+                  . "| --- | --- |\n"
+                  . "| Клиент | " . ($dialog['title'] ?: 'Клиент') . " |\n"
+                  . "| Telegram Username | {$clientHandle} |\n"
+                  . "| Chat ID | `{$dialog['chat_id']}` |\n"
+                  . "| Диалог | [Открыть в CRM](index.php?route=module-telegram-bot&dialog={$dialogPubId}) |\n\n"
+                  . "#### История переписки:\n```\n" . $transcript . "\n```";
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $taskPubId = 'tsk_' . bin2hex(random_bytes(10));
+
+        $ins = $this->db->prepare(
+            "INSERT INTO tasks
+             (public_id, project_id, title, description, status_code, priority_code, assignee_user_id, creator_user_id, organization_id, source_type, source_id, created_at, updated_at)
+             VALUES (:pub, :pid, :title, :desc, 'todo', :priority, :assignee, :creator, :org_id, 'telegram', :src_id, :now, :now)"
+        );
+        $ins->execute([
+            ':pub' => $taskPubId,
+            ':pid' => $projectId ?: null,
+            ':title' => $title,
+            ':desc' => $desc,
+            ':priority' => in_array($priority, ['low', 'normal', 'high', 'urgent'], true) ? $priority : 'normal',
+            ':assignee' => $assigneeId ?: null,
+            ':creator' => $creatorUserId ?: 1,
+            ':org_id' => $organizationId,
+            ':src_id' => $dialogPubId,
+            ':now' => $now,
+        ]);
+        $taskId = (int)$this->db->lastInsertId();
+
+        $this->db->prepare(
+            "UPDATE crm_telegram_dialogs SET linked_task_id = :tid, status = 'in_progress', updated_at = :now WHERE id = :did"
+        )->execute([':tid' => $taskId, ':now' => $now, ':did' => $dialog['id']]);
+
+        $sysPubId = 'tgm_' . bin2hex(random_bytes(10));
+        $this->db->prepare(
+            "INSERT INTO crm_telegram_messages
+             (public_id, organization_id, dialog_id, chat_id, direction, sender_type, sender_name, message_text, delivery_status, created_at)
+             VALUES (:pub, :org, :did, :cid, 'outbound', 'system', 'CRM', :text, 'delivered', :now)"
+        )->execute([
+            ':pub' => $sysPubId,
+            ':org' => $organizationId,
+            ':did' => $dialog['id'],
+            ':cid' => $dialog['chat_id'],
+            ':text' => "📋 Создана задача в CRM: {$title} (ID #{$taskId})",
+            ':now' => $now,
+        ]);
+
+        return [
+            'task_id' => $taskId,
+            'task_public_id' => $taskPubId,
+            'title' => $title,
+            'status' => 'todo',
+        ];
+    }
+
+    /**
+     * List accessible organizations for staff user.
+     */
+    public function listOrganizationsForUser(int $userId, bool $isRoot = false): array
+    {
+        try {
+            $raw = [];
+            if ($isRoot || $userId <= 0) {
+                $stmt = $this->db->query("SELECT * FROM organizations ORDER BY id ASC LIMIT 50");
+                $raw = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            } else {
+                $stmt = $this->db->prepare(
+                    "SELECT o.*
+                     FROM organization_memberships om
+                     JOIN organizations o ON o.id = om.organization_id
+                     WHERE om.user_id = :uid
+                     ORDER BY o.id ASC"
+                );
+                $stmt->execute([':uid' => $userId]);
+                $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                if (empty($raw)) {
+                    $fallback = $this->db->query("SELECT * FROM organizations ORDER BY id ASC LIMIT 50");
+                    $raw = $fallback ? ($fallback->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+                }
+            }
+
+            $items = [];
+            foreach ($raw as $r) {
+                $title = (string)($r['title'] ?? $r['name'] ?? ('Организация #' . $r['id']));
+                $items[] = [
+                    'id' => (int)$r['id'],
+                    'public_id' => (string)($r['public_id'] ?? ''),
+                    'title' => $title,
+                    'name' => $title,
+                    'slug' => (string)($r['slug'] ?? ''),
+                ];
+            }
+            return $items;
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * List projects in organization for task creation.
+     */
+    public function listProjectsForOrg(int $organizationId): array
+    {
+        try {
+            $stmt = $this->db->query("SELECT * FROM projects ORDER BY id ASC LIMIT 50");
+            $raw = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            $items = [];
+            foreach ($raw as $r) {
+                $title = (string)($r['title'] ?? $r['name'] ?? ('Проект #' . $r['id']));
+                $items[] = [
+                    'id' => (int)$r['id'],
+                    'public_id' => (string)($r['public_id'] ?? ''),
+                    'title' => $title,
+                    'name' => $title,
+                ];
+            }
+            return $items;
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Backfill updates from crm_telegram_updates_log into dialogs and messages.
+     */
+    public function backfillExistingUpdates(int $organizationId): int
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM crm_telegram_updates_log
+                 WHERE organization_id = :org_id
+                 ORDER BY id ASC"
+            );
+            $stmt->execute([':org_id' => $organizationId]);
+            $updates = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $imported = 0;
+
+            foreach ($updates as $u) {
+                $payload = json_decode((string)$u['payload_json'], true);
+                if (!is_array($payload)) {
+                    continue;
+                }
+                $msg = $payload['message'] ?? ($payload['edited_message'] ?? []);
+                $chatId = (int)($msg['chat']['id'] ?? $u['chat_id'] ?? 0);
+                $text = trim((string)($msg['text'] ?? ''));
+                if ($chatId === 0 || $text === '') {
+                    continue;
+                }
+
+                $msgId = (int)($msg['message_id'] ?? 0);
+                $check = $this->db->prepare(
+                    "SELECT id FROM crm_telegram_messages WHERE organization_id = :org_id AND chat_id = :cid AND message_text = :txt LIMIT 1"
+                );
+                $check->execute([':org_id' => $organizationId, ':cid' => $chatId, ':txt' => $text]);
+                if ($check->fetchColumn()) {
+                    continue;
+                }
+
+                $from = (array)($msg['from'] ?? []);
+                $fn = trim((string)($from['first_name'] ?? ''));
+                $ln = trim((string)($from['last_name'] ?? ''));
+                $un = trim((string)($from['username'] ?? ''));
+                $senderName = trim($fn . ' ' . $ln) ?: ($un ? '@' . $un : "ID {$chatId}");
+
+                $this->recordIncomingMessageToDialog(
+                    $organizationId,
+                    $chatId,
+                    $senderName,
+                    $un,
+                    $fn,
+                    $ln,
+                    $text,
+                    $msgId
+                );
+                $imported++;
+            }
+            return $imported;
+        } catch (Throwable) {
+            return 0;
+        }
     }
 }

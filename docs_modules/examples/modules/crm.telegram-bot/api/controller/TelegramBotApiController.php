@@ -17,6 +17,11 @@ final class TelegramBotApiController extends BaseController
 
     private function getOrganizationId(): int
     {
+        $explicitOrg = (int)($this->request()->input('organization_id') ?? $this->request()->query('organization_id') ?? 0);
+        if ($explicitOrg > 0) {
+            return $explicitOrg;
+        }
+
         $auth = $this->user();
         $orgId = (int)($auth['user']['organization_id'] ?? 0);
         if ($orgId > 0) {
@@ -397,6 +402,191 @@ final class TelegramBotApiController extends BaseController
             return $this->success('TELEGRAM_UPDATE_HANDLED', 'Update processed', $result);
         } catch (Throwable $e) {
             return $this->error('TELEGRAM_ERROR', $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * List accessible organizations for current user.
+     */
+    public function listOrganizations(): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            $service = $this->getService();
+            $userId = (int)($auth['user']['id'] ?? 0);
+            $items = $service->listOrganizationsForUser($userId);
+            return $this->success('ORGANIZATIONS_LIST', 'Список организаций получен', [
+                'items' => $items,
+                'active_organization_id' => $this->getOrganizationId(),
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('ORG_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * List projects for active organization.
+     */
+    public function listProjects(): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            $service = $this->getService();
+            $items = $service->listProjectsForOrg($this->getOrganizationId());
+            return $this->success('PROJECTS_LIST', 'Список проектов получен', ['items' => $items]);
+        } catch (Throwable $e) {
+            return $this->error('PROJECTS_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * List dialogs for active organization.
+     */
+    public function listDialogs(): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $status = (string)($this->request()->input('status') ?? $this->request()->query('status') ?? 'all');
+        $search = (string)($this->request()->input('search') ?? $this->request()->query('search') ?? '');
+        $limit = (int)($this->request()->input('limit') ?? $this->request()->query('limit') ?? 50);
+
+        try {
+            $service = $this->getService();
+            $res = $service->listDialogs($this->getOrganizationId(), $status, $search, $limit);
+            return $this->success('TELEGRAM_DIALOGS', 'Список диалогов получен', [
+                'items' => $res['dialogs'] ?? [],
+                'total_unread' => $res['total_unread'] ?? 0,
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('DIALOGS_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get single dialog and its messages.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function getDialog(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id') ?? $this->request()->query('dialog_id') ?? '');
+        if ($dialogId === '') {
+            return $this->error('INVALID_PARAM', 'ID диалога обязателен', 400);
+        }
+        try {
+            $service = $this->getService();
+            $dialog = $service->getDialog($this->getOrganizationId(), $dialogId);
+            if (!$dialog) {
+                return $this->error('NOT_FOUND', 'Диалог не найден', 404);
+            }
+            return $this->success('TELEGRAM_DIALOG', 'Диалог получен', [
+                'dialog' => $dialog,
+                'messages' => $dialog['messages'] ?? [],
+            ]);
+        } catch (Throwable $e) {
+            return $this->error('DIALOG_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Reply to client in dialog.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function replyDialog(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id', ''));
+        $text = trim((string)$this->request()->input('text', ''));
+        if ($dialogId === '' || $text === '') {
+            return $this->error('INVALID_PARAM', 'ID диалога и текст ответа обязательны', 400);
+        }
+        $user = $auth['user'] ?? [];
+        $staffUserId = (int)($user['id'] ?? 0);
+        $staffName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        if ($staffName === '') {
+            $staffName = (string)($user['username'] ?? 'Менеджер CRM');
+        }
+
+        try {
+            $service = $this->getService();
+            $res = $service->replyDialog($this->getOrganizationId(), $dialogId, $text, $staffUserId, $staffName);
+            return $this->success('REPLY_SENT', 'Ответ отправлен в Telegram', $res);
+        } catch (Throwable $e) {
+            return $this->error('REPLY_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update dialog status.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function updateDialogStatus(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id', ''));
+        $status = (string)$this->request()->input('status', 'open');
+        try {
+            $service = $this->getService();
+            $ok = $service->updateDialogStatus($this->getOrganizationId(), $dialogId, $status);
+            if (!$ok) {
+                return $this->error('NOT_FOUND', 'Диалог не найден', 404);
+            }
+            return $this->success('STATUS_UPDATED', 'Статус диалога обновлен');
+        } catch (Throwable $e) {
+            return $this->error('STATUS_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Create CRM task from dialog.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function createTaskFromDialog(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id', ''));
+        $title = trim((string)$this->request()->input('title', ''));
+        $description = trim((string)$this->request()->input('description', ''));
+        $projectId = (int)$this->request()->input('project_id', 0);
+        $priority = (string)$this->request()->input('priority', 'medium');
+
+        if ($dialogId === '') {
+            return $this->error('INVALID_PARAM', 'ID диалога обязателен', 400);
+        }
+
+        $user = $auth['user'] ?? [];
+        $staffUserId = (int)($user['id'] ?? 0);
+
+        try {
+            $service = $this->getService();
+            $res = $service->createTaskFromDialog($this->getOrganizationId(), $dialogId, $title, $description, $projectId ?: null, $priority, null, $staffUserId);
+            return $this->success('TASK_CREATED', 'Задача создана в CRM', $res);
+        } catch (Throwable $e) {
+            return $this->error('TASK_ERROR', $e->getMessage(), 500);
         }
     }
 }

@@ -33,8 +33,187 @@
   letter-spacing: 0.1em;
 }
 
+/* Tabs styling */
+#tgTabs .nav-link {
+  border-radius: var(--crm-radius, 8px);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: var(--crm-text, #1e293b);
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+#tgTabs .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+#tgTabs .nav-link.active {
+  background-color: var(--crm-primary, #0d6efd);
+  color: #ffffff;
+}
+
+/* Avatar circle */
+.tg-avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-space, linear-gradient(135deg, #0d6efd, #0dcaf0);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Dialogs List */
+.tg-dialogs-list {
+  max-height: 520px;
+}
+
+.tg-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-left-color 0.15s ease;
+  border-left: 3px solid transparent;
+  margin-bottom: 4px;
+}
+
+.tg-dialog-item:hover {
+  background-color: var(--crm-hover-bg, #f8fafc);
+}
+
+.tg-dialog-item.active {
+  background-color: rgba(13, 110, 253, 0.08);
+  border-left-color: var(--crm-primary, #0d6efd);
+}
+
+.tg-dialog-item .tg-dialog-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tg-dialog-item .tg-dialog-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tg-dialog-item .tg-dialog-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tg-dialog-item .tg-dialog-time {
+  font-size: 0.75rem;
+  color: var(--crm-muted, #64748b);
+  flex-shrink: 0;
+}
+
+.tg-dialog-item .tg-dialog-snippet {
+  font-size: 0.825rem;
+  color: var(--crm-muted, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Messages thread */
+.tg-messages-thread {
+  background: var(--crm-bg-subtle, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 480px;
+  min-height: 380px;
+  border-bottom: 1px solid var(--crm-border, #e2e8f0);
+}
+
+.tg-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  word-break: break-word;
+}
+
+.tg-msg.tg-msg-inbound {
+  align-self: flex-start;
+}
+
+.tg-msg.tg-msg-outbound {
+  align-self: flex-end;
+}
+
+.tg-msg.tg-msg-system {
+  align-self: center;
+  max-width: 85%;
+  text-align: center;
+}
+
+.tg-msg-bubble {
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tg-msg-inbound .tg-msg-bubble {
+  background: #ffffff;
+  color: var(--crm-text, #1e293b);
+  border: 1px solid var(--crm-border, #e2e8f0);
+  border-bottom-left-radius: 3px;
+}
+
+.tg-msg-outbound .tg-msg-bubble {
+  background: var(--crm-primary, #0d6efd);
+  color: #ffffff;
+  border-bottom-right-radius: 3px;
+}
+
+.tg-msg-system .tg-msg-bubble {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--crm-muted, #64748b);
+  font-size: 0.8125rem;
+  border-radius: 20px;
+  padding: 4px 12px;
+  border: 1px dashed var(--crm-border, #cbd5e1);
+}
+
+.tg-msg-meta {
+  font-size: 0.72rem;
+  margin-top: 2px;
+  padding: 0 4px;
+}
+
+.tg-msg-inbound .tg-msg-meta {
+  color: var(--crm-muted, #94a3b8);
+}
+
+.tg-msg-outbound .tg-msg-meta {
+  color: var(--crm-muted, #94a3b8);
+  text-align: right;
+}
+
+/* Responsive tweaks */
 @media (max-width: 767px) {
   #tgKpis .col-6 {
     width: 50%;
+  }
+  .tg-messages-thread {
+    max-height: 360px;
+    min-height: 280px;
   }
 }
