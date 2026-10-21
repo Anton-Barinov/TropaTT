@@ -207,10 +207,10 @@ final class ModuleMarketplaceClient
      *
      * @return array<string,mixed>
      */
-    public function module(string $fullCode): array
+    public function module(string $fullCode, bool $refresh = false): array
     {
         $fullCode = $this->assertCode($fullCode);
-        $response = $this->cachedGet('/api/v1/modules/' . rawurlencode($fullCode));
+        $response = $this->cachedGet('/api/v1/modules/' . rawurlencode($fullCode), [], $refresh);
         $data = is_array($response['data'] ?? null) ? $response['data'] : [];
 
         if ($data === []) {

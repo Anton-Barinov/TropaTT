@@ -130,6 +130,47 @@ final class MenuController extends BaseController
                     'parent' => $item['parent'] ?? null,
                 ];
             }
+
+            // Also include menu items declared in active module manifests
+            if ($this->container->has('plugin.manager')) {
+                /** @var \Api\System\Library\Module\PluginManager $pm */
+                $pm = $this->container->get('plugin.manager');
+                foreach ($pm->getActive() as $moduleName => $manifest) {
+                    foreach ($manifest->menuItems as $mItem) {
+                        $route = (string)($mItem['route'] ?? $mItem['href'] ?? '');
+                        if ($route === '') {
+                            continue;
+                        }
+                        $alreadyPresent = false;
+                        foreach ($availableItems as $ai) {
+                            if ($ai['key'] === $route) {
+                                $alreadyPresent = true;
+                                break;
+                            }
+                        }
+                        if ($alreadyPresent) {
+                            continue;
+                        }
+                        $perm = $mItem['permission'] ?? null;
+                        $required = $perm !== null && $perm !== '' ? [$perm] : [];
+                        if (!$this->canAccess($authz, $user, $required)) {
+                            continue;
+                        }
+                        $icon = (string)($mItem['icon'] ?? '');
+                        if ($icon !== '' && !str_starts_with($icon, '<')) {
+                            $icon = '<i class="fa-solid fa-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '"></i>';
+                        }
+                        $availableItems[] = [
+                            'key' => $route,
+                            'i18n' => $route,
+                            'label' => (string)($mItem['title'] ?? $mItem['label'] ?? $moduleName),
+                            'href' => 'index.php?route=' . $route,
+                            'icon' => $icon !== '' ? $icon : '<i class="fa-solid fa-puzzle-piece"></i>',
+                            'parent' => $mItem['parent'] ?? null,
+                        ];
+                    }
+                }
+            }
         }
 
         if (!$myEarningsAvailable) {

@@ -1054,7 +1054,9 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/catalog', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'catalog', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/categories', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'categories', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/modules/{full_code}', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'module', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/updates', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'updates', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/marketplace/install', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'install', 'auth' => true, 'required_permissions' => ['module.install']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/marketplace/update', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['module.install']],
 
     ['methods' => ['GET'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['idea.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/ideas', 'controller' => Api\Controller\Idea\IdeaController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['idea.manage']],

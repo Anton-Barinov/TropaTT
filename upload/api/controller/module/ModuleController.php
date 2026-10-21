@@ -49,6 +49,24 @@ final class ModuleController
             $items = [];
             foreach ($discovered as $name => $manifest) {
                 $registry = $mc->getRegistry($name);
+                $pageRoutes = [];
+                if ($manifest->webRoutes !== null) {
+                    $routeFile = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->webRoutes;
+                    $moduleDir = realpath($pm->getModulesDir() . '/' . $manifest->name);
+                    $realRouteFile = realpath($routeFile);
+                    if ($moduleDir !== false && $realRouteFile !== false
+                        && str_starts_with($realRouteFile, $moduleDir . DIRECTORY_SEPARATOR)) {
+                        $moduleRoutes = require $realRouteFile;
+                        if (is_array($moduleRoutes)) {
+                            foreach (array_keys($moduleRoutes) as $routeKey) {
+                                $routeKey = (string)$routeKey;
+                                if ($routeKey !== '') {
+                                    $pageRoutes[] = $routeKey;
+                                }
+                            }
+                        }
+                    }
+                }
                 $items[] = [
                     'name' => $name,
                     'version' => $manifest->version,
@@ -58,6 +76,7 @@ final class ModuleController
                     'title' => $manifest->title,
                     'description' => $manifest->description,
                     'category' => $manifest->category,
+                    'page_routes' => $pageRoutes,
                     'is_loaded' => $pm->isLoaded($name),
                     'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
                     'status' => $registry ? ((bool)$registry['is_active'] ? 'active' : 'installed') : 'not_installed',
@@ -498,6 +517,33 @@ final class ModuleController
         $mc = $this->container->get('module.config');
         $config = $mc->getAll($name);
 
+        if ($name === 'crm.telegram-bot' && $this->container->has('db.pdo')) {
+            try {
+                $pm = $this->container->get('plugin.manager');
+                $svcFile = $pm->getModulesDir() . '/crm.telegram-bot/api/Service/TelegramBotService.php';
+                if (is_file($svcFile)) {
+                    require_once $svcFile;
+                    $svc = new \Module\Crm\TelegramBot\Service\TelegramBotService($this->container->get('db.pdo'));
+                    $svcCfg = $svc->getConfig(1);
+                    if ($svcCfg && !empty($svcCfg['bot_token'])) {
+                        $config['bot_token'] = $svcCfg['bot_token'];
+                        if (!empty($svcCfg['bot_username'])) {
+                            $config['bot_username'] = $svcCfg['bot_username'];
+                        }
+                        if (isset($svcCfg['webhook_secret_token'])) {
+                            $config['webhook_secret_token'] = $svcCfg['webhook_secret_token'];
+                        }
+                        if (isset($svcCfg['auto_create_intake'])) {
+                            $config['auto_create_intake'] = (bool)$svcCfg['auto_create_intake'];
+                        }
+                        if (!empty($svcCfg['welcome_message'])) {
+                            $config['welcome_message'] = $svcCfg['welcome_message'];
+                        }
+                    }
+                }
+            } catch (\Throwable) {}
+        }
+
         return JsonResponse::success('MODULE_CONFIG', $this->t('common/messages.ok', 'OK'), ['name' => $name, 'config' => $config]);
     }
 
@@ -640,6 +686,28 @@ final class ModuleController
         try {
             $mc = $this->container->get('module.config');
             $mc->setMultiple($name, $config);
+
+            if ($name === 'crm.telegram-bot' && $this->container->has('db.pdo')) {
+                try {
+                    $token = trim((string)($config['bot_token'] ?? ''));
+                    if ($token !== '') {
+                        $pm = $this->container->get('plugin.manager');
+                        $svcFile = $pm->getModulesDir() . '/crm.telegram-bot/api/Service/TelegramBotService.php';
+                        if (is_file($svcFile)) {
+                            require_once $svcFile;
+                            $svc = new \Module\Crm\TelegramBot\Service\TelegramBotService($this->container->get('db.pdo'));
+                            $secret = (string)($config['webhook_secret_token'] ?? '');
+                            $username = !empty($config['bot_username']) ? (string)$config['bot_username'] : null;
+                            $autoIntake = !empty($config['auto_create_intake']);
+                            $welcome = !empty($config['welcome_message']) ? (string)$config['welcome_message'] : null;
+                            $svc->saveConfig(1, $token, $secret, $username, $autoIntake, $welcome);
+                        }
+                    }
+                } catch (\Throwable $te) {
+                    AppLog::warning('[ModuleController::updateConfig] telegram bot sync failed: ' . $te->getMessage());
+                }
+            }
+
             return JsonResponse::success('CONFIG_UPDATED', $this->t('module/messages.config_updated'), ['name' => $name, 'config' => $mc->getAll($name)]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleController::updateConfig] ' . $e->getMessage());
