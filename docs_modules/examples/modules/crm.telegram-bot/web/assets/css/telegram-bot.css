@@ -1,4 +1,4 @@
-/* Styles for crm.telegram-bot module — fully theme-aware (light, dark, graphite, contrast, sepia) */
+/* Styles for crm.telegram-bot module — fully theme-aware with precision layout alignment */
 
 .crm-module-page[data-page="module-telegram-bot"] .font-monospace {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -89,12 +89,41 @@
   background: var(--crm-surface, #ffffff);
   border: 1px solid var(--crm-border, #d7e2df);
   color: var(--crm-text, #111a19);
+  min-height: 52px;
+  padding: 10px 16px !important;
+}
+
+#tgWorkspaceBar .form-select,
+#tgWorkspaceBar .btn {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 12px !important;
+  border-radius: var(--crm-radius, 8px) !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
 }
 
 #tgWorkspaceBadge {
+  height: 24px !important;
+  min-height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
   background-color: var(--crm-surface-2, #64748b) !important;
   color: var(--crm-text, #ffffff) !important;
   border: 1px solid var(--crm-border, transparent);
+  vertical-align: middle !important;
 }
 
 /* Tables & Code */
@@ -139,13 +168,30 @@
 
 /* Tabs styling */
 #tgTabs .nav-link {
-  border-radius: var(--crm-radius, 8px);
-  padding: 0.5rem 1rem;
-  font-weight: 500;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 16px !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+  line-height: 1 !important;
   color: var(--crm-text, #111a19);
   border: 1px solid transparent;
   background-color: transparent;
+  border-radius: var(--crm-radius, 8px) !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+#tgTabs .nav-link i {
+  line-height: 1 !important;
+  display: inline-flex;
+  align-items: center;
 }
 
 #tgTabs .nav-link:hover {
@@ -160,8 +206,19 @@
 }
 
 #tgDialogsCountBadge {
+  height: 18px !important;
+  min-height: 18px !important;
+  min-width: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  border-radius: 999px !important;
   background-color: var(--crm-surface-2, rgba(255, 255, 255, 0.25)) !important;
   color: var(--crm-text, #ffffff) !important;
+  vertical-align: middle !important;
 }
 
 #tgTabs .nav-link.active #tgDialogsCountBadge {
@@ -171,20 +228,67 @@
 
 /* Avatar circle */
 .tg-avatar-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 50% !important;
   background: linear-gradient(135deg, var(--crm-accent, #0f8f72), var(--crm-accent-strong, #0b725c));
   color: var(--crm-on-accent, #ffffff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.95rem;
-  flex-shrink: 0;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
   text-transform: uppercase;
   user-select: none;
   box-shadow: 0 2px 6px color-mix(in srgb, var(--crm-accent, #0f8f72) 20%, transparent);
+}
+
+/* Left Pane: Search and Filter Bar */
+.tg-dialog-search-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.tg-dialog-search-bar .form-control,
+.tg-dialog-search-bar .form-select {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  padding: 0 10px !important;
+  border-radius: var(--crm-radius, 8px) !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+}
+
+.tg-dialog-search-bar .form-select {
+  padding-right: 24px !important;
+  background-position: right 6px center !important;
+}
+
+#tgRefreshDialogsBtn {
+  width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  color: var(--crm-text-muted, #94a3b8) !important;
+  padding: 0 !important;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#tgRefreshDialogsBtn:hover {
+  background-color: var(--crm-bg-hover, rgba(0, 0, 0, 0.05)) !important;
+  color: var(--crm-text, #111a19) !important;
 }
 
 /* Dialogs List */
@@ -223,13 +327,16 @@
 .tg-dialog-item .tg-dialog-top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
+  line-height: 1.2;
 }
 
 .tg-dialog-item .tg-dialog-name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 13.5px;
+  line-height: 1.2;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -237,18 +344,85 @@
 }
 
 .tg-dialog-item .tg-dialog-time {
-  font-size: 0.75rem;
+  font-size: 11.5px;
+  line-height: 1.2;
   color: var(--crm-text-muted, var(--crm-muted, #596966));
   flex-shrink: 0;
 }
 
 .tg-dialog-item .tg-dialog-snippet {
-  font-size: 0.825rem;
+  font-size: 12.5px;
+  line-height: 1.3;
   color: var(--crm-text-muted, var(--crm-muted, #596966));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+/* Right Pane: Header & Action Buttons */
+#tgActiveDialogView .crm-section-head {
+  min-height: 62px;
+  padding: 12px 16px !important;
+}
+
+#tgActiveChatId {
+  height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  background-color: var(--crm-surface-2, #334155) !important;
+  color: var(--crm-text-muted, #94a3b8) !important;
+  border: 1px solid var(--crm-border, transparent);
+  border-radius: 4px !important;
+  vertical-align: middle !important;
+}
+
+.tg-dialog-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.tg-dialog-actions .form-select,
+.tg-dialog-actions .btn,
+.tg-dialog-actions a.btn {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+  border-radius: var(--crm-radius, 8px) !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.tg-dialog-actions .form-select {
+  padding-right: 28px !important;
+  background-position: right 8px center !important;
+}
+
+#tgActiveTaskLink,
+#tgActiveIntakeLink {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#tgActiveTaskLink i,
+#tgActiveIntakeLink i,
+#tgOpenCreateTaskModalBtn i {
+  line-height: 1 !important;
+  font-size: 13px !important;
 }
 
 /* Messages thread */
@@ -333,25 +507,70 @@
 .tg-reply-box {
   background: var(--crm-surface, #ffffff);
   border-top: 1px solid var(--crm-border, #d7e2df);
+  padding: 12px 16px !important;
 }
 
-.tg-reply-box textarea.form-control {
+.tg-reply-box form {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+}
+
+#tgReplyText {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 140px;
+  resize: vertical;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  line-height: 1.4 !important;
+  border-radius: var(--crm-radius, 8px) !important;
+  border: 1px solid var(--crm-border, #d7e2df);
   background-color: var(--crm-control-bg, var(--crm-surface-2, #ffffff));
   color: var(--crm-text, #111a19);
-  border: 1px solid var(--crm-border, #d7e2df);
-  border-radius: var(--crm-radius, 8px);
+  box-sizing: border-box !important;
 }
 
-.tg-reply-box textarea.form-control:focus {
+#tgReplyText:focus {
   background-color: var(--crm-control-bg, var(--crm-surface-2, #ffffff));
   color: var(--crm-text, #111a19);
   border-color: var(--crm-accent, var(--crm-primary, #0f8f72));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-accent, #0f8f72) 18%, transparent);
 }
 
-.tg-reply-box textarea.form-control::placeholder {
+#tgReplyText::placeholder {
   color: var(--crm-text-muted, var(--crm-muted, #596966));
   opacity: 0.8;
+}
+
+#tgSendReplyBtn {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  width: 90px !important;
+  min-width: 90px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  border-radius: var(--crm-radius, 8px) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+#tgSendReplyBtn i {
+  font-size: 17px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+#tgSendReplyBtn span {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  margin: 0 !important;
 }
 
 /* Form controls & selects across module */
@@ -407,12 +626,6 @@
   background: var(--crm-bg-hover, #e2e8f0);
   color: var(--crm-text, #111a19);
   border-color: var(--crm-border-strong, #94a3b8);
-}
-
-#tgActiveChatId {
-  background-color: var(--crm-surface-2, #334155) !important;
-  color: var(--crm-text-muted, #94a3b8) !important;
-  border: 1px solid var(--crm-border, transparent);
 }
 
 /* Modal styling */

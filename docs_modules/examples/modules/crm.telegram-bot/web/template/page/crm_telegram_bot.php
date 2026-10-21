@@ -82,14 +82,16 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                 <div class="crm-card crm-section-card h-100 d-flex flex-column" style="min-height: 580px;">
                     <div class="crm-section-head p-3 border-bottom">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h2 class="h6 mb-0">Чаты с клиентами</h2>
+                            <h2 class="h6 mb-0 d-flex align-items-center gap-2">
+                                <span>Чаты с клиентами</span>
+                            </h2>
                             <button class="btn btn-sm btn-link p-0 text-decoration-none" id="tgRefreshDialogsBtn" title="Обновить список диалогов">
                                 <i class="fa-solid fa-arrows-rotate"></i>
                             </button>
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 tg-dialog-search-bar">
                             <input type="text" class="form-control form-control-sm" id="tgDialogSearch" placeholder="Поиск по имени или @username...">
-                            <select class="form-select form-select-sm" id="tgDialogStatusFilter" style="width: 110px;">
+                            <select class="form-select form-select-sm" id="tgDialogStatusFilter" style="width: 105px; flex-shrink: 0;">
                                 <option value="all">Все</option>
                                 <option value="open">Открыт</option>
                                 <option value="in_progress">В работе</option>
@@ -135,9 +137,9 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                                     <div class="small text-muted" id="tgActiveClientHandle">—</div>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-2 flex-wrap tg-dialog-actions">
                                 <!-- Status Selector -->
-                                <select class="form-select form-select-sm" id="tgActiveStatusSelect" style="width: 130px;">
+                                <select class="form-select form-select-sm" id="tgActiveStatusSelect" style="width: 125px;">
                                     <option value="open">Открыт</option>
                                     <option value="in_progress">В работе</option>
                                     <option value="resolved">Решён</option>
