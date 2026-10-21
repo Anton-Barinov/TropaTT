@@ -356,7 +356,7 @@ final class TelegramBotService
         $ins = $this->db->prepare(
             "INSERT INTO crm_telegram_configs
              (public_id, organization_id, bot_token_encrypted, webhook_secret_token, webhook_url, bot_username, auto_create_intake, welcome_message, default_project_public_id, default_assignee_user_public_id, is_active, created_at, updated_at)
-             VALUES (:pub_id, :org_id, :tok, :sec, :url, :uname, :intake, :welcome, :proj, :usr, 1, :now, :now)"
+             VALUES (:pub_id, :org_id, :tok, :sec, :url, :uname, :intake, :welcome, :proj, :usr, 1, :created_at, :updated_at)"
         );
         $ins->execute([
             ':pub_id' => $pubId,
@@ -369,7 +369,8 @@ final class TelegramBotService
             ':welcome' => $welcomeVal,
             ':proj' => $defaultProject,
             ':usr' => $defaultAssignee,
-            ':now' => $now,
+            ':created_at' => $now,
+            ':updated_at' => $now,
         ]);
 
         return $pubId;
@@ -627,6 +628,17 @@ final class TelegramBotService
         $cfg = $this->getConfig($organizationId);
 
         if (!$cfg || empty($cfg['bot_token'])) {
+            try {
+                $anyStmt = $this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 LIMIT 1");
+                $anyOrgId = $anyStmt ? (int)$anyStmt->fetchColumn() : 0;
+                if ($anyOrgId > 0) {
+                    $organizationId = $anyOrgId;
+                    $cfg = $this->getConfig($organizationId);
+                }
+            } catch (Throwable) {}
+        }
+
+        if (!$cfg || empty($cfg['bot_token'])) {
             throw new RuntimeException("Telegram bot configuration not found or inactive.");
         }
 
@@ -714,11 +726,13 @@ final class TelegramBotService
                 if ($intakeCreated) {
                     $action = 'intake_created';
                     if ($chatId !== 0) {
-                        $this->sendMessage(
-                            $organizationId,
-                            $chatId,
-                            "Спасибо, <b>" . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . "</b>!\nВаше обращение принято в CRM. Наш менеджер скоро свяжется с вами."
-                        );
+                        try {
+                            $this->sendMessage(
+                                $organizationId,
+                                $chatId,
+                                "Спасибо, <b>" . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . "</b>!\nВаше обращение принято в CRM. Наш менеджер скоро свяжется с вами."
+                            );
+                        } catch (Throwable) {}
                     }
                 }
             }
@@ -789,22 +803,49 @@ final class TelegramBotService
             $externalId = "tg_{$chatId}_{$messageId}";
             $sourceRef = "telegram:{$chatId}";
 
-            $ins = $this->db->prepare(
-                "INSERT INTO intake_items
-                 (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, created_at, updated_at)
-                 VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :now, :now)"
-            );
-            $ins->execute([
-                ':pub_id' => $publicId,
-                ':title' => $title,
-                ':desc' => $description,
-                ':sref' => $sourceRef,
-                ':ext_id' => $externalId,
-                ':now' => $now,
-            ]);
+            // Check if organization_id column exists
+            $hasOrgIdCol = false;
+            try {
+                $colCheck = $this->db->query("SELECT organization_id FROM intake_items LIMIT 0");
+                $hasOrgIdCol = ($colCheck !== false);
+            } catch (Throwable) {}
+
+            if ($hasOrgIdCol) {
+                $ins = $this->db->prepare(
+                    "INSERT INTO intake_items
+                     (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, organization_id, created_at, updated_at)
+                     VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :org_id, :created_at, :updated_at)"
+                );
+                $ins->execute([
+                    ':pub_id' => $publicId,
+                    ':title' => $title,
+                    ':desc' => $description,
+                    ':sref' => $sourceRef,
+                    ':ext_id' => $externalId,
+                    ':org_id' => $organizationId > 0 ? $organizationId : 1,
+                    ':created_at' => $now,
+                    ':updated_at' => $now,
+                ]);
+            } else {
+                $ins = $this->db->prepare(
+                    "INSERT INTO intake_items
+                     (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, created_at, updated_at)
+                     VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :created_at, :updated_at)"
+                );
+                $ins->execute([
+                    ':pub_id' => $publicId,
+                    ':title' => $title,
+                    ':desc' => $description,
+                    ':sref' => $sourceRef,
+                    ':ext_id' => $externalId,
+                    ':created_at' => $now,
+                    ':updated_at' => $now,
+                ]);
+            }
 
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            error_log('[TelegramBot] createIntakeItem failed: ' . $e->getMessage());
             return false;
         }
     }
@@ -861,14 +902,15 @@ final class TelegramBotService
         $stmt = $this->db->prepare(
             "INSERT INTO crm_telegram_user_bindings
              (public_id, organization_id, user_public_id, telegram_chat_id, verification_code, is_verified, created_at, updated_at)
-             VALUES (:pub_id, :org_id, :uid, 0, :code, 0, :now, :now)"
+             VALUES (:pub_id, :org_id, :uid, 0, :code, 0, :created_at, :updated_at)"
         );
         $stmt->execute([
             ':pub_id' => $pubId,
             ':org_id' => $organizationId,
             ':uid' => $userPublicId,
             ':code' => $code,
-            ':now' => $now,
+            ':created_at' => $now,
+            ':updated_at' => $now,
         ]);
 
         return $code;
@@ -1006,6 +1048,7 @@ final class TelegramBotService
         return [
             'configured' => $configured,
             'is_active' => $isActive,
+            'organization_id' => $organizationId,
             'status_label' => $statusLabel,
             'status_color' => $isActive ? 'success' : 'warning',
             'bot_username' => $botUsername,
