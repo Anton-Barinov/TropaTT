@@ -258,6 +258,20 @@ $auJs = [
   'kpi_target' => $au('kpi_target', 'Доступная версия'),
   'kpi_target_loading' => $au('kpi_target_loading', 'Покажем после проверки.'),
   'technical_changes' => $au('technical_changes', 'Технические данные изменений'),
+  'modulesSectionTitle' => $au('modules_section_title', 'Обновления модулей'),
+  'modulesSectionSubtitle' => $au('modules_section_subtitle', 'Проверка и установка обновлений для установленных модулей из каталога Marketplace.'),
+  'modulesCheckBtn' => $au('modules_check_btn', 'Проверить обновления модулей'),
+  'modulesUpdateAllBtn' => $au('modules_update_all_btn', 'Обновить все модули'),
+  'modulesAllUpToDate' => $au('modules_all_up_to_date', 'Все установленные модули актуальны'),
+  'modulesUpdatesAvailable' => $au('modules_updates_available', 'Доступны обновления: {count}'),
+  'modulesManageLink' => $au('modules_manage_link', 'Перейти в каталог и управление модулями'),
+  'modulesColModule' => $au('modules_col_module', 'Модуль'),
+  'modulesColVersion' => $au('modules_col_version', 'Версия'),
+  'modulesColStatus' => $au('modules_col_status', 'Статус'),
+  'modulesColAction' => $au('modules_col_action', 'Действие'),
+  'modulesReadyToUpdate' => $au('modules_ready_to_update', 'Готово к обновлению'),
+  'modulesManualUpdate' => $au('modules_manual_update', 'Требуется ручное обновление'),
+  'btnUpdate' => $au('update_button', 'Обновить'),
 ];
 ?>
 <body data-page="admin-updates" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -511,6 +525,32 @@ $auJs = [
               <details class="updates-raw"><summary><?= htmlspecialchars($au('technical_status', 'Технические данные'), ENT_QUOTES, 'UTF-8') ?></summary><pre id="updatesMigrationRaw">{}</pre></details>
             </div>
           </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="updates-card mt-4" id="moduleUpdatesCard">
+      <div class="updates-card-head">
+        <div>
+          <h2><?= htmlspecialchars($au('modules_section_title', 'Обновления модулей'), ENT_QUOTES, 'UTF-8') ?></h2>
+          <p class="updates-muted mb-0"><?= htmlspecialchars($au('modules_section_subtitle', 'Проверка и установка обновлений для установленных модулей из каталога Marketplace.'), ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span id="moduleUpdatesBadge" class="updates-badge neutral"><?= htmlspecialchars($au('status_checking', 'Проверяем...'), ENT_QUOTES, 'UTF-8') ?></span>
+          <button class="btn btn-sm crm-btn-secondary" type="button" id="btnCheckModuleUpdates" title="<?= htmlspecialchars($au('modules_check_btn', 'Проверить обновления модулей'), ENT_QUOTES, 'UTF-8') ?>">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i> <?= htmlspecialchars($au('modules_check_btn', 'Проверить обновления'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+          <button class="btn btn-sm crm-btn-primary" type="button" id="btnUpdateAllModules" style="display:none">
+            <i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> <?= htmlspecialchars($au('modules_update_all_btn', 'Обновить все модули'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div id="moduleUpdatesContent" class="updates-empty"><?= htmlspecialchars($au('loading_initial', 'Загружаем обновления модулей...'), ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="mt-3 text-end">
+          <a href="index.php?route=admin-modules" class="small text-muted text-decoration-none">
+            <i class="fa-solid fa-cubes me-1" aria-hidden="true"></i><?= htmlspecialchars($au('modules_manage_link', 'Перейти в каталог и управление модулями'), ENT_QUOTES, 'UTF-8') ?> &rarr;
+          </a>
         </div>
       </div>
     </section>
@@ -2247,6 +2287,121 @@ $auJs = [
     showNotice(doneMessage, 'success');
   }
 
+  const moduleState = { updates: [], checking: false, updating: false, canUpdate: false };
+
+  async function loadModuleUpdates() {
+    const badge = $('moduleUpdatesBadge');
+    const content = $('moduleUpdatesContent');
+    const updateAllBtn = $('btnUpdateAllModules');
+    if (!content) return;
+    moduleState.checking = true;
+    if (badge) { badge.className = 'updates-badge neutral'; badge.textContent = tr('statusChecking', 'Проверяем...'); }
+    try {
+      const res = await api('/api/v1/marketplace/updates');
+      const data = (res && res.data) || {};
+      const items = (data.items || []).filter(item => item && item.full_code);
+      moduleState.updates = items;
+      moduleState.canUpdate = data.can_update === true;
+      const supported = items.filter(it => it.update_supported);
+      if (items.length === 0) {
+        if (badge) { badge.className = 'updates-badge ok'; badge.textContent = tr('modulesAllUpToDate', 'Все модули актуальны'); }
+        content.className = 'updates-empty';
+        content.innerHTML = '<div class="text-center py-3 text-muted"><i class="fa-solid fa-circle-check fs-2 text-success mb-2 d-block"></i>' + esc(tr('modulesAllUpToDate', 'Все установленные модули актуальны. Нет доступных обновлений.')) + '</div>';
+        if (updateAllBtn) updateAllBtn.style.display = 'none';
+      } else {
+        if (badge) { badge.className = 'updates-badge warn'; badge.textContent = tr('modulesUpdatesAvailable', `Доступно: ${items.length}`, { count: items.length }); }
+        if (updateAllBtn) updateAllBtn.style.display = (supported.length > 0 && moduleState.canUpdate) ? '' : 'none';
+        let html = '<div class="table-responsive"><table class="table crm-table mb-0"><thead><tr>' +
+          '<th>' + esc(tr('modulesColModule', 'Модуль')) + '</th>' +
+          '<th>' + esc(tr('modulesColVersion', 'Версия')) + '</th>' +
+          '<th>' + esc(tr('modulesColStatus', 'Статус')) + '</th>' +
+          '<th style="width:160px;text-align:right">' + esc(tr('modulesColAction', 'Действие')) + '</th>' +
+          '</tr></thead><tbody>';
+        items.forEach(it => {
+          const canAct = it.update_supported && moduleState.canUpdate;
+          html += '<tr>' +
+            '<td><strong>' + esc(it.title || it.full_code) + '</strong><br><small class="text-muted">' + esc(it.full_code) + '</small></td>' +
+            '<td><span class="text-muted">' + esc(it.installed_version) + '</span> &rarr; <span class="badge bg-success-subtle text-success border border-success-subtle">' + esc(it.latest_version) + '</span></td>' +
+            '<td>' + (it.update_supported ? '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>' + esc(tr('modulesReadyToUpdate', 'Готово к обновлению')) + '</span>' : '<span class="text-muted">' + esc(tr('modulesManualUpdate', 'Требуется ручное обновление')) + '</span>') + '</td>' +
+            '<td style="text-align:right">' +
+              (canAct ? '<button type="button" class="btn btn-sm crm-btn-primary btn-module-row-update" data-code="' + esc(it.full_code) + '"><i class="fa-solid fa-arrow-up me-1"></i>' + esc(tr('btnUpdate', 'Обновить')) + '</button>' : '') +
+            '</td>' +
+          '</tr>';
+        });
+        html += '</tbody></table></div>';
+        content.className = '';
+        content.innerHTML = html;
+        content.querySelectorAll('.btn-module-row-update').forEach(b => {
+          b.addEventListener('click', () => updateSingleModule(b.getAttribute('data-code'), b));
+        });
+      }
+    } catch (e) {
+      if (badge) { badge.className = 'updates-badge danger'; badge.textContent = tr('statusFailed', 'Ошибка проверки'); }
+      content.className = 'updates-empty';
+      content.innerHTML = '<div class="text-danger py-2">' + esc(e.message || 'Не удалось проверить обновления модулей') + '</div>';
+    } finally {
+      moduleState.checking = false;
+    }
+  }
+
+  async function updateSingleModule(code, btn) {
+    if (!code || !btn) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + esc(tr('stepWorking', 'выполняется...'));
+    try {
+      const res = await api('/api/v1/marketplace/update', { method: 'POST', body: { full_code: code }, timeoutMs: 300000 });
+      if (res && res.success) {
+        btn.className = 'btn btn-sm btn-success disabled';
+        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>' + esc(tr('stateApplied', 'установлено'));
+        setTimeout(loadModuleUpdates, 1500);
+      } else {
+        alert((res && res.message) || 'Ошибка обновления модуля');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-arrow-up me-1"></i>' + esc(tr('btnUpdate', 'Обновить'));
+      }
+    } catch (err) {
+      alert(err.message || 'Ошибка обновления модуля');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-arrow-up me-1"></i>' + esc(tr('btnUpdate', 'Обновить'));
+    }
+  }
+
+  async function updateAllModules() {
+    const btn = $('btnUpdateAllModules');
+    if (!btn || moduleState.updating) return;
+    if (!confirm('Обновить все доступные модули?')) return;
+    moduleState.updating = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + esc(tr('stepWorking', 'выполняется...'));
+    try {
+      const res = await api('/api/v1/marketplace/update', { method: 'POST', body: { all: true }, timeoutMs: 600000 });
+      if (res && res.success) {
+        const data = res.data || {};
+        const successCount = data.success_count || 0;
+        const failCount = data.fail_count || 0;
+        if (failCount === 0) {
+          alert(`Все модули успешно обновлены (${successCount} шт.)`);
+        } else {
+          alert(`Обновлено модулей: ${successCount}, с ошибками: ${failCount}`);
+        }
+        await loadModuleUpdates();
+      } else {
+        alert((res && res.message) || 'Ошибка обновления модулей');
+      }
+    } catch (err) {
+      alert(err.message || 'Ошибка обновления модулей');
+    } finally {
+      moduleState.updating = false;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down me-1"></i> ' + esc(tr('modulesUpdateAllBtn', 'Обновить все модули'));
+    }
+  }
+
+  const btnCheckModules = $('btnCheckModuleUpdates');
+  if (btnCheckModules) btnCheckModules.addEventListener('click', () => loadModuleUpdates());
+  const btnUpdateAll = $('btnUpdateAllModules');
+  if (btnUpdateAll) btnUpdateAll.addEventListener('click', () => updateAllModules());
+
   withAction('initial load', async () => {
     // Hydrate the cookie-backed API session before any update requests. The
     // login page intentionally keeps access tokens in memory only, so a full
@@ -2285,6 +2440,7 @@ $auJs = [
     try {
       await changes();
     } catch (_) { /* rendered by renderChanges fallback */ }
+    loadModuleUpdates().catch(() => {});
     removePhaseProgress();
   });
 })();
