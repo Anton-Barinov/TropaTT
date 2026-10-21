@@ -304,7 +304,19 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             $codes = array_values(array_filter(array_map('trim', array_map('strval', $fullCodes)), [ModuleMarketplaceClient::class, 'isValidCode']));
         } elseif ($isAll) {
             $updatesResult = $this->updates();
-            $items = $updatesResult->payload()['data']['items'] ?? [];
+            $updatesPayload = $updatesResult->payload();
+            if ($updatesResult->status() >= 400 || ($updatesPayload['success'] ?? false) !== true) {
+                return $updatesResult;
+            }
+            $updatesData = $updatesPayload['data'] ?? null;
+            if (!is_array($updatesData) || !is_array($updatesData['items'] ?? null)) {
+                return $this->error(
+                    'MARKETPLACE_INVALID_RESPONSE',
+                    $this->t('module/messages.marketplace_unreachable'),
+                    502
+                );
+            }
+            $items = $updatesData['items'];
             $codes = [];
             foreach ($items as $item) {
                 if (!empty($item['update_supported']) && !empty($item['full_code'])) {
