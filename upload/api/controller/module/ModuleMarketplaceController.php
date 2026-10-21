@@ -212,97 +212,158 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         }
     }
 
-    /** Update one registered module to the latest published Marketplace release. */
-    public function update(): JsonResponse
+    /**
+     * Perform the actual update of a single module.
+     * Returns metadata array on success or throws an exception.
+     *
+     * @return array{full_code: string, version: string, is_active: bool}
+     */
+    public function performUpdate(string $fullCode): array
     {
-        if (!$this->isRoot()) {
-            return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
-        }
-        $input = $this->request()->allInput();
-        $fullCode = trim((string)($input['full_code'] ?? ''));
-        if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
-            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
-        }
-
         $pm = $this->container->get('plugin.manager');
         $mc = $this->container->get('module.config');
         $pm->discover();
         $registry = $mc->getRegistry($fullCode);
         $manifest = $pm->getManifest($fullCode);
         if ($registry === null || $manifest === null || !is_dir($pm->getModulesDir() . '/' . $fullCode)) {
-            return $this->error('MODULE_NOT_INSTALLED', $this->t('module/messages.not_found'), 404);
+            throw new RuntimeException($this->t('module/messages.not_found'));
         }
         if (str_starts_with($fullCode, 'crm.language-pack-')) {
-            return $this->error('MODULE_UPDATE_UNSUPPORTED', $this->t('module/messages.marketplace_update_unsupported'), 409);
+            throw new RuntimeException($this->t('module/messages.marketplace_update_unsupported'));
+        }
+
+        $client = $this->client();
+        $detail = $client->module($fullCode, true);
+        $release = $client->requestInstall($fullCode, $this->coreVersion(), $client->currentDomain());
+        $targetVersion = trim((string)($release['version'] ?? ''));
+        $sha256 = strtolower(trim((string)($release['sha256'] ?? '')));
+        if ((string)($release['full_code'] ?? $release['module_name'] ?? $fullCode) !== $fullCode) {
+            throw new RuntimeException('Marketplace returned a different module code');
+        }
+        if (!preg_match('/^[a-f0-9]{64}$/', $sha256)) {
+            throw new RuntimeException('Marketplace update has no valid SHA-256 pin');
+        }
+        $releaseInfo = null;
+        foreach ((array)($detail['releases'] ?? []) as $candidate) {
+            if (is_array($candidate) && (string)($candidate['version'] ?? '') === $targetVersion) {
+                $releaseInfo = $candidate;
+                break;
+            }
+        }
+        if ($releaseInfo === null || !hash_equals($sha256, strtolower((string)($releaseInfo['sha256_checksum'] ?? '')))) {
+            throw new RuntimeException('Marketplace release metadata does not match the signed update request');
+        }
+        $minCore = trim((string)($releaseInfo['min_core_version'] ?? $detail['min_core_version'] ?? ''));
+        $releaseConstraint = \Api\System\Library\Module\Manifest::fromArray([
+            'name' => $fullCode,
+            'version' => $targetVersion,
+            'vendor' => 'marketplace',
+            'core_version' => $minCore,
+        ]);
+        if ($minCore !== '' && !$pm->checkCoreCompatibility($releaseConstraint, $this->coreVersion())) {
+            throw new RuntimeException($this->t('module/messages.marketplace_core_incompatible'));
+        }
+        $minPhp = trim((string)($releaseInfo['min_php_version'] ?? ''));
+        if ($minPhp !== '' && version_compare(PHP_VERSION, $minPhp, '<')) {
+            throw new RuntimeException($this->t('module/messages.marketplace_php_incompatible'));
+        }
+
+        $installer = new ModuleRemoteInstaller(
+            $pm,
+            $mc,
+            $this->container->get('module.migrations'),
+            dirname(__DIR__, 3),
+        );
+        $installer->updateFromUrl(
+            (string)$release['download_url'],
+            $fullCode,
+            $targetVersion,
+            $this->coreVersion(),
+            $sha256,
+        );
+
+        $this->dispatchModuleHook('module.updated', ['name' => $fullCode, 'source' => 'marketplace', 'version' => $targetVersion]);
+
+        return [
+            'full_code' => $fullCode,
+            'version' => $targetVersion,
+            'is_active' => (bool)($registry['is_active'] ?? false),
+        ];
+    }
+
+    /** Update one or multiple registered modules to their latest published Marketplace release. */
+    public function update(): JsonResponse
+    {
+        if (!$this->isRoot()) {
+            return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
+        }
+        $input = $this->request()->allInput();
+        $isAll = !empty($input['all']);
+        $fullCodes = $input['full_codes'] ?? null;
+        if (is_array($fullCodes)) {
+            $codes = array_values(array_filter(array_map('trim', array_map('strval', $fullCodes)), [ModuleMarketplaceClient::class, 'isValidCode']));
+        } elseif ($isAll) {
+            $updatesResult = $this->updates();
+            $items = $updatesResult->payload()['data']['items'] ?? [];
+            $codes = [];
+            foreach ($items as $item) {
+                if (!empty($item['update_supported']) && !empty($item['full_code'])) {
+                    $codes[] = (string)$item['full_code'];
+                }
+            }
+        } else {
+            $codes = null;
+        }
+
+        if ($codes !== null) {
+            if ($codes === []) {
+                return $this->success('MODULE_MARKETPLACE_BATCH_UPDATED', $this->t('common/messages.ok'), [
+                    'updated' => [],
+                    'failed' => [],
+                    'total' => 0,
+                    'success_count' => 0,
+                    'fail_count' => 0,
+                ]);
+            }
+
+            $updated = [];
+            $failed = [];
+            foreach ($codes as $code) {
+                try {
+                    $res = $this->performUpdate($code);
+                    $updated[] = $res;
+                } catch (\Throwable $e) {
+                    AppLog::error('[ModuleMarketplaceController::update batch] ' . $code . ': ' . $e->getMessage());
+                    $failed[] = [
+                        'full_code' => $code,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            return $this->success('MODULE_MARKETPLACE_BATCH_UPDATED', $this->t('module/messages.marketplace_updated'), [
+                'updated' => $updated,
+                'failed' => $failed,
+                'total' => count($codes),
+                'success_count' => count($updated),
+                'fail_count' => count($failed),
+            ]);
+        }
+
+        $fullCode = trim((string)($input['full_code'] ?? ''));
+        if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
+            return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
         }
 
         try {
-            $client = $this->client();
-            $detail = $client->module($fullCode, true);
-            $release = $client->requestInstall($fullCode, $this->coreVersion(), $client->currentDomain());
-            $targetVersion = trim((string)($release['version'] ?? ''));
-            $sha256 = strtolower(trim((string)($release['sha256'] ?? '')));
-            if ((string)($release['full_code'] ?? $release['module_name'] ?? $fullCode) !== $fullCode) {
-                throw new RuntimeException('Marketplace returned a different module code');
-            }
-            if (!preg_match('/^[a-f0-9]{64}$/', $sha256)) {
-                throw new RuntimeException('Marketplace update has no valid SHA-256 pin');
-            }
-            $releaseInfo = null;
-            foreach ((array)($detail['releases'] ?? []) as $candidate) {
-                if (is_array($candidate) && (string)($candidate['version'] ?? '') === $targetVersion) {
-                    $releaseInfo = $candidate;
-                    break;
-                }
-            }
-            if ($releaseInfo === null || !hash_equals($sha256, strtolower((string)($releaseInfo['sha256_checksum'] ?? '')))) {
-                throw new RuntimeException('Marketplace release metadata does not match the signed update request');
-            }
-            $minCore = trim((string)($releaseInfo['min_core_version'] ?? $detail['min_core_version'] ?? ''));
-            $releaseConstraint = \Api\System\Library\Module\Manifest::fromArray([
-                'name' => $fullCode,
-                'version' => $targetVersion,
-                'vendor' => 'marketplace',
-                'core_version' => $minCore,
-            ]);
-            if ($minCore !== '' && !$pm->checkCoreCompatibility($releaseConstraint, $this->coreVersion())) {
-                return $this->error('MODULE_CORE_INCOMPATIBLE', $this->t('module/messages.marketplace_core_incompatible'), 409, [
-                    'required_core_version' => $minCore,
-                ]);
-            }
-            $minPhp = trim((string)($releaseInfo['min_php_version'] ?? ''));
-            if ($minPhp !== '' && version_compare(PHP_VERSION, $minPhp, '<')) {
-                return $this->error('MODULE_PHP_INCOMPATIBLE', $this->t('module/messages.marketplace_php_incompatible'), 409, [
-                    'required_php_version' => $minPhp,
-                ]);
-            }
-
-            $installer = new ModuleRemoteInstaller(
-                $pm,
-                $mc,
-                $this->container->get('module.migrations'),
-                dirname(__DIR__, 3),
-            );
-            $installer->updateFromUrl(
-                (string)$release['download_url'],
-                $fullCode,
-                $targetVersion,
-                $this->coreVersion(),
-                $sha256,
-            );
-
-            $this->dispatchModuleHook('module.updated', ['name' => $fullCode, 'source' => 'marketplace', 'version' => $targetVersion]);
-            return $this->success('MODULE_MARKETPLACE_UPDATED', $this->t('module/messages.marketplace_updated'), [
-                'full_code' => $fullCode,
-                'version' => $targetVersion,
-                'is_active' => (bool)($registry['is_active'] ?? false),
-            ]);
+            $res = $this->performUpdate($fullCode);
+            return $this->success('MODULE_MARKETPLACE_UPDATED', $this->t('module/messages.marketplace_updated'), $res);
         } catch (ModulePackageHashMismatchException $e) {
             AppLog::error('[ModuleMarketplaceController::update] ' . $fullCode . ': ' . $e->getMessage());
             return $this->error('MARKETPLACE_SHA256_MISMATCH', $this->t('module/messages.marketplace_sha256_mismatch'), 502);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleMarketplaceController::update] ' . $fullCode . ': ' . $e->getMessage());
-            return $this->error('MODULE_UPDATE_FAILED', $this->t('module/messages.marketplace_update_failed'), 500, [
+            return $this->error('MODULE_UPDATE_FAILED', $e->getMessage() ?: $this->t('module/messages.marketplace_update_failed'), 500, [
                 'full_code' => $fullCode,
             ]);
         }

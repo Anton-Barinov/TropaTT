@@ -422,7 +422,7 @@ final class ModuleController
         }
         $modules = array_values(array_unique(array_filter(array_map('strval', $modules), static fn(string $m): bool => $m !== '')));
 
-        $allowed = ['install', 'activate', 'deactivate', 'uninstall', 'purge'];
+        $allowed = ['install', 'activate', 'deactivate', 'uninstall', 'purge', 'update'];
         if (!in_array($action, $allowed, true)) {
             return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
         }
@@ -439,6 +439,20 @@ final class ModuleController
 
         foreach ($modules as $name) {
             try {
+                if ($action === 'update') {
+                    $mpController = new ModuleMarketplaceController($this->container);
+                    $updateRes = $mpController->performUpdate($name);
+                    $succeeded++;
+                    $results[] = [
+                        'name' => $name,
+                        'success' => true,
+                        'code' => 'MODULE_UPDATED',
+                        'message' => $this->t('module/messages.marketplace_updated', 'Module updated from marketplace'),
+                        'data' => $updateRes,
+                    ];
+                    continue;
+                }
+
                 $response = match ($action) {
                     'install' => $this->install(['name' => $name]),
                     'activate' => $this->activate(['name' => $name]),

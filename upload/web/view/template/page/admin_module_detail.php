@@ -5,6 +5,7 @@
 <main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_module_detail.link_admin"><?= htmlspecialchars($t('admin_module_detail.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item"><a href="index.php?route=admin-modules" data-i18n="admin_module_detail.link_modules"><?= htmlspecialchars($t('admin_module_detail.link_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" id="moduleBreadcrumb"><?= htmlspecialchars($t('admin_module_detail.breadcrumb_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" id="moduleTitle" data-i18n="admin_module_detail.page_title"><?= htmlspecialchars($t('admin_module_detail.page_title', 'Детали модуля'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" id="moduleDesc"></p><div id="modulePageLink" class="mt-2"></div></div></div>
 
 <div id="moduleHeroBanner" class="mb-4" style="display:none"></div>
+<div id="moduleUpdateBanner" class="mb-4" style="display:none"></div>
 
 <div class="row g-4 mb-4" id="moduleStats" style="display:none">
   <div class="col-md-3"><div class="crm-card crm-kpi-card"><small class="text-muted" data-i18n="admin_module_detail.kpi_version"><?= htmlspecialchars($t('admin_module_detail.kpi_version', 'Версия'), ENT_QUOTES, 'UTF-8') ?></small><h2 class="h4 mb-0" id="statVersion">—</h2></div></div>
@@ -94,6 +95,47 @@
                 }
                 document.getElementById('statStatus').textContent = m.is_active ? window.CRM.i18n.t('admin_module_detail.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_module_detail.state_installed', 'Установлен') : window.CRM.i18n.t('admin_module_detail.state_discovered', 'Обнаружен'));
                 document.getElementById('statCore').textContent = m.core_version || '—';
+
+                // Check if this module has a published update in the Marketplace
+                window.CRM.api.request('api/v1/marketplace/updates', { method: 'GET', timeoutMs: 15000 })
+                    .then(function (res) {
+                        var items = (res.data && res.data.items) || [];
+                        var update = items.find(function (it) { return it.full_code === name; });
+                        var updateBanner = document.getElementById('moduleUpdateBanner');
+                        if (update && update.update_supported && updateBanner) {
+                            updateBanner.style.display = '';
+                            updateBanner.innerHTML = '<div class="alert alert-warning p-3 d-flex align-items-center justify-content-between flex-wrap gap-3 shadow-sm border-warning">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<div class="me-3 fs-2 text-warning"><i class="fa-solid fa-cloud-arrow-up"></i></div>' +
+                                    '<div>' +
+                                        '<h6 class="alert-heading mb-1 fw-bold">' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.update_available_title', 'Доступно обновление модуля')) + '</h6>' +
+                                        '<div class="small">' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.update_available_desc', 'Доступна новая версия: {latest} (установлена: {current})').replace('{latest}', update.latest_version).replace('{current}', update.installed_version)) + '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<button type="button" class="btn btn-warning fw-semibold px-4 py-2" id="btnUpdateCurrentModule">' +
+                                    '<i class="fa-solid fa-arrow-up me-2" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.btn_update_now', 'Обновить модуль') + ' v' + update.latest_version) +
+                                '</button>' +
+                            '</div>';
+                            var btn = document.getElementById('btnUpdateCurrentModule');
+                            if (btn) {
+                                btn.addEventListener('click', function () {
+                                    btn.disabled = true;
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.updating', 'Обновление…'));
+                                    window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_code: name }, timeoutMs: 300000 })
+                                        .then(function () {
+                                            if (window.CRM.toast) window.CRM.toast.success(window.CRM.i18n.t('admin_module_detail.update_success', 'Модуль успешно обновлён'));
+                                            setTimeout(function () { window.location.reload(); }, 1200);
+                                        })
+                                        .catch(function (err) {
+                                            btn.disabled = false;
+                                            btn.innerHTML = '<i class="fa-solid fa-arrow-up me-2" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.btn_update_now', 'Обновить модуль') + ' v' + update.latest_version);
+                                            if (window.CRM.toast) window.CRM.toast.error((err.envelope && err.envelope.message) || err.message || 'Ошибка обновления');
+                                        });
+                                });
+                            }
+                        }
+                    })
+                    .catch(function () {});
 
                 loadConfig(name, pageRoutes);
                 loadMigrations(name);

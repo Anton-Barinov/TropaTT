@@ -26,11 +26,19 @@
     <span class="small text-muted" data-i18n="admin_modules.filter_label"><?= htmlspecialchars($t('admin_modules.filter_label', 'Фильтр:'), ENT_QUOTES, 'UTF-8') ?></span>
     <div class="btn-group btn-group-sm flex-wrap" id="moduleCategoryFilters" role="group" aria-label="<?= htmlspecialchars($t('admin_modules.filter_aria', 'Фильтр по категориям'), ENT_QUOTES, 'UTF-8') ?>"></div>
 </div>
-<div class="alert alert-info py-2" id="moduleUpdateSummary" hidden role="status" aria-live="polite"></div>
+<div class="alert alert-info py-2" id="moduleUpdateSummary" hidden role="status" aria-live="polite">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span id="moduleUpdateSummaryText"></span>
+        <button type="button" class="btn btn-sm btn-primary" id="btnUpdateAllModulesBanner" style="display:none">
+            <i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.update_all_btn', 'Обновить все модули'), ENT_QUOTES, 'UTF-8') ?>
+        </button>
+    </div>
+</div>
 
 <div class="crm-card crm-section-card p-0 mb-3 crm-admin-modules-table-card">
 <div class="crm-bulk-actions d-none align-items-center flex-wrap gap-2 p-2 border-bottom" id="moduleBulkToolbar">
     <span class="me-1 small text-muted" id="moduleBulkLabel"><strong id="bulkCount">0</strong> <span data-i18n="admin_modules.bulk_selected"><?= htmlspecialchars($t('admin_modules.bulk_selected', 'выбрано'), ENT_QUOTES, 'UTF-8') ?></span></span>
+    <button type="button" class="btn btn-sm crm-btn-primary" id="bulkUpdateBtn" style="display:none"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.bulk_update', 'Обновить'), ENT_QUOTES, 'UTF-8') ?></button>
     <button type="button" class="btn btn-sm crm-btn-primary" id="bulkInstallBtn" data-i18n="admin_modules.bulk_install"><i class="fa-solid fa-download" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.bulk_install', 'Установить'), ENT_QUOTES, 'UTF-8') ?></button>
     <button type="button" class="btn btn-sm crm-btn-success" id="bulkActivateBtn" data-i18n="admin_modules.bulk_activate"><i class="fa-solid fa-play" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.bulk_activate', 'Активировать'), ENT_QUOTES, 'UTF-8') ?></button>
     <button type="button" class="btn btn-sm crm-btn-warning" id="bulkDeactivateBtn" data-i18n="admin_modules.bulk_deactivate"><i class="fa-solid fa-pause" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules.bulk_deactivate', 'Деактивировать'), ENT_QUOTES, 'UTF-8') ?></button>
@@ -189,6 +197,16 @@
             var button = document.getElementById(entry[0]);
             if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0 || (entry[1] === 'install' && !canInstall);
         });
+
+        var bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+        if (bulkUpdateBtn) {
+            var selectedWithUpdates = Object.keys(state.selected).filter(function (name) {
+                return state.selected[name] && state.updates[name] && state.updates[name].update_supported;
+            });
+            bulkUpdateBtn.style.display = (selectedWithUpdates.length > 0 && state.canUpdate) ? '' : 'none';
+            bulkUpdateBtn.innerHTML = '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.bulk_update', 'Обновить')) + (selectedWithUpdates.length > 1 ? ' (' + selectedWithUpdates.length + ')' : '');
+        }
+
         updateSelectAllState();
     }
 
@@ -332,12 +350,21 @@
                 var supportedCount = Object.keys(updates).filter(function (code) { return updates[code].update_supported; }).length;
                 var unsupportedCount = Object.keys(updates).length - supportedCount;
                 var summary = document.getElementById('moduleUpdateSummary');
+                var summaryText = document.getElementById('moduleUpdateSummaryText');
+                var updateAllBtn = document.getElementById('btnUpdateAllModulesBanner');
                 if (summary) {
-                    summary.hidden = supportedCount + unsupportedCount === 0;
-                    summary.textContent = supportedCount + unsupportedCount
-                        ? window.CRM.i18n.t('admin_modules.updates_available', 'Доступны обновления модулей: {count}. Обновляйте каждый модуль отдельно после проверки его изменений.').replace('{count}', String(supportedCount + unsupportedCount))
-                            + (unsupportedCount ? ' ' + window.CRM.i18n.t('admin_modules.updates_partly_unsupported', 'Для некоторых типов модулей автообновление пока недоступно: {count}.').replace('{count}', String(unsupportedCount)) : '')
-                        : '';
+                    var totalUpdates = supportedCount + unsupportedCount;
+                    summary.hidden = totalUpdates === 0;
+                    if (summaryText) {
+                        summaryText.textContent = totalUpdates
+                            ? window.CRM.i18n.t('admin_modules.updates_available', 'Доступны обновления модулей: {count}.').replace('{count}', String(totalUpdates))
+                                + (unsupportedCount ? ' ' + window.CRM.i18n.t('admin_modules.updates_partly_unsupported', 'Для некоторых типов модулей автообновление пока недоступно: {count}.').replace('{count}', String(unsupportedCount)) : '')
+                            : '';
+                    }
+                    if (updateAllBtn) {
+                        updateAllBtn.style.display = (supportedCount > 0 && state.canUpdate) ? '' : 'none';
+                        updateAllBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_all_btn', 'Обновить все модули')) + ' (' + supportedCount + ')';
+                    }
                 }
                 renderRows();
             })
@@ -348,6 +375,44 @@
                 state.canUpdate = false;
                 renderRows();
             });
+    }
+
+    function updateAllMarketplaceModules() {
+        var supported = Object.keys(state.updates).filter(function (code) { return state.updates[code].update_supported; });
+        if (supported.length === 0) return;
+        confirmModuleAction({
+            title: window.CRM.i18n.t('admin_modules.update_all_confirm_title', 'Обновить все модули?'),
+            message: window.CRM.i18n.t('admin_modules.update_all_confirm_msg', 'Все доступные обновления модулей ({count} шт.) будут установлены последовательно. Продолжить?').replace('{count}', String(supported.length)),
+            actionText: window.CRM.i18n.t('admin_modules.update_button', 'Обновить'),
+            actionClass: 'crm-btn-primary'
+        }).then(function (ok) {
+            if (!ok) return;
+            var btn = document.getElementById('btnUpdateAllModulesBanner');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + esc(window.CRM.i18n.t('admin_modules.update_running', 'Обновление…'));
+            }
+            window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { all: true }, timeoutMs: 600000 })
+                .then(function (res) {
+                    var data = (res && res.data) || {};
+                    var succ = data.success_count || 0;
+                    var fail = data.fail_count || 0;
+                    if (fail === 0) {
+                        notify(window.CRM.i18n.t('admin_modules.batch_update_success', 'Обновлено модулей: {success}.').replace('{success}', String(succ)), 'success');
+                    } else {
+                        notify(window.CRM.i18n.t('admin_modules.batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.').replace('{success}', String(succ)).replace('{fail}', String(fail)), 'warning');
+                    }
+                    state.updates = {};
+                    return loadModules();
+                })
+                .catch(function (err) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_all_btn', 'Обновить все модули'));
+                    }
+                    notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модули.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
+                });
+        });
     }
 
     function updateMarketplaceModule(name, button) {
@@ -579,6 +644,48 @@
             actionText: window.CRM.i18n.t('admin_modules.bulk_purge', 'Удалить полностью'),
             actionClass: 'crm-btn-danger-soft'
         });
+
+        var bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+        if (bulkUpdateBtn) {
+            bulkUpdateBtn.addEventListener('click', function () {
+                var selectedNames = Object.keys(state.selected).filter(function (name) {
+                    return state.selected[name] && state.updates[name] && state.updates[name].update_supported;
+                });
+                if (selectedNames.length === 0) return;
+                confirmModuleAction({
+                    title: window.CRM.i18n.t('admin_modules.bulk_update_confirm_title', 'Обновить выбранные модули?'),
+                    message: window.CRM.i18n.t('admin_modules.bulk_update_confirm_msg', 'Выбранные модули ({count} шт.) будут обновлены до актуальных версий из каталога. Продолжить?').replace('{count}', String(selectedNames.length)),
+                    actionText: window.CRM.i18n.t('admin_modules.bulk_update', 'Обновить'),
+                    actionClass: 'crm-btn-primary'
+                }).then(function (ok) {
+                    if (!ok) return;
+                    setBulkBusy(true);
+                    window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_codes: selectedNames }, timeoutMs: 600000 })
+                        .then(function (res) {
+                            var data = (res && res.data) || {};
+                            var succ = data.success_count || 0;
+                            var fail = data.fail_count || 0;
+                            if (fail === 0) {
+                                notify(window.CRM.i18n.t('admin_modules.batch_update_success', 'Обновлено модулей: {success}.').replace('{success}', String(succ)), 'success');
+                            } else {
+                                notify(window.CRM.i18n.t('admin_modules.batch_update_partial', 'Обновлено модулей: {success}, с ошибками: {fail}.').replace('{success}', String(succ)).replace('{fail}', String(fail)), 'warning');
+                            }
+                            state.updates = {};
+                            resetSelection();
+                            return loadModules();
+                        })
+                        .catch(function (err) {
+                            setBulkBusy(false);
+                            notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модули.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
+                        });
+                });
+            });
+        }
+
+        var btnUpdateAllBanner = document.getElementById('btnUpdateAllModulesBanner');
+        if (btnUpdateAllBanner) {
+            btnUpdateAllBanner.addEventListener('click', updateAllMarketplaceModules);
+        }
 
         var clearBtn = document.getElementById('bulkClearBtn');
         if (clearBtn) {
