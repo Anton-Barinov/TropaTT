@@ -4,39 +4,26 @@ declare(strict_types=1);
 
 namespace Module\Crm\YandexDisk\Mcp;
 
-use Module\Crm\YandexDisk\Service\YandexDiskService;
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
 
-class UploadFileTool
+/**
+ * Deliberately fail closed until a real, streamed Yandex Disk upload exists.
+ * No file metadata is written and no public URL is fabricated.
+ */
+final class UploadFileTool implements ModuleMcpToolInterface
 {
-    public function execute(array $args, array $context): array
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $db = $context['db'] ?? null;
-        if (!$db instanceof \PDO) {
-            return ['success' => false, 'error' => 'Database connection unavailable'];
+        if ($context->organizationId <= 0 || $context->organizationPublicId === null) {
+            return ['success' => false, 'error' => 'ACTIVE_WORKSPACE_REQUIRED'];
         }
 
-        $service = new YandexDiskService($db, (int)($context['workspace_id'] ?? 1));
-        $fileId = (string)($args['file_public_id'] ?? '');
-        $targetPath = (string)($args['target_path'] ?? '/TropaTT_CRM/Tasks');
-
-        $plan = $service->planUpload("backup_{$fileId}.zip", 25 * 1024 * 1024, $targetPath);
-
-        $saved = $service->recordUploadedFile([
-            'crm_file_public_id' => $fileId,
-            'original_name' => "backup_{$fileId}.zip",
-            'original_extension' => 'zip',
-            'yandex_path' => $plan['final_path'],
-            'file_size_bytes' => 25 * 1024 * 1024,
-            'used_bypass' => $plan['needs_bypass']
-        ]);
-
         return [
-            'success' => true,
-            'file_public_id' => $fileId,
-            'yandex_path' => $saved['yandex_path'],
-            'public_url' => $saved['public_url'],
-            'used_txt_bypass' => $plan['needs_bypass'],
-            'message' => 'File successfully uploaded and published on Yandex Disk.'
+            'success' => false,
+            'error' => 'UPLOAD_NOT_AVAILABLE',
+            'message' => 'Yandex Disk upload is unavailable until secure provider transfer is implemented.',
         ];
     }
 }

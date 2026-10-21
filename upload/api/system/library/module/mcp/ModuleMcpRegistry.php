@@ -8,6 +8,9 @@ use Api\System\Library\Container;
 use Api\System\Library\Module\ModuleExecutionContext;
 use Api\System\Library\Support\AppLog;
 use PDO;
+use ReflectionClass;
+use ReflectionMethod;
+use ReflectionNamedType;
 use RuntimeException;
 use Throwable;
 
@@ -214,10 +217,20 @@ final class ModuleMcpRegistry
             ];
         }
 
+        if ($orgId > 0 && $orgPublicId === '') {
+            return [
+                'isError' => true,
+                'content' => [['type' => 'text', 'text' => "Module tool '{$name}' requires a complete, authorized workspace context."]],
+            ];
+        }
+
         $actorPublicId = (string)($actor['public_id'] ?? $actor['user']['public_id'] ?? 'usr_system');
+        // MCP requests are user initiated. A global context is only valid for
+        // service jobs, so represent an explicitly allowed global tool without
+        // routing through ModuleExecutionContext::global() (which rejects MCP).
         $context = $orgId > 0
-            ? ModuleExecutionContext::forWorkspace($tool->moduleName, $orgId, $orgPublicId ?: 'org_' . $orgId, $actorPublicId, 'mcp')
-            : ModuleExecutionContext::global($tool->moduleName, 'mcp');
+            ? ModuleExecutionContext::forWorkspace($tool->moduleName, $orgId, $orgPublicId, $actorPublicId, 'mcp')
+            : new ModuleExecutionContext($tool->moduleName, 0, null, $actorPublicId, 'mcp', bin2hex(random_bytes(16)));
 
         // Resolve and execute handler
         try {
@@ -252,8 +265,8 @@ final class ModuleMcpRegistry
                 ];
             }
 
-            $instance = new $handlerClass();
-            $rawResult = $instance->$method($arguments, $context, $container);
+            $instance = $this->instantiateHandler($handlerClass, $container);
+            $rawResult = $this->invokeHandler($instance, $method, $arguments, $context, $container);
 
             if (!is_array($rawResult)) {
                 $rawResult = ['result' => $rawResult];
@@ -269,17 +282,129 @@ final class ModuleMcpRegistry
                 'structuredContent' => $cleanResult,
             ];
         } catch (Throwable $e) {
-            AppLog::error("Module MCP tool '{$name}' execution error: " . $e->getMessage(), [
+            // Exception text can contain provider responses, credentials, or
+            // user supplied values. Keep it in neither MCP output nor logs.
+            AppLog::error("Module MCP tool '{$name}' execution error", [
                 'tool' => $name,
                 'module' => $tool->moduleName,
-                'error' => $e->getMessage(),
+                'exception' => get_class($e),
             ]);
 
             return [
                 'isError' => true,
-                'content' => [['type' => 'text', 'text' => "Tool execution failed: " . $e->getMessage()]],
+                'content' => [['type' => 'text', 'text' => 'Tool execution failed.']],
             ];
         }
+    }
+
+    /** Instantiate handlers with only explicitly supported runtime dependencies. */
+    private function instantiateHandler(string $handlerClass, Container $container): object
+    {
+        $reflection = new ReflectionClass($handlerClass);
+        if (!$reflection->isInstantiable()) {
+            throw new RuntimeException('MCP handler is not instantiable');
+        }
+
+        $constructor = $reflection->getConstructor();
+        if ($constructor === null) {
+            return $reflection->newInstance();
+        }
+
+        $dependencies = [];
+        foreach ($constructor->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            $typeName = $type instanceof ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : '';
+            if ($typeName === PDO::class) {
+                $dependencies[] = $this->pdo;
+            } elseif ($typeName === Container::class) {
+                $dependencies[] = $container;
+            } elseif ($parameter->isDefaultValueAvailable()) {
+                $dependencies[] = $parameter->getDefaultValue();
+            } else {
+                throw new RuntimeException('MCP handler has an unsupported constructor dependency');
+            }
+        }
+
+        return $reflection->newInstanceArgs($dependencies);
+    }
+
+    /**
+     * Invoke current contract handlers and narrowly supported legacy handlers.
+     * Legacy array contexts contain only the authorized execution identity and
+     * database handle; no request-provided actor fields are copied through.
+     */
+    private function invokeHandler(
+        object $instance,
+        string $method,
+        array $arguments,
+        ModuleExecutionContext $context,
+        Container $container
+    ): mixed {
+        if (!method_exists($instance, $method)) {
+            // Older marketplace examples used handle(); keep this compatibility
+            // only for the default method, never for an explicit Class::method.
+            if ($method !== 'execute' || !method_exists($instance, 'handle')) {
+                throw new RuntimeException('MCP handler method is not available');
+            }
+            $method = 'handle';
+        }
+
+        $reflection = new ReflectionMethod($instance, $method);
+        if (!$reflection->isPublic() || $reflection->isStatic()) {
+            throw new RuntimeException('MCP handler method must be public and non-static');
+        }
+
+        $parameters = $reflection->getParameters();
+        if (count($parameters) < 1 || count($parameters) > 3) {
+            throw new RuntimeException('Unsupported MCP handler signature');
+        }
+        $firstType = $parameters[0]->getType();
+        if (!$firstType instanceof ReflectionNamedType || $firstType->getName() !== 'array') {
+            throw new RuntimeException('MCP handler must accept arguments as an array');
+        }
+
+        $callArguments = [$arguments];
+        if (isset($parameters[1])) {
+            $type = $parameters[1]->getType();
+            if ($type instanceof ReflectionNamedType && $type->getName() === ModuleExecutionContext::class) {
+                $callArguments[] = $context;
+            } elseif ($type instanceof ReflectionNamedType && $type->getName() === 'array') {
+                $callArguments[] = $this->legacyContext($context);
+            } else {
+                throw new RuntimeException('Unsupported MCP handler context parameter');
+            }
+        }
+        if (isset($parameters[2])) {
+            $type = $parameters[2]->getType();
+            if (!$type instanceof ReflectionNamedType || $type->getName() !== Container::class) {
+                throw new RuntimeException('Unsupported MCP handler dependency parameter');
+            }
+            $callArguments[] = $container;
+        }
+
+        return $reflection->invokeArgs($instance, $callArguments);
+    }
+
+    /** @return array<string, mixed> */
+    private function legacyContext(ModuleExecutionContext $context): array
+    {
+        $user = [
+            'organization_id' => $context->organizationId,
+            'organization_public_id' => $context->organizationPublicId,
+            'public_id' => $context->actorPublicId,
+        ];
+
+        return [
+            'module_name' => $context->moduleName,
+            'organization_id' => $context->organizationId,
+            'organization_public_id' => $context->organizationPublicId,
+            'workspace_id' => $context->organizationId,
+            'actor_public_id' => $context->actorPublicId,
+            'source' => $context->source,
+            'correlation_id' => $context->correlationId,
+            'user' => $user,
+            'db' => $this->pdo,
+        ];
     }
 
     /**
