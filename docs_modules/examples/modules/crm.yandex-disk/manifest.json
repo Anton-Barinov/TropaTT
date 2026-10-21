@@ -5,7 +5,7 @@
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Интеграция с Яндекс Диском",
-    "description": "Облачное хранилище для задач, проектов и бэкапов CRM на Яндекс Диске с генерацией публичных ссылок и обходом ограничений API (txt-proxy upload лайфхак)",
+    "description": "Заготовка интеграции с Яндекс Диском. Загрузка и публикация ссылок отключены, пока не реализован безопасный обмен файлами.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -55,7 +55,7 @@
         },
         {
             "name": "yandex_disk_upload_file",
-            "description": "Upload a local CRM file or backup archive to Yandex Disk using smart extension bypass (txt-proxy лайфхак) and publish shareable link",
+            "description": "Upload a CRM file to Yandex Disk. Currently unavailable until secure provider transfer is implemented.",
             "handler": "Module\\Crm\\YandexDisk\\Mcp\\UploadFileTool",
             "permissions": [
                 "files.create"
@@ -75,8 +75,8 @@
                     },
                     "make_public": {
                         "type": "boolean",
-                        "default": true,
-                        "description": "Generate public direct link"
+                        "default": false,
+                        "description": "Reserved for a future explicit sharing flow; files must remain private by default."
                     }
                 },
                 "required": [

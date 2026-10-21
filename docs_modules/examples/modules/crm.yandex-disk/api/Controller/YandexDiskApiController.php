@@ -19,9 +19,10 @@ class YandexDiskApiController
             'status' => 'not_configured',
             'connected' => false,
             'features' => [
-                'txt_proxy_bypass' => true,
-                'public_links' => true,
-                'auto_backup_sync' => true
+                'txt_proxy_bypass' => false,
+                'public_links' => false,
+                'auto_backup_sync' => false,
+                'upload_available' => false
             ]
         ];
     }
