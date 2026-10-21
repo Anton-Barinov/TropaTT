@@ -17,7 +17,7 @@ final class TelegramBotApiController extends BaseController
 
     private function getOrganizationId(): int
     {
-        $explicitOrg = (int)($this->request()->input('organization_id') ?? $this->request()->query('organization_id') ?? 0);
+        $explicitOrg = (int)($this->request()->input('organization_id') ?: $this->request()->input('org_ref') ?: $this->request()->input('org') ?: 0);
         if ($explicitOrg > 0) {
             return $explicitOrg;
         }
@@ -418,9 +418,11 @@ final class TelegramBotApiController extends BaseController
             $service = $this->getService();
             $userId = (int)($auth['user']['id'] ?? 0);
             $items = $service->listOrganizationsForUser($userId);
+            $activeOrg = $this->getOrganizationId();
             return $this->success('ORGANIZATIONS_LIST', 'Список организаций получен', [
                 'items' => $items,
-                'active_organization_id' => $this->getOrganizationId(),
+                'active_org_ref' => (string)$activeOrg,
+                'active_organization_public_id' => 'org_' . $activeOrg,
             ]);
         } catch (Throwable $e) {
             return $this->error('ORG_ERROR', $e->getMessage(), 500);
@@ -454,9 +456,9 @@ final class TelegramBotApiController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
         }
-        $status = (string)($this->request()->input('status') ?? $this->request()->query('status') ?? 'all');
-        $search = (string)($this->request()->input('search') ?? $this->request()->query('search') ?? '');
-        $limit = (int)($this->request()->input('limit') ?? $this->request()->query('limit') ?? 50);
+        $status = (string)$this->request()->input('status', 'all');
+        $search = (string)$this->request()->input('search', '');
+        $limit = (int)$this->request()->input('limit', 50);
 
         try {
             $service = $this->getService();
@@ -481,7 +483,7 @@ final class TelegramBotApiController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
         }
-        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id') ?? $this->request()->query('dialog_id') ?? '');
+        $dialogId = (string)($params['id'] ?? $this->request()->input('dialog_id', ''));
         if ($dialogId === '') {
             return $this->error('INVALID_PARAM', 'ID диалога обязателен', 400);
         }

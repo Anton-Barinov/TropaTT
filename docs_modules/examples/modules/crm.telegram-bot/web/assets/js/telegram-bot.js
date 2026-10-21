@@ -105,12 +105,14 @@
     try {
       const data = await api('_module/crm.telegram-bot/organizations');
       const items = (data && data.items) || [];
-      const activeOrg = data && data.active_organization_id ? parseInt(data.active_organization_id, 10) : currentOrgId;
+      const activeOrg = data && (data.active_org_ref || data.active_organization_id) ? parseInt(data.active_org_ref || data.active_organization_id, 10) : currentOrgId;
 
       if (items.length > 0) {
         sel.innerHTML = items.map(org => {
-          const isSel = org.id === activeOrg ? 'selected' : '';
-          return `<option value="${esc(org.id)}" ${isSel}>${esc(org.name)} (#${esc(org.id)})</option>`;
+          const orgVal = org.org_ref || org.id || org.public_id || '1';
+          const isSel = String(orgVal) === String(activeOrg) ? 'selected' : '';
+          const orgLabel = org.name || org.title || `Организация #${orgVal}`;
+          return `<option value="${esc(orgVal)}" ${isSel}>${esc(orgLabel)} (#${esc(orgVal)})</option>`;
         }).join('');
         currentOrgId = activeOrg;
         if ($('tgWorkspaceBadge')) {
@@ -275,7 +277,8 @@
       let html = '';
       items.forEach(d => {
         const isActive = d.public_id === currentActiveDialogId ? 'active' : '';
-        const name = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${d.chat_id}`);
+        const chatNum = d.chat_number || d.chat_ref || d.chat_id || '—';
+        const name = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${chatNum}`);
         const initials = (d.first_name ? d.first_name[0] : (d.username ? d.username[0] : 'К')).toUpperCase();
         const snippet = d.last_message_text || 'Входящее обращение';
         const time = d.last_message_at ? d.last_message_at.slice(11, 16) : '';
@@ -365,14 +368,15 @@
       const messages = data.messages || [];
 
       // Update header
-      const clientName = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${d.chat_id}`);
+      const chatNum = d.chat_number || d.chat_ref || d.chat_id || '—';
+      const clientName = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${chatNum}`);
       const initials = (d.first_name ? d.first_name[0] : (d.username ? d.username[0] : 'К')).toUpperCase();
 
       if ($('tgActiveAvatar')) $('tgActiveAvatar').textContent = initials;
       if ($('tgActiveClientName')) $('tgActiveClientName').textContent = clientName;
-      if ($('tgActiveChatId')) $('tgActiveChatId').textContent = `Chat ID: ${d.chat_id}`;
+      if ($('tgActiveChatId')) $('tgActiveChatId').textContent = `Chat ID: ${chatNum}`;
       if ($('tgActiveClientHandle')) {
-        $('tgActiveClientHandle').textContent = d.username ? `@${d.username}` : (d.first_name ? `Telegram user #${d.chat_id}` : '');
+        $('tgActiveClientHandle').textContent = d.username ? `@${d.username}` : (d.first_name ? `Telegram user #${chatNum}` : '');
       }
 
       if ($('tgActiveStatusSelect')) {
@@ -381,8 +385,9 @@
 
       // Intake & Task links
       const intakeLink = $('tgActiveIntakeLink');
+      const intakeRef = d.intake_ref || d.linked_intake_id;
       if (intakeLink) {
-        if (d.linked_intake_id) {
+        if (intakeRef) {
           intakeLink.style.display = 'inline-block';
           intakeLink.href = 'index.php?route=intake';
         } else {
@@ -391,11 +396,12 @@
       }
 
       const taskLink = $('tgActiveTaskLink');
+      const taskRef = d.linked_task_public_id || d.task_ref || d.linked_task_id;
       if (taskLink) {
-        if (d.linked_task_id) {
+        if (taskRef) {
           taskLink.style.display = 'inline-block';
-          taskLink.href = `index.php?route=task-detail&id=${encodeURIComponent(d.linked_task_id)}`;
-          taskLink.textContent = `Задача #${d.linked_task_id}`;
+          taskLink.href = `index.php?route=task-detail&id=${encodeURIComponent(taskRef)}`;
+          taskLink.textContent = `Задача #${taskRef}`;
         } else {
           taskLink.style.display = 'none';
         }
@@ -706,7 +712,7 @@
   };
 
   // Initialize event listeners
-  document.addEventListener('DOMContentLoaded', async () => {
+  const initModule = async () => {
     if (!$('tgConfigForm') && !$('tgStatusBanner') && !$('tgTabs')) return;
 
     // Workspace change handler
@@ -781,7 +787,8 @@
         return;
       }
       const d = activeDialogData.dialog;
-      const clientName = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${d.chat_id}`);
+      const chatNum = d.chat_number || d.chat_ref || d.chat_id || '—';
+      const clientName = (d.first_name || d.last_name) ? `${d.first_name || ''} ${d.last_name || ''}`.trim() : (d.username ? '@' + d.username : `Клиент #${chatNum}`);
 
       if ($('tgTaskTitle')) {
         $('tgTaskTitle').value = `Обращение из Telegram: ${clientName}`;
@@ -789,7 +796,7 @@
 
       // Format description with messages excerpt
       const messages = activeDialogData.messages || [];
-      let excerpt = `Запрос от клиента Telegram: ${clientName} (Chat ID: ${d.chat_id}${d.username ? ', @' + d.username : ''})\n\n`;
+      let excerpt = `Запрос от клиента Telegram: ${clientName} (Chat ID: ${chatNum}${d.username ? ', @' + d.username : ''})\n\n`;
       excerpt += `История переписки:\n`;
       messages.forEach(m => {
         const time = m.created_at || '';
@@ -1129,5 +1136,11 @@
     // Initial load sequence
     await loadWorkspaces();
     refreshAll();
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModule);
+  } else {
+    initModule();
+  }
 })();

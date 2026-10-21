@@ -1331,7 +1331,7 @@ final class TelegramBotService
             $insDlg = $this->db->prepare(
                 "INSERT INTO crm_telegram_dialogs
                  (public_id, organization_id, chat_id, first_name, last_name, username, title, last_message_text, last_message_at, unread_count, status, created_at, updated_at)
-                 VALUES (:pub_id, :org_id, :cid, :fn, :ln, :un, :title, :lmsg, :lmsg_at, 1, 'open', :now, :now)"
+                 VALUES (:pub_id, :org_id, :cid, :fn, :ln, :un, :title, :lmsg, :lmsg_at, 1, 'open', :created_at, :updated_at)"
             );
             $insDlg->execute([
                 ':pub_id' => $dialogPubId,
@@ -1343,7 +1343,8 @@ final class TelegramBotService
                 ':title' => $senderName,
                 ':lmsg' => mb_substr($text, 0, 255),
                 ':lmsg_at' => $now,
-                ':now' => $now,
+                ':created_at' => $now,
+                ':updated_at' => $now,
             ]);
             $dialogId = (int)$this->db->lastInsertId();
         } else {
@@ -1462,6 +1463,13 @@ final class TelegramBotService
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($items as &$it) {
+            $it['chat_number'] = (string)($it['chat_id'] ?? '');
+            $it['chat_ref'] = (string)($it['chat_id'] ?? '');
+            $it['task_ref'] = (string)($it['linked_task_id'] ?? '');
+            $it['intake_ref'] = (string)($it['linked_intake_id'] ?? '');
+        }
+        unset($it);
 
         $unreadStmt = $this->db->prepare("SELECT SUM(unread_count) FROM crm_telegram_dialogs WHERE organization_id = :org_id");
         $unreadStmt->execute([':org_id' => $organizationId]);
@@ -1491,6 +1499,11 @@ final class TelegramBotService
         if (!$dialog) {
             return null;
         }
+
+        $dialog['chat_number'] = (string)($dialog['chat_id'] ?? '');
+        $dialog['chat_ref'] = (string)($dialog['chat_id'] ?? '');
+        $dialog['task_ref'] = (string)($dialog['linked_task_id'] ?? '');
+        $dialog['intake_ref'] = (string)($dialog['linked_intake_id'] ?? '');
 
         if ((int)$dialog['unread_count'] > 0) {
             $this->db->prepare("UPDATE crm_telegram_dialogs SET unread_count = 0 WHERE id = :id")->execute([':id' => $dialog['id']]);
@@ -1572,14 +1585,15 @@ final class TelegramBotService
         $this->db->prepare(
             "UPDATE crm_telegram_dialogs
              SET last_message_text = :lmsg,
-                 last_message_at = :now,
+                 last_message_at = :lmsg_at,
                  unread_count = 0,
                  status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
-                 updated_at = :now
+                 updated_at = :upd_at
              WHERE id = :id"
         )->execute([
             ':lmsg' => mb_substr($text, 0, 255),
-            ':now' => $now,
+            ':lmsg_at' => $now,
+            ':upd_at' => $now,
             ':id' => $dialogId,
         ]);
 
@@ -1681,7 +1695,7 @@ final class TelegramBotService
         $ins = $this->db->prepare(
             "INSERT INTO tasks
              (public_id, project_id, title, description, status_code, priority_code, assignee_user_id, creator_user_id, organization_id, source_type, source_id, created_at, updated_at)
-             VALUES (:pub, :pid, :title, :desc, 'todo', :priority, :assignee, :creator, :org_id, 'telegram', :src_id, :now, :now)"
+             VALUES (:pub, :pid, :title, :desc, 'todo', :priority, :assignee, :creator, :org_id, 'telegram', :src_id, :created_at, :updated_at)"
         );
         $ins->execute([
             ':pub' => $taskPubId,
@@ -1693,7 +1707,8 @@ final class TelegramBotService
             ':creator' => $creatorUserId ?: 1,
             ':org_id' => $organizationId,
             ':src_id' => $dialogPubId,
-            ':now' => $now,
+            ':created_at' => $now,
+            ':updated_at' => $now,
         ]);
         $taskId = (int)$this->db->lastInsertId();
 
@@ -1751,10 +1766,12 @@ final class TelegramBotService
 
             $items = [];
             foreach ($raw as $r) {
-                $title = (string)($r['title'] ?? $r['name'] ?? ('Организация #' . $r['id']));
+                $title = (string)($r['title'] ?? $r['name'] ?? ('Организация #' . ($r['id'] ?? '')));
                 $items[] = [
-                    'id' => (int)$r['id'],
+                    'id' => (int)($r['id'] ?? 0),
+                    'org_ref' => (string)($r['id'] ?? 0),
                     'public_id' => (string)($r['public_id'] ?? ''),
+                    'organization_public_id' => (string)($r['public_id'] ?? ('org_' . ($r['id'] ?? ''))),
                     'title' => $title,
                     'name' => $title,
                     'slug' => (string)($r['slug'] ?? ''),
