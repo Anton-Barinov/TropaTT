@@ -7,7 +7,7 @@ use Api\System\Library\Database\DatabaseConnectionPool;
 use Api\System\Library\Container;
 use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
 use Api\System\Library\Module\ModuleExecutionContext;
-use PDO;
+use Module\Crm\TelegramBot\Service\TelegramBotService;
 
 final class BotStatusTool implements ModuleMcpToolInterface
 {
@@ -18,19 +18,8 @@ final class BotStatusTool implements ModuleMcpToolInterface
             throw new \RuntimeException('An active workspace is required.');
         }
         $db = DatabaseConnectionPool::getConnection();
+        $service = new TelegramBotService($db);
 
-        $stmt = $db->prepare(
-            "SELECT public_id, is_active, created_at, updated_at
-             FROM crm_telegram_configs
-             WHERE organization_id = :org_id LIMIT 1"
-        );
-        $stmt->execute([':org_id' => $orgId]);
-        $cfg = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return [
-            'configured' => (bool)$cfg,
-            'is_active' => !empty($cfg['is_active']),
-            'public_id' => $cfg['public_id'] ?? null,
-        ];
+        return $service->getStatus($orgId);
     }
 }

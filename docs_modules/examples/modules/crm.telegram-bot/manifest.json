@@ -1,11 +1,11 @@
 {
     "name": "crm.telegram-bot",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Telegram Bot Integration",
-    "description": "Telegram бот для входящих заявок клиентов и персональных уведомлений сотрудников команды",
+    "description": "Telegram бот для входящих заявок клиентов, обращений в Intake и персональных уведомлений сотрудников команды",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -18,11 +18,20 @@
     "migrations": "api/migrations",
     "api_routes": "api/config/routes.php",
     "web_routes": "web/config/routes.php",
+    "config_defaults": {
+        "use_env_token": true,
+        "bot_token": "",
+        "bot_username": "",
+        "webhook_secret_token": "",
+        "auto_create_intake": true,
+        "welcome_message": "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
+        "polling_enabled": false
+    },
     "menu_items": [
         {
             "id": "telegram-bot",
             "title": "Telegram Бот",
-            "route": "telegram-bot",
+            "route": "module-telegram-bot",
             "icon": "send",
             "permission": "settings.edit"
         }

@@ -1,44 +1,40 @@
-.tgbot-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
-  gap: 1.25rem;
+/* Styles for crm.telegram-bot module */
+.crm-module-page[data-page="module-telegram-bot"] .font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
 }
-.tgbot-hero {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  background: var(--crm-surface, #ffffff);
-  border: 1px solid var(--crm-border, #e2e8f0);
+
+#tgStatusBanner .alert {
   border-radius: var(--crm-radius, 12px);
-}
-.tgbot-hero-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--crm-primary, #3b82f6) 12%, transparent);
-  color: var(--crm-primary, #3b82f6);
-  font-size: 1.75rem;
-  flex-shrink: 0;
-}
-.tgbot-panel {
-  min-height: 200px;
-  background: var(--crm-surface, #ffffff);
   border: 1px solid var(--crm-border, #e2e8f0);
+}
+
+#tgKpis .crm-kpi-card {
   border-radius: var(--crm-radius, 12px);
-}
-.tgbot-status-box {
-  background: var(--crm-surface-variant, #f8fafc);
   border: 1px solid var(--crm-border, #e2e8f0);
+  background: var(--crm-surface, #ffffff);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-@media (max-width: 991px) {
-  .tgbot-grid {
-    grid-template-columns: 1fr;
-  }
-  .tgbot-hero {
-    flex-wrap: wrap;
+
+#tgKpis .crm-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+#tgBindingsTable code,
+#tgLogsTable code {
+  color: var(--crm-primary, #0d6efd);
+  background: rgba(13, 110, 253, 0.08);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+}
+
+#tgBindCodeValue {
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 767px) {
+  #tgKpis .col-6 {
+    width: 50%;
   }
 }
