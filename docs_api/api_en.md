@@ -1319,14 +1319,16 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 
 ### Module marketplace
 
-Read-only proxy to the official module marketplace (`https://marketplace.tropatt.com`). The base URL comes from the server configuration (`TROPATT_MARKETPLACE_URL`) and never from request data. Catalog responses carry `status` (whether the marketplace is enabled, configured and reachable) plus normalized `items` and `meta` for pagination.
+Proxy to the official module marketplace (`https://marketplace.tropatt.com`). The base URL comes from the server configuration (`TROPATT_MARKETPLACE_URL`) and never from request data. Catalog responses carry `status` (whether the marketplace is enabled, configured and reachable) plus normalized `items` and `meta` for pagination.
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |
 |-------|----------|------------|:---:|-------------|----------|
 | GET | `/api/v1/marketplace/catalog` | Marketplace catalog | Yes | `settings.manage` | Filters: `q`, `category`, `page`, `limit` |
 | GET | `/api/v1/marketplace/categories` | Marketplace categories | Yes | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Marketplace module details | Yes | `settings.manage` | Includes published releases |
+| GET | `/api/v1/marketplace/updates` | Installed modules with newer Marketplace releases | Yes | `settings.manage` | Language packs are reported as unsupported until their separate installer supports atomic updates |
 | POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `module.install` | Root only. Body: `full_code`, `activate` |
+| POST | `/api/v1/marketplace/update` | Update one installed Marketplace module | Yes | `module.install` | Root only. Body: `full_code`; verifies package SHA-256 and module identity, preserves config/active state, restores old files and disables the module if update fails |
 
 Install answers are explicit about the state of the installation: `ALREADY_INSTALLED` (409) when the module is registered, `MODULE_DISCOVERED_LOCALLY` (409) when its files are present but it is not registered (install it from the local copy, `POST /api/v1/modules/{code}/install` — the remote installer refuses an existing target directory), `MARKETPLACE_PACKAGE_MISMATCH` (502) when the published package declares a different module code than the catalog, and `INVALID_PARAM` (400) when `full_code` is not a `<vendor>.<module>` code.
 

@@ -12,6 +12,9 @@ use RuntimeException;
 
 final class ModuleRemoteInstaller
 {
+    private const MAX_PACKAGE_BYTES = 104857600;
+    private const MAX_ARCHIVE_ENTRIES = 10000;
+    private const MAX_EXTRACTED_BYTES = 536870912;
     public function __construct(
         private readonly PluginManager $pm,
         private readonly ModuleConfig $mc,
@@ -43,6 +46,200 @@ final class ModuleRemoteInstaller
             $this->cleanDir($tmpDir);
         }
     }
+
+    public function updateFromUrl(string $url, string $expectedName, string $expectedVersion, string $coreVersion, string $expectedSha256): string
+    {
+        $tmpDir = sys_get_temp_dir() . '/crm_module_update_' . bin2hex(random_bytes(8));
+        if (!@mkdir($tmpDir, 0700, true)) {
+            throw new RuntimeException('Cannot create temporary module update directory');
+        }
+        try {
+            $archive = $tmpDir . '/module.zip';
+            $this->download($url, $archive);
+            return $this->updateFromFile($archive, $expectedName, $expectedVersion, $coreVersion, $expectedSha256);
+        } finally {
+            $this->cleanDir($tmpDir);
+        }
+    }
+
+    /**
+     * Update an already installed module from a marketplace package.
+     * The current directory is kept as a sibling backup until validation and
+     * migrations succeed. The registry row (including config/active state) is
+     * intentionally updated in place only after the new code is ready.
+     */
+    public function updateFromFile(
+        string $filePath,
+        string $expectedName,
+        string $expectedVersion,
+        string $coreVersion,
+        string $expectedSha256
+    ): string {
+        if (!is_file($filePath) || !ModuleMarketplaceClient::isValidCode($expectedName)) {
+            throw new RuntimeException('Invalid module update package');
+        }
+        if (!preg_match('/^[a-f0-9]{64}$/i', $expectedSha256)) {
+            throw new RuntimeException('Invalid sha256 supplied for package verification');
+        }
+        $actual = hash_file('sha256', $filePath);
+        if (!is_string($actual) || !hash_equals(strtolower($expectedSha256), strtolower($actual))) {
+            throw new ModulePackageHashMismatchException(strtolower($expectedSha256));
+        }
+
+        $currentDir = $this->projectRoot . '/modules/' . $expectedName;
+        $modulesDir = realpath($this->projectRoot . '/modules');
+        $currentReal = realpath($currentDir);
+        if ($modulesDir === false || $currentReal === false || dirname($currentReal) !== $modulesDir || is_link($currentDir)) {
+            throw new RuntimeException('Installed module directory is missing or unsafe');
+        }
+        $currentManifest = json_decode((string)@file_get_contents($currentDir . '/manifest.json'), true);
+        if (!is_array($currentManifest) || (string)($currentManifest['name'] ?? '') !== $expectedName) {
+            throw new RuntimeException('Installed module manifest does not match its directory');
+        }
+        $oldVersion = is_array($currentManifest) ? (string)($currentManifest['version'] ?? '') : '';
+        if ($oldVersion === '' || !preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $oldVersion)) {
+            throw new RuntimeException('Installed module version is invalid');
+        }
+        if (!preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $expectedVersion)
+            || version_compare($expectedVersion, $oldVersion, '<=')) {
+            throw new RuntimeException('Marketplace version is not newer than the installed version');
+        }
+
+        $lockDir = $this->projectRoot . '/storage_api/locks';
+        if (!is_dir($lockDir) && !@mkdir($lockDir, 0700, true) && !is_dir($lockDir)) {
+            throw new RuntimeException('Cannot create private module update lock directory');
+        }
+        if (is_link($lockDir)) {
+            throw new RuntimeException('Unsafe module update lock directory');
+        }
+        $lockPath = $lockDir . '/module-' . hash('sha256', $expectedName) . '.lock';
+        if (is_link($lockPath)) {
+            throw new RuntimeException('Unsafe module update lock file');
+        }
+        $lock = @fopen($lockPath, 'c');
+        if ($lock === false) {
+            throw new RuntimeException('Cannot open private module update lock');
+        }
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            throw new RuntimeException('A module update is already running');
+        }
+
+        $extractDir = sys_get_temp_dir() . '/crm_module_update_' . bin2hex(random_bytes(8));
+        if (!@mkdir($extractDir, 0700, true)) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            throw new RuntimeException('Cannot create temporary update directory');
+        }
+        $stageDir = $modulesDir . '/.crm-update-' . bin2hex(random_bytes(8));
+        $backupDir = $modulesDir . '/.crm-backup-' . bin2hex(random_bytes(8));
+        $swapped = false;
+        try {
+            $this->extract($filePath, $extractDir);
+            $manifestPath = $extractDir . '/manifest.json';
+            $manifestData = json_decode((string)@file_get_contents($manifestPath), true);
+            if (!is_array($manifestData) || (string)($manifestData['name'] ?? '') !== $expectedName
+                || (string)($manifestData['version'] ?? '') !== $expectedVersion) {
+                throw new ModulePackageMismatchException((string)($manifestData['name'] ?? ''), $expectedName);
+            }
+
+            // Marketplace SHA pin is the package's authenticated channel proof.
+            $this->verifyPackageSignature($manifestData, true);
+            $codeValidator = new ModuleCodeValidator();
+            $violations = $codeValidator->validateModule($extractDir);
+            if ($violations !== []) {
+                throw new RuntimeException('Module update contains forbidden code');
+            }
+            if (!is_array($manifestData)) {
+                throw new RuntimeException('Invalid module update manifest');
+            }
+            $candidateManifest = Manifest::fromArray($manifestData);
+            $candidateErrors = $this->pm->validate($candidateManifest);
+            if ($candidateErrors !== []) {
+                throw new RuntimeException('Updated module manifest is invalid');
+            }
+            if (!$this->pm->checkCoreCompatibility($candidateManifest, $coreVersion)) {
+                throw new RuntimeException('Updated module is incompatible with this CRM core version');
+            }
+            $minPhp = (string)($manifestData['min_php_version'] ?? '');
+            if ($minPhp !== '' && version_compare(PHP_VERSION, $minPhp, '<')) {
+                throw new RuntimeException('Updated module requires a newer PHP version');
+            }
+            if (!$this->copyDir($extractDir, $stageDir)) {
+                throw new RuntimeException('Cannot stage module update');
+            }
+            // Hidden sibling staging/backup folders are denied by modules/.htaccess.
+            if (file_put_contents($stageDir . '/.htaccess', "Require all denied\n", LOCK_EX) === false) {
+                throw new RuntimeException('Cannot protect staged module files');
+            }
+
+            if (!@rename($currentDir, $backupDir)) {
+                throw new RuntimeException('Cannot preserve current module before update');
+            }
+            if (!@rename($stageDir, $currentDir)) {
+                if (!@rename($backupDir, $currentDir)) {
+                    $this->mc->setInactive($expectedName);
+                    throw new RuntimeException('Cannot activate the update or restore the previous module; backup retained for recovery');
+                }
+                throw new RuntimeException('Cannot activate staged module files');
+            }
+            $swapped = true;
+
+            $this->pm->discover();
+            $manifest = $this->pm->getManifest($expectedName);
+            if ($manifest === null || $manifest->version !== $expectedVersion) {
+                throw new RuntimeException('Updated module manifest failed discovery');
+            }
+            $errors = $this->pm->validate($manifest);
+            if ($errors !== []) {
+                throw new RuntimeException('Updated module validation failed');
+            }
+            if ($manifest->migrations !== null) {
+                $migrationPath = $currentDir . '/' . $manifest->migrations;
+                $realMigrationPath = realpath($migrationPath);
+                $realCurrentDir = realpath($currentDir);
+                if ($realMigrationPath === false || $realCurrentDir === false
+                    || !is_dir($realMigrationPath)
+                    || !str_starts_with($realMigrationPath, $realCurrentDir . DIRECTORY_SEPARATOR)) {
+                    throw new RuntimeException('Updated module migration directory is missing or unsafe');
+                }
+                $result = $this->mm->migrate($expectedName, $realMigrationPath);
+                if ($result['errors'] !== []) {
+                    throw new RuntimeException('Module update migration failed');
+                }
+            }
+
+            $this->mc->setVersion($expectedName, $expectedVersion);
+            // Do not reset module configuration or the active flag.
+            $this->mc->initFromManifest($expectedName, $manifest);
+            $this->cleanDir($backupDir);
+            $this->pm->discover();
+            return $expectedName;
+        } catch (\Throwable $e) {
+            if ($swapped) {
+                // A migration may partially apply DDL on MySQL/shared hosting.
+                // Restore code and deactivate the module so no possibly
+                // incompatible implementation executes until an admin reviews it.
+                $this->cleanDir($currentDir);
+                if (is_dir($currentDir) || !is_dir($backupDir) || !@rename($backupDir, $currentDir)) {
+                    $this->mc->setVersion($expectedName, $oldVersion);
+                    $this->mc->setInactive($expectedName);
+                    $this->pm->discover();
+                    throw new RuntimeException('Update failed and automatic file restoration was incomplete; backup retained for recovery', 0, $e);
+                }
+                $this->mc->setVersion($expectedName, $oldVersion);
+                $this->mc->setInactive($expectedName);
+                $this->pm->discover();
+            }
+            throw $e;
+        } finally {
+            $this->cleanDir($stageDir);
+            $this->cleanDir($extractDir);
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
 
     /**
      * Install from a local package file.
@@ -288,21 +485,42 @@ final class ModuleRemoteInstaller
             }
         }
 
+        $handle = @fopen($dest, 'xb');
+        if ($handle === false) {
+            curl_close($ch);
+            throw new RuntimeException('Cannot create temporary module archive');
+        }
+        @chmod($dest, 0600);
+        $downloaded = 0;
+        $tooLarge = false;
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, static function ($curl, string $chunk) use ($handle, &$downloaded, &$tooLarge): int {
+            $downloaded += strlen($chunk);
+            if ($downloaded > self::MAX_PACKAGE_BYTES) {
+                $tooLarge = true;
+                return 0;
+            }
+            $written = fwrite($handle, $chunk);
+            return $written === false ? 0 : $written;
+        });
         $content = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
+        fclose($handle);
 
         if ($content === false || $error !== '') {
+            @unlink($dest);
+            if ($tooLarge) {
+                throw new RuntimeException('Module package exceeds the 100 MiB download limit');
+            }
             throw new RuntimeException("Failed to download module: {$error}");
         }
 
         if ($httpCode < 200 || $httpCode >= 300) {
+            @unlink($dest);
             throw new RuntimeException("Module download failed with HTTP {$httpCode}");
         }
-
-        file_put_contents($dest, $content);
-        @chmod($dest, 0600);
 
         // SEC-008: Verify the body is actually an archive before extraction.
         // Catches SSRF targets returning HTML/JSON/plaintext, and prevents
@@ -364,9 +582,21 @@ final class ModuleRemoteInstaller
             // post-extraction realpath check, i.e. after extractTo() had already
             // written the files outside $destDir.
             $entryCount = $zip->numFiles;
+            if ($entryCount > self::MAX_ARCHIVE_ENTRIES) {
+                $zip->close();
+                throw new RuntimeException('Archive contains too many entries');
+            }
+            $totalUncompressedBytes = 0;
             for ($i = 0; $i < $entryCount; $i++) {
                 $name = $zip->getNameIndex($i);
                 if ($name === false) continue;
+                $stat = $zip->statIndex($i);
+                $entrySize = max(0, (int)($stat['size'] ?? 0));
+                $totalUncompressedBytes += $entrySize;
+                if ($entrySize > self::MAX_PACKAGE_BYTES || $totalUncompressedBytes > self::MAX_EXTRACTED_BYTES) {
+                    $zip->close();
+                    throw new RuntimeException('Archive expands beyond the allowed size');
+                }
                 $normalizedName = str_replace('\\', '/', $name);
                 // Block path traversal, absolute paths, and symlinks
                 if (
@@ -376,6 +606,15 @@ final class ModuleRemoteInstaller
                 ) {
                     $zip->close();
                     throw new RuntimeException("Archive entry contains path traversal: {$name}");
+                }
+                $opsys = 0;
+                $attributes = 0;
+                if ($zip->getExternalAttributesIndex($i, $opsys, $attributes)) {
+                    $fileType = ($attributes >> 16) & 0170000;
+                    if ($fileType === 0120000) {
+                        $zip->close();
+                        throw new RuntimeException("Archive entry is a symbolic link: {$name}");
+                    }
                 }
             }
 
@@ -455,15 +694,15 @@ final class ModuleRemoteInstaller
         $zip->close();
     }
 
-    private function copyDir(string $source, string $dest): void
+    private function copyDir(string $source, string $dest): bool
     {
         if (!is_dir($dest)) {
-            @mkdir($dest, 0755, true);
+            if (!@mkdir($dest, 0755, true) && !is_dir($dest)) return false;
         }
 
         $items = scandir($source);
         if ($items === false) {
-            return;
+            return false;
         }
 
         foreach ($items as $item) {
@@ -473,13 +712,15 @@ final class ModuleRemoteInstaller
 
             $src = $source . '/' . $item;
             $dst = $dest . '/' . $item;
+            if (is_link($src)) return false;
 
             if (is_dir($src)) {
-                $this->copyDir($src, $dst);
-            } else {
-                copy($src, $dst);
+                if (!$this->copyDir($src, $dst)) return false;
+            } elseif (!copy($src, $dst)) {
+                return false;
             }
         }
+        return true;
     }
 
     private function cleanDir(string $dir): void
@@ -499,7 +740,9 @@ final class ModuleRemoteInstaller
             }
 
             $path = $dir . '/' . $item;
-            if (is_dir($path)) {
+            if (is_link($path)) {
+                @unlink($path);
+            } elseif (is_dir($path)) {
                 $this->cleanDir($path);
             } else {
                 @unlink($path);

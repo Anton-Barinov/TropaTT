@@ -26,6 +26,7 @@
     <span class="small text-muted" data-i18n="admin_modules.filter_label"><?= htmlspecialchars($t('admin_modules.filter_label', 'Фильтр:'), ENT_QUOTES, 'UTF-8') ?></span>
     <div class="btn-group btn-group-sm flex-wrap" id="moduleCategoryFilters" role="group" aria-label="<?= htmlspecialchars($t('admin_modules.filter_aria', 'Фильтр по категориям'), ENT_QUOTES, 'UTF-8') ?>"></div>
 </div>
+<div class="alert alert-info py-2" id="moduleUpdateSummary" hidden role="status" aria-live="polite"></div>
 
 <div class="crm-card crm-section-card p-0 mb-3 crm-admin-modules-table-card">
 <div class="crm-bulk-actions d-none align-items-center flex-wrap gap-2 p-2 border-bottom" id="moduleBulkToolbar">
@@ -82,7 +83,7 @@
     // treated "list not here yet" as "module not installed" and offered an
     // install button for a module that is registered or already on disk — the
     // click could then only answer 409 ALREADY_INSTALLED / MODULE_DISCOVERED_LOCALLY.
-    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false };
+    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {} };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
     var canInstall = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
@@ -258,6 +259,7 @@
                 renderFilters();
                 renderRows();
                 mpRefreshCardStates();
+                loadMarketplaceUpdates();
             })
             .catch(function (err) {
                 state.modulesError = true;
@@ -314,6 +316,62 @@
         }
     }
 
+    function loadMarketplaceUpdates() {
+        if (!canInstall || !window.CRM.api) return;
+        window.CRM.api.request('api/v1/marketplace/updates', { method: 'GET', timeoutMs: 30000, noCache: true })
+            .then(function (env) {
+                var data = env.data || {};
+                var updates = {};
+                (data.items || []).forEach(function (item) {
+                    if (item.full_code) updates[item.full_code] = item;
+                });
+                state.updates = updates;
+                var supportedCount = Object.keys(updates).filter(function (code) { return updates[code].update_supported; }).length;
+                var unsupportedCount = Object.keys(updates).length - supportedCount;
+                var summary = document.getElementById('moduleUpdateSummary');
+                if (summary) {
+                    summary.hidden = supportedCount + unsupportedCount === 0;
+                    summary.textContent = supportedCount + unsupportedCount
+                        ? window.CRM.i18n.t('admin_modules.updates_available', 'Доступны обновления модулей: {count}. Обновляйте каждый модуль отдельно после проверки его изменений.').replace('{count}', String(supportedCount + unsupportedCount))
+                            + (unsupportedCount ? ' ' + window.CRM.i18n.t('admin_modules.updates_partly_unsupported', 'Для некоторых типов модулей автообновление пока недоступно: {count}.').replace('{count}', String(unsupportedCount)) : '')
+                        : '';
+                }
+                renderRows();
+            })
+            .catch(function () {
+                // Marketplace availability must not block management of the
+                // locally installed modules. Hide stale update actions on error.
+                state.updates = {};
+                renderRows();
+            });
+    }
+
+    function updateMarketplaceModule(name, button) {
+        var available = state.updates[name];
+        if (!available) return;
+        confirmModuleAction({
+            title: window.CRM.i18n.t('admin_modules.update_confirm_title', 'Обновить модуль?'),
+            message: window.CRM.i18n.t('admin_modules.update_confirm_msg', 'Модуль {name} будет обновлён с версии {old} до {new}. Его конфигурация сохранится.').replace('{name}', name).replace('{old}', available.installed_version).replace('{new}', available.latest_version),
+            actionText: window.CRM.i18n.t('admin_modules.update_button', 'Обновить'),
+            actionClass: 'crm-btn-primary'
+        }).then(function (ok) {
+            if (!ok) return;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + esc(window.CRM.i18n.t('admin_modules.update_running', 'Обновление…'));
+            window.CRM.api.request('api/v1/marketplace/update', { method: 'POST', body: { full_code: name }, timeoutMs: 300000 })
+                .then(function () {
+                    notify(window.CRM.i18n.t('admin_modules.update_success', 'Модуль успешно обновлён.'), 'success');
+                    state.updates = {};
+                    return loadModules();
+                })
+                .catch(function (err) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить'));
+                    notify(window.CRM.i18n.t('admin_modules.update_failed', 'Не удалось обновить модуль.') + ' ' + esc((err.envelope && err.envelope.message) || err.message || ''), 'error');
+                });
+        });
+    }
+
     /**
      * Whether the installed-modules list is in hand: 'ready' once it arrived,
      * 'error' when the request failed, 'pending' while it is still in flight.
@@ -336,6 +394,10 @@
             var statusClass = m.is_active ? 'badge bg-success' : (m.status === 'installed' ? 'badge bg-warning' : 'badge bg-secondary');
             var statusText = m.is_active ? window.CRM.i18n.t('admin_modules.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_modules.state_installed', 'Установлен') : window.CRM.i18n.t('admin_modules.state_discovered', 'Обнаружен'));
             var actions = '';
+            var availableUpdate = state.updates[m.name];
+            var updateButton = availableUpdate && availableUpdate.update_supported && canInstall
+                ? '<button class="btn btn-sm crm-btn-primary module-update me-1" data-name="' + esc(m.name) + '" title="' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + ' ' + esc(availableUpdate.latest_version) + '"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + '</button>'
+                : '';
             if (m.status === 'not_installed') {
                 actions = canInstall ? '<button class="btn btn-sm crm-btn-primary module-install me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_install', 'Установить модуль') + '" data-i18n-title="admin_modules.title_install" aria-label="' + window.CRM.i18n.t('admin_modules.aria_install', 'Установить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules.btn_install', 'Установить') + '</button>' : '';
             } else if (m.is_active) {
@@ -356,17 +418,22 @@
             rows += '<br><small class="text-muted">' + esc(m.name) + '</small>';
             if (m.description) rows += '<br><small class="text-muted">' + esc(m.description) + '</small>';
             rows += '</td>';
-            rows += '<td>' + esc(m.version) + '</td>';
+            rows += '<td>' + esc(m.version) + (availableUpdate ? '<br><small class="' + (availableUpdate.update_supported ? 'text-success' : 'text-muted') + '">' + esc(window.CRM.i18n.t('admin_modules.update_available', 'Доступна')) + ': ' + esc(availableUpdate.latest_version) + (!availableUpdate.update_supported ? '<br>' + esc(window.CRM.i18n.t('admin_modules.update_unsupported', 'Автообновление этим установщиком пока не поддерживается')) : '') + '</small>' : '') + '</td>';
             var vendorLabel = m.author || m.vendor || '';
             rows += '<td>' + (vendorLabel ? (m.author_url ? '<a href="' + esc(m.author_url) + '" target="_blank" rel="noopener noreferrer">' + esc(vendorLabel) + '</a>' : esc(vendorLabel)) : '—') + '</td>';
             rows += '<td><span class="' + statusClass + '">' + statusText + '</span></td>';
-            rows += '<td>' + actions + '</td>';
+            rows += '<td><div class="d-flex flex-wrap gap-1">' + updateButton + actions + '</div></td>';
             rows += '</tr>';
         });
 
         tableBody.innerHTML = rows;
         bindSelection();
         bindActions();
+        tableBody.querySelectorAll('.module-update').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                updateMarketplaceModule(this.getAttribute('data-name') || '', this);
+            });
+        });
         updateBulkToolbar();
     }
 
