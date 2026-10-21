@@ -16,7 +16,7 @@
       headers['Content-Type'] = 'application/json';
     }
     const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-    const url = cleanPath.startsWith('api/') ? '/' + cleanPath : '/api/v1/' + cleanPath;
+    const url = '/api/index.php?route=' + encodeURIComponent(cleanPath);
 
     return fetch(url, {
       ...options,
@@ -60,7 +60,7 @@
   // Compute standard webhook URL for current host
   const getComputedWebhookUrl = () => {
     const origin = window.location.origin;
-    return `${origin}/api/v1/_module/crm.telegram-bot/webhook/1`;
+    return `${origin}/api/index.php?route=_module/crm.telegram-bot/webhook/1`;
   };
 
   // Load Status and config
