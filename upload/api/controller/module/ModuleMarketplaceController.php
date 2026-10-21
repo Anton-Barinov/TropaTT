@@ -192,10 +192,7 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
                         'latest_version' => $latestVersion,
                         'min_core_version' => (string)($item['min_core_version'] ?? ''),
                         'is_active' => $installed[$code]['is_active'],
-                        // Language packs use a separate locale installer and are
-                        // intentionally withheld until that installer has an
-                        // atomic update/rollback path of its own.
-                        'update_supported' => !$installed[$code]['is_language_pack'],
+                        'update_supported' => true,
                     ];
                 }
                 $pages = max(1, min(20, (int)($result['meta']['pages'] ?? 1)));
@@ -228,9 +225,6 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         $manifest = $pm->getManifest($fullCode);
         if ($registry === null || $manifest === null || !is_dir($pm->getModulesDir() . '/' . $fullCode)) {
             throw new RuntimeException($this->t('module/messages.not_found'));
-        }
-        if (str_starts_with($fullCode, 'crm.language-pack-')) {
-            throw new RuntimeException($this->t('module/messages.marketplace_update_unsupported'));
         }
 
         $client = $this->client();
@@ -269,19 +263,26 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             throw new RuntimeException($this->t('module/messages.marketplace_php_incompatible'));
         }
 
-        $installer = new ModuleRemoteInstaller(
-            $pm,
-            $mc,
-            $this->container->get('module.migrations'),
-            dirname(__DIR__, 3),
-        );
-        $installer->updateFromUrl(
-            (string)$release['download_url'],
-            $fullCode,
-            $targetVersion,
-            $this->coreVersion(),
-            $sha256,
-        );
+        if (str_starts_with($fullCode, 'crm.language-pack-')) {
+            $this->container->get('service.language_pack_updater')->updateFromUrl(
+                (string)$release['download_url'], $fullCode, $targetVersion, $sha256, $this->coreVersion()
+            );
+            $pm->discover();
+        } else {
+            $installer = new ModuleRemoteInstaller(
+                $pm,
+                $mc,
+                $this->container->get('module.migrations'),
+                dirname(__DIR__, 3),
+            );
+            $installer->updateFromUrl(
+                (string)$release['download_url'],
+                $fullCode,
+                $targetVersion,
+                $this->coreVersion(),
+                $sha256,
+            );
+        }
 
         $this->dispatchModuleHook('module.updated', ['name' => $fullCode, 'source' => 'marketplace', 'version' => $targetVersion]);
 
