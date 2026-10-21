@@ -388,8 +388,10 @@
       const intakeRef = d.intake_ref || d.linked_intake_id;
       if (intakeLink) {
         if (intakeRef) {
-          intakeLink.style.display = 'inline-block';
+          intakeLink.style.display = 'inline-flex';
           intakeLink.href = 'index.php?route=intake';
+          intakeLink.innerHTML = `<i class="fa-solid fa-inbox me-1"></i> Intake #${esc(intakeRef)}`;
+          intakeLink.title = `Перейти к заявке Intake #${esc(intakeRef)}`;
         } else {
           intakeLink.style.display = 'none';
         }
@@ -399,9 +401,11 @@
       const taskRef = d.linked_task_public_id || d.task_ref || d.linked_task_id;
       if (taskLink) {
         if (taskRef) {
-          taskLink.style.display = 'inline-block';
+          taskLink.style.display = 'inline-flex';
           taskLink.href = `index.php?route=task-detail&id=${encodeURIComponent(taskRef)}`;
-          taskLink.textContent = `Задача #${taskRef}`;
+          const shortRef = String(taskRef).startsWith('tsk_') ? taskRef.slice(4, 10) : taskRef;
+          taskLink.innerHTML = `<i class="fa-solid fa-list-check me-1"></i> Задача #${esc(shortRef)}`;
+          taskLink.title = `Перейти к задаче CRM #${esc(taskRef)}`;
         } else {
           taskLink.style.display = 'none';
         }
