@@ -4,6 +4,8 @@
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid"></div></header>
 <main class="crm-content crm-admin-page"><div class="crm-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=admin" data-i18n="admin_module_detail.link_admin"><?= htmlspecialchars($t('admin_module_detail.link_admin', 'Админка'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item"><a href="index.php?route=admin-modules" data-i18n="admin_module_detail.link_modules"><?= htmlspecialchars($t('admin_module_detail.link_modules', 'Модули'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" id="moduleBreadcrumb"><?= htmlspecialchars($t('admin_module_detail.breadcrumb_loading', 'Загрузка...'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" id="moduleTitle" data-i18n="admin_module_detail.page_title"><?= htmlspecialchars($t('admin_module_detail.page_title', 'Детали модуля'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" id="moduleDesc"></p><div id="modulePageLink" class="mt-2"></div></div></div>
 
+<div id="moduleHeroBanner" class="mb-4" style="display:none"></div>
+
 <div class="row g-4 mb-4" id="moduleStats" style="display:none">
   <div class="col-md-3"><div class="crm-card crm-kpi-card"><small class="text-muted" data-i18n="admin_module_detail.kpi_version"><?= htmlspecialchars($t('admin_module_detail.kpi_version', 'Версия'), ENT_QUOTES, 'UTF-8') ?></small><h2 class="h4 mb-0" id="statVersion">—</h2></div></div>
   <div class="col-md-3"><div class="crm-card crm-kpi-card"><small class="text-muted" data-i18n="admin_module_detail.kpi_vendor"><?= htmlspecialchars($t('admin_module_detail.kpi_vendor', 'Вендор'), ENT_QUOTES, 'UTF-8') ?></small><h2 class="h4 mb-0" id="statVendor">—</h2></div></div>
@@ -55,11 +57,30 @@
                 // the raw "Конфигурация" section below only shows the module config.
                 var pageRoutes = m.page_routes || [];
                 var pageLink = document.getElementById('modulePageLink');
+                var heroBanner = document.getElementById('moduleHeroBanner');
                 if (pageRoutes.length > 0) {
                     var route = String(pageRoutes[0]);
-                    pageLink.innerHTML = '<a class="btn crm-btn-secondary btn-sm" href="index.php?route=' + encodeURIComponent(route) + '"><i class="fa-solid fa-arrow-up-right-from-square me-1" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.open_module_page', 'Открыть страницу модуля')) + '</a>';
+                    var moduleTitle = m.title || m.name || name;
+                    pageLink.innerHTML = '<a class="btn crm-btn-primary" href="index.php?route=' + encodeURIComponent(route) + '"><i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.open_module_page', 'Открыть интерфейс модуля')) + '</a>';
+                    
+                    if (heroBanner) {
+                        heroBanner.style.display = '';
+                        heroBanner.innerHTML = '<div class="alert alert-primary p-3 d-flex align-items-center justify-content-between flex-wrap gap-3 shadow-sm border-primary">' +
+                            '<div class="d-flex align-items-center">' +
+                                '<div class="me-3 fs-1 text-primary"><i class="fa-solid fa-layer-group"></i></div>' +
+                                '<div>' +
+                                    '<h5 class="alert-heading mb-1 fw-bold">' + window.CRM.text.escapeHtml(moduleTitle) + '</h5>' +
+                                    '<div class="small text-muted">' + (m.description ? window.CRM.text.escapeHtml(m.description) : 'Этот модуль предоставляет интерактивный интерфейс управления.') + '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<a class="btn crm-btn-primary fw-semibold px-4 py-2" href="index.php?route=' + encodeURIComponent(route) + '">' +
+                                '<i class="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true"></i>' + window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.open_module_page', 'Открыть панель модуля')) +
+                            '</a>' +
+                        '</div>';
+                    }
                 } else {
                     pageLink.innerHTML = '';
+                    if (heroBanner) heroBanner.style.display = 'none';
                 }
 
                 document.getElementById('moduleStats').style.display = '';
@@ -74,7 +95,7 @@
                 document.getElementById('statStatus').textContent = m.is_active ? window.CRM.i18n.t('admin_module_detail.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_module_detail.state_installed', 'Установлен') : window.CRM.i18n.t('admin_module_detail.state_discovered', 'Обнаружен'));
                 document.getElementById('statCore').textContent = m.core_version || '—';
 
-                loadConfig(name);
+                loadConfig(name, pageRoutes);
                 loadMigrations(name);
                 loadErrors(name);
             })
@@ -84,15 +105,21 @@
             });
     }
 
-    function loadConfig(n) {
+    function loadConfig(n, pageRoutes) {
         var c = document.getElementById('configContainer');
         window.CRM.api.request('api/v1/modules/' + encodeURIComponent(n) + '/config', { method: 'GET', timeoutMs: 10000 })
             .then(function (env) {
                 var cfg = ((env.data || {}).config || {});
                 var keys = Object.keys(cfg);
-                if (keys.length === 0) { c.innerHTML = '<p class="text-muted">' + window.CRM.i18n.t('admin_module_detail.no_config', 'Нет настраиваемых параметров') + '</p>'; return; }
-
                 var html = '';
+                if (pageRoutes && pageRoutes.length > 0) {
+                    var route = String(pageRoutes[0]);
+                    html += '<div class="alert alert-info py-2 px-3 small mb-3"><i class="fa-solid fa-circle-info me-1"></i> ' +
+                        window.CRM.i18n.t('admin_module_detail.custom_ui_hint', 'Основная настройка и проверка работы выполняется в панели модуля:') +
+                        ' <a href="index.php?route=' + encodeURIComponent(route) + '" class="alert-link fw-semibold">' +
+                        window.CRM.text.escapeHtml(window.CRM.i18n.t('admin_module_detail.open_module_page', 'Открыть панель модуля')) + '</a></div>';
+                }
+                if (keys.length === 0) { c.innerHTML = html + '<p class="text-muted">' + window.CRM.i18n.t('admin_module_detail.no_config', 'Нет настраиваемых параметров') + '</p>'; return; }
                 keys.forEach(function (k) {
                     var v = cfg[k];
                     if (v === null || typeof v === 'object') {
