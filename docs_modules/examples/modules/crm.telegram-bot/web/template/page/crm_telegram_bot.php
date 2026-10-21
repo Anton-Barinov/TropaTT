@@ -166,7 +166,7 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                         </div>
 
                         <!-- Reply Box -->
-                        <div class="tg-reply-box p-3 border-top bg-light">
+                        <div class="tg-reply-box p-3 border-top">
                             <form id="tgReplyForm" class="d-flex gap-2">
                                 <textarea class="form-control" id="tgReplyText" rows="2" placeholder="Написать ответ клиенту в Telegram... (Enter для отправки)" required></textarea>
                                 <button type="submit" class="btn crm-btn-primary px-3 d-flex flex-column align-items-center justify-content-center" id="tgSendReplyBtn" title="Отправить в Telegram">
@@ -376,7 +376,7 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                             </button>
                             <span id="tgPollStatus" class="small text-muted"></span>
                         </div>
-                        <div id="tgPollResult" class="small p-2 bg-light rounded font-monospace" style="display:none; max-height:120px; overflow-y:auto;"></div>
+                        <div id="tgPollResult" class="tg-code-box small p-2 rounded font-monospace" style="display:none; max-height:120px; overflow-y:auto;"></div>
                     </div>
                 </div>
             </div>
