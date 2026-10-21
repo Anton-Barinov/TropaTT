@@ -1278,6 +1278,8 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 
 ### 模块市场
 
+模块更新与 CRM 核心更新相互独立。管理界面按顺序更新模块，每个模块使用一个 HTTP 请求。批量 `POST /api/v1/marketplace/update`（`full_codes` 或 `all`）和 `POST /api/v1/modules/bulk`（`action=update`）每次最多处理一个模块，并返回 `remaining` 和 `complete`；后续请求只需提交 `remaining`。连接中断后应先核实结果，再决定是否重试。`GET /api/v1/modules/{name}` 除文件版本 `version` 外，还返回 `registry_version` 和 `update_in_progress`。只有两个版本均为目标版本且没有更新锁时，才能确认更新完成。`GET /api/v1/marketplace/updates?refresh=1` 可绕过模块市场缓存。
+
 官方模块市场（`https://marketplace.tropatt.com`）的只读代理。地址来自服务器配置（`TROPATT_MARKETPLACE_URL`），绝不来自请求参数。目录响应包含 `status`（是否启用、是否配置、是否可达）以及规范化的 `items` 和分页 `meta`。
 
 | 方法 | 端点 | 说明 | 认证 | 权限 | 备注 |

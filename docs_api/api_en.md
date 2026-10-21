@@ -1319,6 +1319,8 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 
 ### Module marketplace
 
+Module updates are separate from CRM core updates. The admin UI processes selected updates sequentially, one HTTP request per module. Batch `POST /api/v1/marketplace/update` (`full_codes` or `all`) and `POST /api/v1/modules/bulk` (`action=update`) process at most one module per request and return `remaining` plus `complete`; submit only `remaining` to continue. After a lost response, check the result before retrying. `GET /api/v1/modules/{name}` reports `registry_version` and `update_in_progress` in addition to the file `version`: completion requires the expected version in both sources and no update lock. `GET /api/v1/marketplace/updates?refresh=1` bypasses the Marketplace cache.
+
 Proxy to the official module marketplace (`https://marketplace.tropatt.com`). The base URL comes from the server configuration (`TROPATT_MARKETPLACE_URL`) and never from request data. Catalog responses carry `status` (whether the marketplace is enabled, configured and reachable) plus normalized `items` and `meta` for pagination.
 
 | Method | Endpoint | Description | Auth | Permissions | Notes |

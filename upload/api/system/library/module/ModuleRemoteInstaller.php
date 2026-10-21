@@ -22,6 +22,31 @@ final class ModuleRemoteInstaller
         private readonly string $projectRoot,
     ) {}
 
+    public static function isUpdateRunning(string $projectRoot, string $name): bool
+    {
+        if (!ModuleMarketplaceClient::isValidCode($name)) {
+            return true;
+        }
+        $lockDir = $projectRoot . '/storage_api/locks';
+        $path = $lockDir . '/module-' . hash('sha256', $name) . '.lock';
+        if (is_link($lockDir) || is_link($path)) {
+            return true;
+        }
+        if (!file_exists($path)) {
+            return false;
+        }
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return true;
+        }
+        $available = flock($handle, LOCK_EX | LOCK_NB);
+        if ($available) {
+            flock($handle, LOCK_UN);
+        }
+        fclose($handle);
+        return !$available;
+    }
+
     /**
      * Install a module from a remote URL.
      *
@@ -135,6 +160,14 @@ final class ModuleRemoteInstaller
         $backupDir = $modulesDir . '/.crm-backup-' . bin2hex(random_bytes(8));
         $swapped = false;
         try {
+            $lockedManifest = json_decode((string)@file_get_contents($currentDir . '/manifest.json'), true);
+            $oldVersion = is_array($lockedManifest) ? (string)($lockedManifest['version'] ?? '') : '';
+            if ($this->mc->getRegistry($expectedName) === null || !is_array($lockedManifest)
+                || (string)($lockedManifest['name'] ?? '') !== $expectedName
+                || !preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $oldVersion)
+                || version_compare($expectedVersion, $oldVersion, '<=')) {
+                throw new RuntimeException('Installed module changed before the update lock was acquired');
+            }
             $this->extract($filePath, $extractDir);
             $manifestPath = $extractDir . '/manifest.json';
             $manifestData = json_decode((string)@file_get_contents($manifestPath), true);
