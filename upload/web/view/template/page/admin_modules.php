@@ -83,7 +83,7 @@
     // treated "list not here yet" as "module not installed" and offered an
     // install button for a module that is registered or already on disk — the
     // click could then only answer 409 ALREADY_INSTALLED / MODULE_DISCOVERED_LOCALLY.
-    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {} };
+    var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {}, canUpdate: false };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
     var canInstall = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
@@ -317,7 +317,7 @@
     }
 
     function loadMarketplaceUpdates() {
-        if (!canInstall || !window.CRM.api) return;
+        if (!window.CRM.api) return;
         window.CRM.api.request('api/v1/marketplace/updates', { method: 'GET', timeoutMs: 30000, noCache: true })
             .then(function (env) {
                 var data = env.data || {};
@@ -326,6 +326,9 @@
                     if (item.full_code) updates[item.full_code] = item;
                 });
                 state.updates = updates;
+                // The server is authoritative for update permission. Client
+                // permission helpers may not recognize root's wildcard grant.
+                state.canUpdate = data.can_update === true;
                 var supportedCount = Object.keys(updates).filter(function (code) { return updates[code].update_supported; }).length;
                 var unsupportedCount = Object.keys(updates).length - supportedCount;
                 var summary = document.getElementById('moduleUpdateSummary');
@@ -342,6 +345,7 @@
                 // Marketplace availability must not block management of the
                 // locally installed modules. Hide stale update actions on error.
                 state.updates = {};
+                state.canUpdate = false;
                 renderRows();
             });
     }
@@ -395,7 +399,7 @@
             var statusText = m.is_active ? window.CRM.i18n.t('admin_modules.state_active', 'Активен') : (m.status === 'installed' ? window.CRM.i18n.t('admin_modules.state_installed', 'Установлен') : window.CRM.i18n.t('admin_modules.state_discovered', 'Обнаружен'));
             var actions = '';
             var availableUpdate = state.updates[m.name];
-            var updateButton = availableUpdate && availableUpdate.update_supported && canInstall
+            var updateButton = availableUpdate && availableUpdate.update_supported && state.canUpdate
                 ? '<button class="btn btn-sm crm-btn-primary module-update me-1" data-name="' + esc(m.name) + '" title="' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + ' ' + esc(availableUpdate.latest_version) + '"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + '</button>'
                 : '';
             if (m.status === 'not_installed') {
