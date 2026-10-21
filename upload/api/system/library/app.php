@@ -1839,6 +1839,13 @@ final class App
             $this->basePath,
             new \Api\System\Library\Security\UrlSafetyValidator()
         ));
+        $this->container->factory('service.language_pack_updater', fn(Container $c) => new \Api\System\Library\Service\LanguagePackUpdater(
+            $c->get('service.language_registry'),
+            new \Api\System\Library\Service\LanguageFileAstValidator(),
+            $c->get('module.config'),
+            $this->basePath,
+            new \Api\System\Library\Security\UrlSafetyValidator()
+        ));
         $this->container->factory('service.earnings', fn(Container $c) => new \Api\System\Library\Service\EarningsService(
             $c->get('repository.worklog'),
             $c->get('db.pdo')

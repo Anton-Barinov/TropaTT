@@ -52,6 +52,16 @@ final class TelegramBotApiController extends BaseController
             }
         } catch (Throwable) {}
 
+        try {
+            $primaryOrgStmt = $this->container->get('db.pdo')->query(
+                "SELECT id FROM organizations ORDER BY id ASC LIMIT 1"
+            );
+            $primaryOrg = $primaryOrgStmt ? (int)$primaryOrgStmt->fetchColumn() : 0;
+            if ($primaryOrg > 0) {
+                return $primaryOrg;
+            }
+        } catch (Throwable) {}
+
         return 1;
     }
 
@@ -363,7 +373,10 @@ final class TelegramBotApiController extends BaseController
      */
     public function handleWebhook(array $params = []): JsonResponse
     {
-        $orgId = (int)($params['org_id'] ?? 1);
+        $orgId = (int)($params['org_id'] ?? 0);
+        if ($orgId <= 0) {
+            $orgId = $this->getOrganizationId();
+        }
         $secretToken = (string)($this->request()->header('X-Telegram-Bot-Api-Secret-Token') ?? '');
         $update = $this->request()->allInput();
 

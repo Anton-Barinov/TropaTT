@@ -83,7 +83,7 @@ final class PluginManager
      * Validate a manifest for structural integrity.
      * @return array<int, array{code: string, field: string, message: string, value: mixed, rule: string}>
      */
-    public function validate(Manifest $manifest): array
+    public function validate(Manifest $manifest, ?string $candidateModuleDir = null, bool $loadProvider = true): array
     {
         $errors = [];
 
@@ -115,7 +115,17 @@ final class PluginManager
                 'Missing required field: title', '', 'required');
         }
 
-        $moduleDir = $this->modulesDir . '/' . $manifest->name;
+        $moduleDir = $candidateModuleDir ?? $this->modulesDir . '/' . $manifest->name;
+        $realModuleDir = $this->resolveModuleDirectory($moduleDir);
+        $requiresModuleDirectory = $candidateModuleDir !== null
+            || $manifest->apiRoutes !== null
+            || $manifest->webRoutes !== null
+            || ($manifest->serviceProvider !== null && $manifest->serviceProvider !== '');
+        if ($requiresModuleDirectory && $realModuleDir === null) {
+            $errors[] = $this->errorStruct('E_MODULE_DIRECTORY_UNSAFE', 'name',
+                'Module directory is missing, linked, or outside the modules directory',
+                $manifest->name, 'module_directory_containment');
+        }
 
         // SEC (audit 2026-10, finding #2): api_routes/web_routes are manifest
         // strings that become filesystem paths (and later require() targets).
@@ -128,11 +138,10 @@ final class PluginManager
                 'API routes path contains directory traversal or is not a relative file path',
                 $manifest->apiRoutes, 'path_traversal');
         } elseif ($manifest->apiRoutes !== null) {
-            $apiRoutesPath = $moduleDir . '/' . $manifest->apiRoutes;
-            if (!is_file($apiRoutesPath)) {
+            if ($realModuleDir === null || !$this->isContainedRegularFile($realModuleDir, $manifest->apiRoutes)) {
                 $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_NOT_FOUND', 'api_routes',
-                    "API routes file not found: {$manifest->apiRoutes}",
-                    $manifest->apiRoutes, 'file_exists');
+                    "API routes file is missing or unsafe: {$manifest->apiRoutes}",
+                    $manifest->apiRoutes, 'contained_file_exists');
             }
         }
 
@@ -141,13 +150,13 @@ final class PluginManager
                 'Web routes path contains directory traversal or is not a relative file path',
                 $manifest->webRoutes, 'path_traversal');
         } elseif ($manifest->webRoutes !== null) {
-            $webRoutesPath = $moduleDir . '/' . $manifest->webRoutes;
-            if (!is_file($webRoutesPath)) {
+            if ($realModuleDir === null || !$this->isContainedRegularFile($realModuleDir, $manifest->webRoutes)) {
                 $errors[] = $this->errorStruct('E_MANIFEST_ROUTES_NOT_FOUND', 'web_routes',
-                    "Web routes file not found: {$manifest->webRoutes}",
-                    $manifest->webRoutes, 'file_exists');
+                    "Web routes file is missing or unsafe: {$manifest->webRoutes}",
+                    $manifest->webRoutes, 'contained_file_exists');
             }
-        }        if ($errors === [] && $manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
+        }
+        if ($errors === [] && $manifest->serviceProvider !== null && $manifest->serviceProvider !== '') {
             // SEC (audit 2026-10, finding #3): this used to require_once the
             // provider even when the manifest already failed validation above —
             // during installFromFile the archive was already extracted at that
@@ -155,9 +164,20 @@ final class PluginManager
             // was invalid (and before the cleanup that follows). Provider code
             // is now loaded only for a manifest that has passed every check.
             $spClass = $manifest->serviceProvider;
-            if (!class_exists($spClass)) {
-                $spFile = $moduleDir . '/api/' . str_replace('\\', '/', substr($spClass, strrpos($spClass, '\\') + 1)) . '.php';
-                if (is_file($spFile)) {
+            if (!$this->isValidServiceProviderClass($spClass)) {
+                $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_INVALID', 'service_provider',
+                    'Service provider must be a valid PHP class name', $spClass, 'php_class_name');
+            } elseif ($realModuleDir === null) {
+                $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_FILE_UNSAFE', 'service_provider',
+                    'Service provider module directory is missing or unsafe', $spClass, 'module_directory_containment');
+            } else {
+                $shortClass = substr($spClass, strrpos('\\' . $spClass, '\\'));
+                $providerRelativePath = 'api/' . $shortClass . '.php';
+                if (!$this->isContainedRegularFile($realModuleDir, $providerRelativePath)) {
+                    $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_FILE_UNSAFE', 'service_provider',
+                        'Service provider file is missing or unsafe', $spClass, 'contained_file_exists');
+                } elseif ($loadProvider && !class_exists($spClass)) {
+                    $spFile = $realModuleDir . '/' . $providerRelativePath;
                     try {
                         require_once $spFile;
                     } catch (\Throwable $e) {
@@ -166,7 +186,7 @@ final class PluginManager
                     }
                 }
             }
-            if (!class_exists($spClass)) {
+            if ($errors === [] && $loadProvider && !class_exists($spClass)) {
                 $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_NOT_FOUND', 'service_provider',
                     "Service provider class not found: {$spClass}", $spClass, 'class_exists');
             }
@@ -422,6 +442,49 @@ final class PluginManager
         }
 
         return str_starts_with($path, '/');
+    }
+
+    private function resolveModuleDirectory(string $path): ?string
+    {
+        $modulesReal = realpath($this->modulesDir);
+        $candidateReal = realpath($path);
+        if ($modulesReal === false || $candidateReal === false
+            || is_link($this->modulesDir) || is_link($path)
+            || dirname($candidateReal) !== $modulesReal || !is_dir($candidateReal)) {
+            return null;
+        }
+
+        return $candidateReal;
+    }
+
+    private function isContainedRegularFile(string $moduleDir, string $relativePath): bool
+    {
+        if ($this->isUnsafeRelativePath($relativePath)) {
+            return false;
+        }
+
+        $segments = explode('/', $relativePath);
+        if (in_array('', $segments, true) || in_array('.', $segments, true)) {
+            return false;
+        }
+
+        $path = $moduleDir;
+        foreach ($segments as $segment) {
+            $path .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($path)) {
+                return false;
+            }
+        }
+
+        $realPath = realpath($path);
+        return $realPath !== false
+            && str_starts_with($realPath, $moduleDir . DIRECTORY_SEPARATOR)
+            && is_file($realPath);
+    }
+
+    private function isValidServiceProviderClass(string $class): bool
+    {
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*$/', $class) === 1;
     }
 
     private function isValidVersion(string $version): bool
