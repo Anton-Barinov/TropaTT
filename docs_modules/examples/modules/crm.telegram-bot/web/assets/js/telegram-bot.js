@@ -3,9 +3,32 @@
 
   // API helper using window.CRM.api.request
   const api = (path, options = {}) => {
-    if (window.CRM?.api?.request) {
-      return window.CRM.api.request(path, options).then(envelope => envelope.data || envelope);
+    let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    const query = Object.assign({}, options.query || {});
+    if (cleanPath.includes('?')) {
+      const parts = cleanPath.split('?');
+      cleanPath = parts[0];
+      const params = new URLSearchParams(parts[1]);
+      params.forEach((v, k) => {
+        if (query[k] === undefined) {
+          query[k] = v;
+        }
+      });
     }
+    const finalOptions = Object.assign({}, options, { query });
+
+    if (window.CRM?.api?.request) {
+      return window.CRM.api.request(cleanPath, finalOptions).then(envelope => {
+        if (envelope && typeof envelope === 'object') {
+          if (envelope.success === false) {
+            throw new Error(envelope.message || envelope.code || 'Ошибка запроса к API');
+          }
+          return envelope.data !== undefined ? envelope.data : envelope;
+        }
+        return envelope;
+      });
+    }
+
     const method = String(options.method || 'GET').toUpperCase();
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
     if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) && window.CRM?.api?.getCsrfToken) {
@@ -15,8 +38,15 @@
     if (hasBody && typeof options.body !== 'string' && !headers['Content-Type']) {
       headers['Content-Type'] = 'application/json';
     }
-    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-    const url = '/api/index.php?route=' + encodeURIComponent(cleanPath);
+
+    const searchParams = new URLSearchParams();
+    searchParams.set('route', cleanPath);
+    Object.keys(query).forEach(k => {
+      if (query[k] !== undefined && query[k] !== null) {
+        searchParams.set(k, String(query[k]));
+      }
+    });
+    const url = '/api/index.php?' + searchParams.toString();
 
     return fetch(url, {
       ...options,
@@ -29,7 +59,7 @@
       if (!response.ok || data.success === false) {
         throw new Error(data.message || data.code || 'Ошибка запроса к API');
       }
-      return data.data || data;
+      return data.data !== undefined ? data.data : data;
     });
   };
 
@@ -320,8 +350,9 @@
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Сохранение...';
       }
 
+      const rawToken = $('tgBotToken')?.value || '';
       const body = {
-        bot_token: $('tgBotToken')?.value || '',
+        bot_token: (rawToken.includes('••••') || rawToken.startsWith('gcm:') || rawToken.startsWith('b64:')) ? '' : rawToken,
         bot_username: $('tgBotUsername')?.value || '',
         webhook_secret_token: $('tgSecretToken')?.value || '',
         webhook_url: $('tgWebhookUrl')?.value || '',
@@ -354,10 +385,13 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Проверка...';
       }
 
+      const rawVal = $('tgBotToken')?.value || '';
+      const botToken = (rawVal.includes('••••') || rawVal.startsWith('gcm:') || rawVal.startsWith('b64:')) ? '' : rawVal;
+
       try {
         const res = await api('_module/crm.telegram-bot/test-connection', {
           method: 'POST',
-          body: { bot_token: $('tgBotToken')?.value || '' },
+          body: { bot_token: botToken },
         });
 
         const bot = res.bot || {};

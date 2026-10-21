@@ -18,7 +18,41 @@ final class TelegramBotApiController extends BaseController
     private function getOrganizationId(): int
     {
         $auth = $this->user();
-        return (int)($auth['user']['organization_id'] ?? 1);
+        $orgId = (int)($auth['user']['organization_id'] ?? 0);
+        if ($orgId > 0) {
+            return $orgId;
+        }
+
+        $hdr = (string)($this->request()->header('X-Organization-Id') ?? $this->request()->header('X-Organization-Public-Id') ?? '');
+        if ($hdr !== '' && is_numeric($hdr)) {
+            return (int)$hdr;
+        }
+
+        $userId = (int)($auth['user']['id'] ?? 0);
+        if ($userId > 0) {
+            try {
+                $stmt = $this->container->get('db.pdo')->prepare(
+                    "SELECT organization_id FROM organization_memberships WHERE user_id = :uid ORDER BY id ASC LIMIT 1"
+                );
+                $stmt->execute([':uid' => $userId]);
+                $userOrg = (int)$stmt->fetchColumn();
+                if ($userOrg > 0) {
+                    return $userOrg;
+                }
+            } catch (Throwable) {}
+        }
+
+        try {
+            $anyStmt = $this->container->get('db.pdo')->query(
+                "SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 LIMIT 1"
+            );
+            $anyOrg = $anyStmt ? (int)$anyStmt->fetchColumn() : 0;
+            if ($anyOrg > 0) {
+                return $anyOrg;
+            }
+        } catch (Throwable) {}
+
+        return 1;
     }
 
     /**
@@ -92,7 +126,7 @@ final class TelegramBotApiController extends BaseController
         }
 
         $token = trim((string)$this->request()->input('bot_token', ''));
-        if (str_contains($token, '••••')) {
+        if (str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:')) {
             $token = '';
         }
 
@@ -194,7 +228,7 @@ final class TelegramBotApiController extends BaseController
         }
 
         $chatId = trim((string)$this->request()->input('chat_id', ''));
-        $text = trim((string)$this->request()->input('text', ''));
+        $text = trim((string)($this->request()->input('text') ?: $this->request()->input('message', '')));
 
         if ($chatId === '' || $text === '') {
             return $this->error('INVALID_PARAM', 'Chat ID и текст сообщения обязательны', 400);

@@ -107,34 +107,57 @@ final class TelegramBotService
      */
     private function decryptToken(string $encrypted): string
     {
+        $encrypted = trim($encrypted);
+        if ($encrypted === '') {
+            return '';
+        }
+
+        // Already plain bot token (e.g. 123456789:AA...)
+        if (preg_match('/^[0-9]{8,12}:[a-zA-Z0-9_-]{30,50}$/', $encrypted)) {
+            return $encrypted;
+        }
+
         if (str_starts_with($encrypted, 'gcm:')) {
             $blob = base64_decode(substr($encrypted, 4), true);
             if ($blob !== false && strlen($blob) > 28) {
                 $iv = substr($blob, 0, 12);
                 $tag = substr($blob, 12, 16);
                 $cipher = substr($blob, 28);
-                $key = (string)(getenv('APP_KEY') ?: ($_ENV['APP_KEY'] ?? 'crm-telegram-secret-key-32bytes!'));
-                $keyBin = hash('sha256', $key, true);
-                $plain = openssl_decrypt($cipher, 'aes-256-gcm', $keyBin, OPENSSL_RAW_DATA, $iv, $tag);
-                if ($plain !== false) {
-                    return $plain;
+                $candidateKeys = array_unique(array_filter([
+                    (string)(getenv('APP_KEY') ?: ($_ENV['APP_KEY'] ?? '')),
+                    'crm-telegram-secret-key-32bytes!',
+                ]));
+                foreach ($candidateKeys as $key) {
+                    $keyBin = hash('sha256', $key, true);
+                    $plain = openssl_decrypt($cipher, 'aes-256-gcm', $keyBin, OPENSSL_RAW_DATA, $iv, $tag);
+                    if ($plain !== false && is_string($plain) && $plain !== '') {
+                        return trim($plain);
+                    }
                 }
             }
+            return '';
         }
 
         if (class_exists(KeyGuard::class) && method_exists(KeyGuard::class, 'decrypt')) {
             try {
-                return KeyGuard::decrypt($encrypted);
+                $plain = KeyGuard::decrypt($encrypted);
+                if ($plain !== false && is_string($plain) && $plain !== '') {
+                    return trim($plain);
+                }
             } catch (Throwable) {}
         }
 
         if (str_starts_with($encrypted, 'b64:')) {
             $raw = base64_decode(substr($encrypted, 4), true);
-            return $raw !== false ? $raw : '';
+            return $raw !== false && is_string($raw) ? trim($raw) : '';
         }
 
         $raw = base64_decode($encrypted, true);
-        return $raw !== false ? $raw : $encrypted;
+        if ($raw !== false && is_string($raw) && preg_match('/^[0-9]{8,12}:[a-zA-Z0-9_-]{30,50}$/', $raw)) {
+            return trim($raw);
+        }
+
+        return '';
     }
 
     /**
@@ -142,6 +165,10 @@ final class TelegramBotService
      */
     public function maskToken(string $token): string
     {
+        $token = trim($token);
+        if ($token === '' || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:')) {
+            return '';
+        }
         $len = strlen($token);
         if ($len <= 10) {
             return str_repeat('•', max(6, $len));
@@ -163,32 +190,35 @@ final class TelegramBotService
         $secret = (string)(getenv('TELEGRAM_WEBHOOK_SECRET') ?: ($_ENV['TELEGRAM_WEBHOOK_SECRET'] ?? ''));
 
         if ($token === '') {
+            $root = dirname(__DIR__, 3);
             $envPaths = [
-                __DIR__ . '/../../../../../.env',
-                __DIR__ . '/../../../../../api/.env',
-                getcwd() . '/.env',
-                getcwd() . '/api/.env',
+                $root . '/api/.env',
+                $root . '/.env',
+                dirname($root) . '/api/.env',
+                dirname($root) . '/.env',
             ];
             foreach ($envPaths as $p) {
-                if (file_exists($p) && is_readable($p)) {
-                    $lines = file($p, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                    if ($lines) {
-                        foreach ($lines as $line) {
-                            $line = trim($line);
-                            if (str_starts_with($line, '#')) continue;
-                            if (preg_match('/^TELEGRAM_BOT_TOKEN\s*=\s*(.*)$/i', $line, $m)) {
-                                $token = trim($m[1], " \t\n\r\0\x0B\"'");
-                            } elseif (preg_match('/^TELEGRAM_BOT_USERNAME\s*=\s*(.*)$/i', $line, $m)) {
-                                $username = trim($m[1], " \t\n\r\0\x0B\"'");
-                            } elseif (preg_match('/^TELEGRAM_WEBHOOK_SECRET\s*=\s*(.*)$/i', $line, $m)) {
-                                $secret = trim($m[1], " \t\n\r\0\x0B\"'");
+                try {
+                    if (@is_file($p) && @is_readable($p)) {
+                        $lines = @file($p, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                        if ($lines) {
+                            foreach ($lines as $line) {
+                                $line = trim($line);
+                                if (str_starts_with($line, '#')) continue;
+                                if (preg_match('/^TELEGRAM_BOT_TOKEN\s*=\s*(.*)$/i', $line, $m)) {
+                                    $token = trim($m[1], " \t\n\r\0\x0B\"'");
+                                } elseif (preg_match('/^TELEGRAM_BOT_USERNAME\s*=\s*(.*)$/i', $line, $m)) {
+                                    $username = trim($m[1], " \t\n\r\0\x0B\"'");
+                                } elseif (preg_match('/^TELEGRAM_WEBHOOK_SECRET\s*=\s*(.*)$/i', $line, $m)) {
+                                    $secret = trim($m[1], " \t\n\r\0\x0B\"'");
+                                }
                             }
                         }
+                        if ($token !== '') {
+                            break;
+                        }
                     }
-                    if ($token !== '') {
-                        break;
-                    }
-                }
+                } catch (Throwable) {}
             }
         }
 
@@ -237,6 +267,13 @@ final class TelegramBotService
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
+            try {
+                $anyStmt = $this->db->query("SELECT * FROM crm_telegram_configs WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1");
+                $row = $anyStmt ? $anyStmt->fetch(PDO::FETCH_ASSOC) : null;
+            } catch (Throwable) {}
+        }
+
+        if (!$row) {
             // Check if available from .env as fallback
             $env = $this->detectEnvConfig();
             if ($env['has_env']) {
@@ -260,6 +297,20 @@ final class TelegramBotService
         }
 
         $decryptedToken = $this->decryptToken((string)$row['bot_token_encrypted']);
+        if ($decryptedToken === '') {
+            try {
+                $anyStmt = $this->db->prepare("SELECT * FROM crm_telegram_configs WHERE is_active = 1 AND id != :curr_id ORDER BY updated_at DESC LIMIT 1");
+                $anyStmt->execute([':curr_id' => (int)($row['id'] ?? 0)]);
+                $fallbackRow = $anyStmt->fetch(PDO::FETCH_ASSOC);
+                if ($fallbackRow) {
+                    $fallbackToken = $this->decryptToken((string)$fallbackRow['bot_token_encrypted']);
+                    if ($fallbackToken !== '') {
+                        $row = $fallbackRow;
+                        $decryptedToken = $fallbackToken;
+                    }
+                }
+            } catch (Throwable) {}
+        }
 
         return [
             'public_id' => (string)$row['public_id'],
@@ -297,15 +348,22 @@ final class TelegramBotService
         $this->ensureSchema();
         $now = date('Y-m-d H:i:s');
 
-        // Check if existing
+        // Check if existing for current org
         $stmt = $this->db->prepare(
             "SELECT * FROM crm_telegram_configs WHERE organization_id = :org_id LIMIT 1"
         );
         $stmt->execute([':org_id' => $organizationId]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // If botToken contains bullets or is empty and existing exists, keep existing token
-        if ($existing && ($botToken === '' || str_contains($botToken, '••••'))) {
+        if (!$existing) {
+            try {
+                $anyStmt = $this->db->query("SELECT * FROM crm_telegram_configs WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1");
+                $existing = $anyStmt ? $anyStmt->fetch(PDO::FETCH_ASSOC) : null;
+            } catch (Throwable) {}
+        }
+
+        // If botToken contains bullets, ciphertext or is empty and existing exists, keep existing token
+        if ($existing && ($botToken === '' || str_contains($botToken, '••••') || str_starts_with($botToken, 'gcm:') || str_starts_with($botToken, 'b64:'))) {
             $encryptedToken = (string)$existing['bot_token_encrypted'];
         } else {
             if ($botToken === '') {
@@ -316,6 +374,19 @@ final class TelegramBotService
 
         if ($webhookSecretToken === '') {
             $webhookSecretToken = $existing['webhook_secret_token'] ?? bin2hex(random_bytes(16));
+        }
+
+        // Auto-discover bot username if empty
+        if ($botUsername === null || trim($botUsername) === '') {
+            try {
+                $plain = $this->decryptToken($encryptedToken);
+                if ($plain !== '') {
+                    $me = $this->callTelegramApi('getMe', [], $plain, $organizationId);
+                    if (!empty($me['ok']) && !empty($me['result']['username'])) {
+                        $botUsername = '@' . ltrim((string)$me['result']['username'], '@');
+                    }
+                }
+            } catch (Throwable) {}
         }
 
         $autoIntakeVal = $autoCreateIntake ? 1 : 0;
@@ -384,9 +455,18 @@ final class TelegramBotService
      */
     public function callTelegramApi(string $method, array $params = [], ?string $token = null, int $organizationId = 1): array
     {
-        if ($token === null || $token === '') {
+        if ($token === null || $token === '' || str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:')) {
             $cfg = $this->getConfig($organizationId);
             $token = $cfg['bot_token'] ?? '';
+            if ($token === '' || str_contains($token, '••••') || str_starts_with($token, 'gcm:')) {
+                try {
+                    $any = $this->db->query("SELECT bot_token_encrypted FROM crm_telegram_configs WHERE is_active = 1 AND bot_token_encrypted != '' ORDER BY id DESC LIMIT 1");
+                    $enc = $any ? (string)$any->fetchColumn() : '';
+                    if ($enc !== '') {
+                        $token = $this->decryptToken($enc);
+                    }
+                } catch (Throwable) {}
+            }
         }
 
         if ($token === '') {
@@ -448,17 +528,22 @@ final class TelegramBotService
      */
     public function testConnection(?string $token = null, int $organizationId = 1): array
     {
+        if ($token !== null && (str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:'))) {
+            $token = null;
+        }
+
         $res = $this->callTelegramApi('getMe', [], $token, $organizationId);
         if (!empty($res['ok']) && !empty($res['result'])) {
             $bot = $res['result'];
             $username = (string)($bot['username'] ?? '');
 
-            // Update bot username in DB if config exists
+            // Update bot username in DB for this org and any active config
             if ($username !== '') {
+                $formattedUname = '@' . ltrim($username, '@');
                 try {
                     $this->db->prepare(
-                        "UPDATE crm_telegram_configs SET bot_username = :uname WHERE organization_id = :org_id"
-                    )->execute([':uname' => '@' . ltrim($username, '@'), ':org_id' => $organizationId]);
+                        "UPDATE crm_telegram_configs SET bot_username = :uname WHERE organization_id = :org_id OR is_active = 1"
+                    )->execute([':uname' => $formattedUname, ':org_id' => $organizationId]);
                 } catch (Throwable) {}
             }
 
