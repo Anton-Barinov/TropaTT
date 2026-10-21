@@ -1,36 +1,140 @@
-/* Styles for crm.telegram-bot module */
+/* Styles for crm.telegram-bot module — fully theme-aware (light, dark, graphite, contrast, sepia) */
+
 .crm-module-page[data-page="module-telegram-bot"] .font-monospace {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.875rem;
 }
 
+/* Status Banner — Theme harmonized */
 #tgStatusBanner .alert {
   border-radius: var(--crm-radius, 12px);
-  border: 1px solid var(--crm-border, #e2e8f0);
+  border: 1px solid var(--crm-border, #d7e2df);
+  background: var(--crm-surface, #ffffff);
+  color: var(--crm-text, #111a19);
+  box-shadow: var(--crm-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
 }
 
+#tgStatusBanner .alert a {
+  color: var(--crm-accent, var(--crm-primary, #0f8f72));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#tgStatusBanner .alert a:hover {
+  color: var(--crm-accent-strong, var(--crm-primary-hover, #0b725c));
+}
+
+#tgStatusBanner .alert-success {
+  background: color-mix(in srgb, var(--crm-success, #16834a) 12%, var(--crm-surface, #ffffff));
+  border-color: color-mix(in srgb, var(--crm-success, #16834a) 30%, var(--crm-border, #d7e2df));
+  color: var(--crm-text, #111a19);
+}
+
+#tgStatusBanner .alert-warning {
+  background: color-mix(in srgb, var(--crm-warning, #9a6500) 12%, var(--crm-surface, #ffffff));
+  border-color: color-mix(in srgb, var(--crm-warning, #9a6500) 30%, var(--crm-border, #d7e2df));
+  color: var(--crm-text, #111a19);
+}
+
+#tgStatusBanner .alert-danger {
+  background: color-mix(in srgb, var(--crm-danger, #b54038) 12%, var(--crm-surface, #ffffff));
+  border-color: color-mix(in srgb, var(--crm-danger, #b54038) 30%, var(--crm-border, #d7e2df));
+  color: var(--crm-text, #111a19);
+}
+
+#tgStatusBanner .alert-info {
+  background: color-mix(in srgb, var(--crm-info, #166b78) 12%, var(--crm-surface, #ffffff));
+  border-color: color-mix(in srgb, var(--crm-info, #166b78) 30%, var(--crm-border, #d7e2df));
+  color: var(--crm-text, #111a19);
+}
+
+#tgStatusBanner .alert .small {
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
+}
+
+#tgStatusBanner .badge.bg-success {
+  background-color: var(--crm-success, #16834a) !important;
+  color: #ffffff !important;
+}
+
+#tgStatusBanner .badge.bg-warning {
+  background-color: var(--crm-warning, #9a6500) !important;
+  color: #ffffff !important;
+}
+
+/* KPI Cards */
 #tgKpis .crm-kpi-card {
   border-radius: var(--crm-radius, 12px);
-  border: 1px solid var(--crm-border, #e2e8f0);
+  border: 1px solid var(--crm-border, #d7e2df);
   background: var(--crm-surface, #ffffff);
+  color: var(--crm-text, #111a19);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 #tgKpis .crm-kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#tgKpis .crm-kpi-card small {
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
+}
+
+#tgKpis .crm-kpi-card h2 {
+  color: var(--crm-text, #111a19);
+}
+
+/* Workspace Selector Bar */
+#tgWorkspaceBar {
+  background: var(--crm-surface, #ffffff);
+  border: 1px solid var(--crm-border, #d7e2df);
+  color: var(--crm-text, #111a19);
+}
+
+#tgWorkspaceBadge {
+  background-color: var(--crm-surface-2, #64748b) !important;
+  color: var(--crm-text, #ffffff) !important;
+  border: 1px solid var(--crm-border, transparent);
+}
+
+/* Tables & Code */
+#tgBindingsTable,
+#tgLogsTable {
+  color: var(--crm-text, #111a19);
+}
+
+#tgBindingsTable th,
+#tgLogsTable th {
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
+  border-bottom: 1px solid var(--crm-border, #d7e2df);
+}
+
+#tgBindingsTable td,
+#tgLogsTable td {
+  border-bottom: 1px solid var(--crm-border, #d7e2df);
+  color: var(--crm-text, #111a19);
 }
 
 #tgBindingsTable code,
 #tgLogsTable code {
-  color: var(--crm-primary, #0d6efd);
-  background: rgba(13, 110, 253, 0.08);
+  color: var(--crm-accent, var(--crm-primary, #0f8f72));
+  background: var(--crm-accent-bg, rgba(15, 143, 114, 0.08));
+  border: 1px solid color-mix(in srgb, var(--crm-accent, #0f8f72) 20%, transparent);
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
 }
 
 #tgBindCodeValue {
   letter-spacing: 0.1em;
+  background-color: var(--crm-accent, var(--crm-primary, #0f8f72)) !important;
+  color: var(--crm-on-accent, #ffffff) !important;
+}
+
+.tg-code-box,
+#tgPollResult {
+  background: var(--crm-code-bg, #1e293b) !important;
+  color: var(--crm-code-text, #e2e8f0) !important;
+  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.1));
 }
 
 /* Tabs styling */
@@ -38,18 +142,31 @@
   border-radius: var(--crm-radius, 8px);
   padding: 0.5rem 1rem;
   font-weight: 500;
-  color: var(--crm-text, #1e293b);
+  color: var(--crm-text, #111a19);
   border: 1px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  background-color: transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 #tgTabs .nav-link:hover {
-  background-color: rgba(13, 110, 253, 0.05);
+  background-color: var(--crm-bg-hover, rgba(15, 143, 114, 0.05));
+  color: var(--crm-text, #111a19);
 }
 
 #tgTabs .nav-link.active {
-  background-color: var(--crm-primary, #0d6efd);
-  color: #ffffff;
+  background: var(--crm-accent, var(--crm-primary, #0f8f72));
+  color: var(--crm-on-accent, #ffffff);
+  border-color: var(--crm-accent, var(--crm-primary, #0f8f72));
+}
+
+#tgDialogsCountBadge {
+  background-color: var(--crm-surface-2, rgba(255, 255, 255, 0.25)) !important;
+  color: var(--crm-text, #ffffff) !important;
+}
+
+#tgTabs .nav-link.active #tgDialogsCountBadge {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: var(--crm-on-accent, #ffffff) !important;
 }
 
 /* Avatar circle */
@@ -57,8 +174,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-space, linear-gradient(135deg, #0d6efd, #0dcaf0);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--crm-accent, #0f8f72), var(--crm-accent-strong, #0b725c));
+  color: var(--crm-on-accent, #ffffff);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,6 +184,7 @@
   flex-shrink: 0;
   text-transform: uppercase;
   user-select: none;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--crm-accent, #0f8f72) 20%, transparent);
 }
 
 /* Dialogs List */
@@ -84,15 +202,17 @@
   transition: background-color 0.15s ease, border-left-color 0.15s ease;
   border-left: 3px solid transparent;
   margin-bottom: 4px;
+  color: var(--crm-text, #111a19);
 }
 
 .tg-dialog-item:hover {
-  background-color: var(--crm-hover-bg, #f8fafc);
+  background-color: var(--crm-bg-hover, var(--crm-surface-2, #f5f8f7));
+  color: var(--crm-text, #111a19);
 }
 
 .tg-dialog-item.active {
-  background-color: rgba(13, 110, 253, 0.08);
-  border-left-color: var(--crm-primary, #0d6efd);
+  background-color: var(--crm-accent-bg, rgba(15, 143, 114, 0.08));
+  border-left-color: var(--crm-accent, var(--crm-primary, #0f8f72));
 }
 
 .tg-dialog-item .tg-dialog-body {
@@ -113,17 +233,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--crm-text, #111a19);
 }
 
 .tg-dialog-item .tg-dialog-time {
   font-size: 0.75rem;
-  color: var(--crm-muted, #64748b);
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
   flex-shrink: 0;
 }
 
 .tg-dialog-item .tg-dialog-snippet {
   font-size: 0.825rem;
-  color: var(--crm-muted, #64748b);
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -132,13 +253,13 @@
 
 /* Messages thread */
 .tg-messages-thread {
-  background: var(--crm-bg-subtle, #f8fafc);
+  background: var(--crm-bg-subtle, var(--crm-surface-muted, #f8fbfa));
   display: flex;
   flex-direction: column;
   gap: 10px;
   max-height: 480px;
   min-height: 380px;
-  border-bottom: 1px solid var(--crm-border, #e2e8f0);
+  border-bottom: 1px solid var(--crm-border, #d7e2df);
 }
 
 .tg-msg {
@@ -167,44 +288,231 @@
   border-radius: 14px;
   font-size: 0.9rem;
   line-height: 1.45;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
+/* Inbound client message: uses theme surface, never hardcoded light */
 .tg-msg-inbound .tg-msg-bubble {
-  background: #ffffff;
-  color: var(--crm-text, #1e293b);
-  border: 1px solid var(--crm-border, #e2e8f0);
+  background: var(--crm-surface-2, var(--crm-surface, #ffffff));
+  color: var(--crm-text, #111a19);
+  border: 1px solid var(--crm-border, #d7e2df);
   border-bottom-left-radius: 3px;
 }
 
+/* Outbound staff reply: uses theme accent */
 .tg-msg-outbound .tg-msg-bubble {
-  background: var(--crm-primary, #0d6efd);
-  color: #ffffff;
+  background: var(--crm-accent, var(--crm-primary, #0f8f72));
+  color: var(--crm-on-accent, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--crm-accent, #0f8f72) 80%, black);
   border-bottom-right-radius: 3px;
 }
 
+/* System event notice: transparent/surface with subtle dashed border */
 .tg-msg-system .tg-msg-bubble {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--crm-muted, #64748b);
+  background: var(--crm-surface, var(--crm-surface-2, rgba(0, 0, 0, 0.05)));
+  color: var(--crm-text, #111a19);
   font-size: 0.8125rem;
   border-radius: 20px;
   padding: 4px 12px;
-  border: 1px dashed var(--crm-border, #cbd5e1);
+  border: 1px dashed var(--crm-border, #d7e2df);
+  box-shadow: none;
 }
 
 .tg-msg-meta {
   font-size: 0.72rem;
-  margin-top: 2px;
+  margin-top: 3px;
   padding: 0 4px;
-}
-
-.tg-msg-inbound .tg-msg-meta {
-  color: var(--crm-muted, #94a3b8);
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
 }
 
 .tg-msg-outbound .tg-msg-meta {
-  color: var(--crm-muted, #94a3b8);
   text-align: right;
+}
+
+/* Reply Box */
+.tg-reply-box {
+  background: var(--crm-surface, #ffffff);
+  border-top: 1px solid var(--crm-border, #d7e2df);
+}
+
+.tg-reply-box textarea.form-control {
+  background-color: var(--crm-control-bg, var(--crm-surface-2, #ffffff));
+  color: var(--crm-text, #111a19);
+  border: 1px solid var(--crm-border, #d7e2df);
+  border-radius: var(--crm-radius, 8px);
+}
+
+.tg-reply-box textarea.form-control:focus {
+  background-color: var(--crm-control-bg, var(--crm-surface-2, #ffffff));
+  color: var(--crm-text, #111a19);
+  border-color: var(--crm-accent, var(--crm-primary, #0f8f72));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-accent, #0f8f72) 18%, transparent);
+}
+
+.tg-reply-box textarea.form-control::placeholder {
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
+  opacity: 0.8;
+}
+
+/* Form controls & selects across module */
+.crm-module-page[data-page="module-telegram-bot"] .form-control,
+.crm-module-page[data-page="module-telegram-bot"] .form-select,
+#tgCreateTaskModal .form-control,
+#tgCreateTaskModal .form-select {
+  background-color: var(--crm-control-bg, var(--crm-surface, #ffffff));
+  color: var(--crm-text, #111a19);
+  border-color: var(--crm-border, #d7e2df);
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .form-control:focus,
+.crm-module-page[data-page="module-telegram-bot"] .form-select:focus,
+#tgCreateTaskModal .form-control:focus,
+#tgCreateTaskModal .form-select:focus {
+  background-color: var(--crm-control-bg, var(--crm-surface, #ffffff));
+  color: var(--crm-text, #111a19);
+  border-color: var(--crm-accent, var(--crm-primary, #0f8f72));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-accent, #0f8f72) 18%, transparent);
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .form-control::placeholder {
+  color: var(--crm-text-muted, var(--crm-muted, #596966));
+  opacity: 0.8;
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .input-group-text {
+  background-color: var(--crm-surface-2, var(--crm-control-bg, #f1f5f9));
+  color: var(--crm-text, #111a19);
+  border-color: var(--crm-border, #d7e2df);
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .crm-section-head {
+  background: var(--crm-surface, #ffffff);
+  border-color: var(--crm-border, #d7e2df) !important;
+  color: var(--crm-text, #111a19);
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .border-bottom,
+.crm-module-page[data-page="module-telegram-bot"] .border-top {
+  border-color: var(--crm-border, #d7e2df) !important;
+}
+
+/* Secondary & action buttons */
+.crm-module-page[data-page="module-telegram-bot"] .crm-btn-secondary {
+  background: var(--crm-surface-2, var(--crm-control-bg, #f1f5f9));
+  color: var(--crm-text, #111a19);
+  border: 1px solid var(--crm-border, #d7e2df);
+}
+
+.crm-module-page[data-page="module-telegram-bot"] .crm-btn-secondary:hover {
+  background: var(--crm-bg-hover, #e2e8f0);
+  color: var(--crm-text, #111a19);
+  border-color: var(--crm-border-strong, #94a3b8);
+}
+
+#tgActiveChatId {
+  background-color: var(--crm-surface-2, #334155) !important;
+  color: var(--crm-text-muted, #94a3b8) !important;
+  border: 1px solid var(--crm-border, transparent);
+}
+
+/* Modal styling */
+#tgCreateTaskModal .modal-content {
+  background: var(--crm-surface, #ffffff);
+  color: var(--crm-text, #111a19);
+  border: 1px solid var(--crm-border, #d7e2df);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+#tgCreateTaskModal .modal-header,
+#tgCreateTaskModal .modal-footer {
+  border-color: var(--crm-border, #d7e2df);
+}
+
+#tgCreateTaskModal .modal-title {
+  color: var(--crm-text, #111a19);
+}
+
+/* =========================================================================
+   Direct Theme Overrides (Dark, Graphite, Contrast, Sepia)
+   Guarantees zero bleed-through even if Bootstrap classes have !important.
+   ========================================================================= */
+
+html[data-theme="dark"],
+html[data-theme-palette="graphite"] {
+  .crm-module-page[data-page="module-telegram-bot"] .bg-light {
+    background-color: var(--crm-surface, #15191E) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-reply-box {
+    background-color: var(--crm-surface, #15191E) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-msg-inbound .tg-msg-bubble {
+    background-color: var(--crm-surface-2, #1B1F24) !important;
+    color: var(--crm-text, #FCFFFF) !important;
+    border-color: var(--crm-border, #272C32) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-msg-system .tg-msg-bubble {
+    background-color: var(--crm-surface, #15191E) !important;
+    color: var(--crm-text-muted, #828894) !important;
+    border-color: var(--crm-border, #272C32) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] #tgStatusBanner .alert-success {
+    background-color: rgba(22, 153, 121, 0.15) !important;
+    border-color: rgba(22, 153, 121, 0.35) !important;
+    color: var(--crm-text, #FCFFFF) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] #tgStatusBanner .alert-warning {
+    background-color: rgba(232, 182, 77, 0.15) !important;
+    border-color: rgba(232, 182, 77, 0.35) !important;
+    color: var(--crm-text, #FCFFFF) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] #tgStatusBanner .alert-info {
+    background-color: rgba(22, 107, 120, 0.15) !important;
+    border-color: rgba(22, 107, 120, 0.35) !important;
+    color: var(--crm-text, #FCFFFF) !important;
+  }
+}
+
+html[data-theme="contrast"] {
+  .crm-module-page[data-page="module-telegram-bot"] .tg-msg-inbound .tg-msg-bubble {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-msg-outbound .tg-msg-bubble {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #ffffff !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-reply-box {
+    background-color: #000000 !important;
+    border-top: 2px solid #ffffff !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] #tgStatusBanner .alert {
+    border: 2px solid #ffffff !important;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+}
+
+html[data-theme="sepia"] {
+  .crm-module-page[data-page="module-telegram-bot"] .tg-msg-inbound .tg-msg-bubble {
+    background-color: var(--crm-surface-2, #efe6d0) !important;
+    color: var(--crm-text, #3d3120) !important;
+    border-color: var(--crm-border, #d7cbb5) !important;
+  }
+
+  .crm-module-page[data-page="module-telegram-bot"] .tg-reply-box {
+    background-color: var(--crm-surface, #f4edde) !important;
+  }
 }
 
 /* Responsive tweaks */
