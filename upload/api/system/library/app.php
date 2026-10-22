@@ -1266,7 +1266,7 @@ final class App
             return new DatabaseRateLimiter(
                 $c->get('db.pdo'),
                 max(1, (int)($cfg['window_sec'] ?? 60)),
-                max(1, (int)($cfg['max'] ?? 30)),
+                max(1, (int)($cfg['max'] ?? 180)),
                 max(1, (int)($cfg['lock_seconds'] ?? 60))
             );
         });
