@@ -13649,6 +13649,7 @@ $tools[] = $this->tool(
             return ['error' => 'Chat not found or access denied.'];
         }
 
+        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], trim((string)($arguments['reply_to_message_public_id'] ?? '')));
         $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
