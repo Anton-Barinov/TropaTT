@@ -3162,6 +3162,7 @@ $tools[] = $this->tool(
                 'entity_type' => ['type' => 'string', 'description' => 'Linked entity type (task/project/client/...).'],
                 'estimate_set_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
                 'is_done' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_completed' => ['type' => 'boolean', 'description' => 'Boolean flag (alias for is_done).'],
                 'remind_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
                 'reviewer_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
                 'rrule' => ['type' => 'string', 'description' => 'Value.'],
@@ -3341,6 +3342,8 @@ $tools[] = $this->tool(
                 'month' => ['type' => 'integer'],
                 'hours' => ['type' => 'number', 'description' => 'Hours to log (for create_worklog).'],
                 'description' => ['type' => 'string'],
+                'note' => ['type' => 'string', 'description' => 'Worklog note.'],
+                'comment' => ['type' => 'string', 'description' => 'Worklog comment (alias for note).'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'calendar_public_id' => ['type' => 'string', 'description' => 'Business calendar public_id.'],
@@ -4759,6 +4762,9 @@ $tools[] = $this->tool(
             return $this->toolError('action is required. Available actions depend on the tool.');
         }
 
+        $action = self::normalizeMegaAction($toolName, $action);
+        $arguments['action'] = $action;
+
         // The tool-level gate is not enough: mega-tools registered with mode "any"
         // (knowledge, people, crm, ai, admin) let a caller holding the weakest
         // permission in that list reach every action that does not check for itself
@@ -4853,6 +4859,35 @@ $tools[] = $this->tool(
         }
 
         return $arguments;
+    }
+
+    /**
+     * Map natural action aliases used by LLM agents and human users to canonical mega actions.
+     */
+    private static function normalizeMegaAction(string $toolName, string $action): string
+    {
+        return match ($toolName) {
+            'crm_time' => match ($action) {
+                'log_time' => 'create_worklog',
+                'report_summary', 'summary' => 'get_worklog_summary',
+                default => $action,
+            },
+            'crm_knowledge' => match ($action) {
+                'list_page_revisions', 'list_revisions' => 'list_versions',
+                default => $action,
+            },
+            'crm_chat' => match ($action) {
+                'list_channels' => 'list_chats',
+                'get_channel' => 'get_chat',
+                'create_channel' => 'create_chat',
+                default => $action,
+            },
+            'crm_project' => match ($action) {
+                'list_members', 'get_members' => 'summary',
+                default => $action,
+            },
+            default => $action,
+        };
     }
 
     /**
@@ -7051,7 +7086,8 @@ $tools[] = $this->tool(
     private function crmAgentCapabilities(array $arguments): array
     {
         $service = new \Api\System\Library\Service\AgentPipelineCapabilityService();
-        if (($arguments['action'] ?? null) !== 'status') {
+        $action = (string)($arguments['action'] ?? 'status');
+        if ($action !== 'status') {
             return ['error' => 'CAPABILITY_INVALID_ARGUMENT'];
         }
 
@@ -8051,6 +8087,12 @@ $tools[] = $this->tool(
         $input = [];
         if (array_key_exists('status_code', $arguments) && !array_key_exists('status', $arguments)) {
             $arguments['status'] = $arguments['status_code'];
+        }
+        if (array_key_exists('is_done', $arguments) && !array_key_exists('status', $arguments)) {
+            $arguments['status'] = !empty($arguments['is_done']) ? 'done' : 'todo';
+        }
+        if (array_key_exists('is_completed', $arguments) && !array_key_exists('status', $arguments)) {
+            $arguments['status'] = !empty($arguments['is_completed']) ? 'done' : 'todo';
         }
         foreach (['title', 'description', 'status', 'priority', 'due_at'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
@@ -11964,7 +12006,7 @@ $tools[] = $this->tool(
 
     private function crmListMilestones(array $arguments): array
     {
-        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $projectPublicId = $this->argumentPublicId($arguments, ['project_public_id', 'public_id']);
         if ($projectPublicId === '') {
             return ['error' => 'project_public_id is required.'];
         }
@@ -13045,6 +13087,16 @@ $tools[] = $this->tool(
 
     private function crmCreateWorklog(array $arguments): array
     {
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
+        }
         if ((int)($arguments['minutes_spent'] ?? 0) <= 0) {
             return ['error' => 'minutes_spent must be positive.'];
         }
@@ -13064,6 +13116,16 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
         }
         if (array_key_exists('minutes_spent', $arguments) && (int)$arguments['minutes_spent'] <= 0) {
             return ['error' => 'minutes_spent must be positive.'];
@@ -13371,7 +13433,7 @@ $tools[] = $this->tool(
 
     private function crmGetChat(array $arguments): array
     {
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13390,7 +13452,7 @@ $tools[] = $this->tool(
             return ['error' => 'Authenticated user is required.'];
         }
 
-        $type = (string)($arguments['type'] ?? 'direct');
+        $type = isset($arguments['type']) ? (string)$arguments['type'] : (!empty($arguments['title']) ? 'group' : 'direct');
         $pdo = $this->pdo();
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
@@ -13470,8 +13532,14 @@ $tools[] = $this->tool(
         if ($type === 'group') {
             $title = trim((string)($arguments['title'] ?? ''));
             $participantPublicIds = $arguments['participant_public_ids'] ?? [];
-            if ($title === '' || !is_array($participantPublicIds) || $participantPublicIds === []) {
-                return ['error' => 'title and participant_public_ids are required.'];
+            if (!is_array($participantPublicIds)) {
+                $participantPublicIds = [];
+            }
+            if ($participantPublicIds === [] && !empty($actor['public_id'])) {
+                $participantPublicIds = [(string)$actor['public_id']];
+            }
+            if ($title === '') {
+                return ['error' => 'title is required.'];
             }
             $participantPublicIds = array_values(array_unique(array_filter(array_map(static fn(mixed $id): string => trim((string)$id), $participantPublicIds))));
             $chat = $service->ensureGroupChat($title, $participantPublicIds, $actor);
@@ -13483,7 +13551,7 @@ $tools[] = $this->tool(
 
     private function crmGetChatParticipants(array $arguments): array
     {
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13498,7 +13566,7 @@ $tools[] = $this->tool(
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($userId <= 0 || $chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13552,7 +13620,7 @@ $tools[] = $this->tool(
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         $messageType = trim((string)($arguments['message_type'] ?? 'text'));
         if (!in_array($messageType, ['text', 'json', 'datapart'], true)) {
             $messageType = 'text';
@@ -15473,6 +15541,19 @@ $tools[] = $this->tool(
 
     private function worklogInput(array $arguments): array
     {
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
+        }
+        if (!isset($arguments['task_public_id']) && isset($arguments['task_id'])) {
+            $arguments['task_public_id'] = trim((string)$arguments['task_id']);
+        }
         return $this->pick($arguments, [
             'minutes_spent', 'task_public_id', 'note', 'logged_at', 'user_public_id',
             'activity_code',
