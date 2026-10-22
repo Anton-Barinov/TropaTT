@@ -3294,6 +3294,7 @@ $tools[] = $this->tool(
                 ]],
                 'public_id' => ['type' => 'string', 'description' => 'Record public_id (cli_/cpg_/cpy_/cnt_/org_...).'],
                 'title' => ['type' => 'string', 'description' => 'Record title/name. Required for create.'],
+                'name' => ['type' => 'string', 'description' => 'Alias for title/full_name.'],
                 'description' => ['type' => 'string'],
                 'status' => ['type' => 'string'],
                 'user_public_id' => ['type' => 'string', 'description' => 'For organization member operations.'],
@@ -10294,6 +10295,9 @@ $tools[] = $this->tool(
 
     private function crmCreateContact(array $arguments): array
     {
+        if (trim((string)($arguments['full_name'] ?? '')) === '') {
+            $arguments['full_name'] = trim((string)($arguments['title'] ?? ($arguments['name'] ?? '')));
+        }
         if (trim((string)($arguments['full_name'] ?? '')) === '') {
             return ['error' => 'full_name is required.'];
         }

@@ -95,6 +95,11 @@ return [
             'window_sec' => 60,
             'lock_seconds' => 60,
         ],
+        'mcp_tool' => [
+            'max' => (int)(getenv('CRM_MCP_TOOL_RATE_LIMIT_MAX') ?: 180),
+            'window_sec' => 60,
+            'lock_seconds' => 60,
+        ],
     ],
     'webhook' => [
         'retry_attempts' => 3,

@@ -89,10 +89,8 @@ final class ChatService
                 $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
             }
         }
-        if ($ids === []) return [];
-
         $allIds = array_values(array_unique(array_filter(array_merge([$actorUserId], $ids), static fn(int $id): bool => $id > 0)));
-        if (count($allIds) < 2) return [];
+        if ($allIds === []) return [];
 
         $chat = $this->createChat($title, 'group', null, null, $actorUserId, $organizationId > 0 ? $organizationId : null);
         $this->syncParticipants((int)$chat['id'], $allIds, [$actorUserId], $organizationId > 0 ? $organizationId : null);
