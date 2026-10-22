@@ -602,7 +602,9 @@ final class TaskService
                     return is_string($mutationResult) ? $mutationResult : 'TASK_WRITE_CONFLICT';
                 }
             }
-            $this->pdo->commit();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
             // The task and its status-reason activity are committed. Search-index
             // maintenance is optional and must not turn that successful mutation
             // into an HTTP 500, which makes a retry fail with a stale row_version.

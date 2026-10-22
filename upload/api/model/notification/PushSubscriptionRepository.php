@@ -160,22 +160,26 @@ final class PushSubscriptionRepository
     public function activeByUser(int $userId): array
     {
         $this->ensureSchema();
-        return (new QueryBuilder($this->pdo))
-            ->from('notification_push_subscriptions')
-            ->select([
-                'public_id',
-                'endpoint',
-                'p256dh',
-                'auth',
-                'user_agent',
-                'device_label',
-                'is_active',
-                'last_error',
-            ])
-            ->where('user_id', '=', $userId)
-            ->where('is_active', '=', 1)
-            ->orderBy('updated_at', 'DESC')
-            ->get();
+        try {
+            return (new QueryBuilder($this->pdo))
+                ->from('notification_push_subscriptions')
+                ->select([
+                    'public_id',
+                    'endpoint',
+                    'p256dh',
+                    'auth',
+                    'user_agent',
+                    'device_label',
+                    'is_active',
+                    'last_error',
+                ])
+                ->where('user_id', '=', $userId)
+                ->where('is_active', '=', 1)
+                ->orderBy('updated_at', 'DESC')
+                ->get();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function ensureSchema(): void
@@ -183,6 +187,25 @@ final class PushSubscriptionRepository
         if ($this->schemaEnsured) {
             return;
         }
+
+        // Fast probe: if the table already exists, never execute DDL.
+        // In MySQL/MariaDB, ANY DDL statement (even `CREATE TABLE IF NOT EXISTS` on an existing table)
+        // triggers an automatic implicit commit, which silently commits active transactions
+        // (such as TaskService::updateInternal during status transitions) and causes subsequent
+        // $pdo->commit() calls to fail with "There is no active transaction".
+        try {
+            $this->pdo->query('SELECT 1 FROM notification_push_subscriptions LIMIT 0');
+            $this->schemaEnsured = true;
+            return;
+        } catch (\Throwable) {
+            // Table genuinely does not exist yet; proceed to migration below.
+        }
+
+        if ($this->pdo->inTransaction()) {
+            // Never execute DDL statements inside an active transaction.
+            return;
+        }
+
         $this->schemaEnsured = true;
 
         try {
@@ -212,7 +235,9 @@ final class PushSubscriptionRepository
                     updated_at DATETIME
                 )"
             );
-            IndexHelper::createIndexIfNotExists($this->pdo, 'notification_push_subscriptions', 'idx_notif_push_subscriptions_user_active', 'user_id, is_active, updated_at');
+            if (class_exists(IndexHelper::class)) {
+                IndexHelper::createIndexIfNotExists($this->pdo, 'notification_push_subscriptions', 'idx_notif_push_subscriptions_user_active', 'user_id, is_active, updated_at');
+            }
             if (!$this->hasColumn('last_error')) {
                 $this->pdo->exec('ALTER TABLE notification_push_subscriptions ADD COLUMN last_error TEXT NULL');
             }

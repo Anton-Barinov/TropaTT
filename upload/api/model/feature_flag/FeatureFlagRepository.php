@@ -22,6 +22,10 @@ final class FeatureFlagRepository
      */
     public function ensureSchema(): void
     {
+        if ($this->pdo->inTransaction()) {
+            return;
+        }
+
         try {
             // Portable duplicate detection: COUNT(DISTINCT a, b) is not
             // supported on SQLite, so count groups with more than one row.
