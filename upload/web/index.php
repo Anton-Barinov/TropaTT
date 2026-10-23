@@ -178,7 +178,13 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = rtrim(str_replace('index.php', '', $scriptName), '/');
 
-$route = $_GET['route'] ?? null;
+$route = $_GET['route'] ?? $_GET['_route_'] ?? null;
+if ($route !== null && $route !== '') {
+    $route = trim((string)$route, '/');
+    if (str_starts_with($route, 'web/')) {
+        $route = substr($route, 4);
+    }
+}
 $isPathDerived = false;
 if ($route === null || $route === '') {
     $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';

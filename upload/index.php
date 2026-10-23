@@ -32,9 +32,19 @@ if (str_starts_with($requestUri, '/.well-known/')) {
 }
 
 // Delegate API requests to the API front controller
-$rootRoute = $_GET['route'] ?? null;
 $requestPath = ltrim($requestUri, '/');
-if (str_starts_with($requestPath, 'api/') || ($rootRoute !== null && str_starts_with((string)$rootRoute, 'api/'))) {
+$rawRoute = (string)($_GET['route'] ?? $_GET['_route_'] ?? '');
+$cleanRoute = trim($rawRoute, '/');
+if (str_starts_with($cleanRoute, 'web/')) {
+    $cleanRoute = substr($cleanRoute, 4);
+}
+$isApiRoute = str_starts_with($requestPath, 'api/')
+    || str_starts_with($cleanRoute, 'api/')
+    || ($requestPath === 'index.php' && str_starts_with($cleanRoute, 'api/'));
+if ($isApiRoute) {
+    if ($cleanRoute !== '') {
+        $_GET['route'] = $cleanRoute;
+    }
     require __DIR__ . '/api/index.php';
     exit;
 }
