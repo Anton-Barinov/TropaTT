@@ -168,6 +168,17 @@ final class LanguagePackInstaller
 
         $manifest = $validation['manifest'];
         $code = strtolower(trim((string)$manifest['code']));
+        $lock = $this->acquireLocaleLock($code);
+        try {
+            return $this->installValidatedArchive($zipPath, $manifest, $code);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function installValidatedArchive(string $zipPath, array $manifest, string $code): array
+    {
 
         $webLangDir = dirname($this->basePath) . '/web/language';
         $apiLangDir = $this->basePath . '/language/' . $code;
@@ -456,6 +467,17 @@ final class LanguagePackInstaller
     public function deletePackage(string $code): array
     {
         $code = $this->registry->normalizeLocaleCode($code);
+        $lock = $this->acquireLocaleLock($code);
+        try {
+            return $this->deletePackageUnlocked($code);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function deletePackageUnlocked(string $code): array
+    {
 
         if ($this->registry->isBuiltin($code)) {
             throw new InvalidArgumentException('Cannot delete built-in system language.');
@@ -534,6 +556,17 @@ final class LanguagePackInstaller
     public function removeModuleProxy(string $code): bool
     {
         $code = $this->registry->normalizeLocaleCode($code);
+        $lock = $this->acquireLocaleLock($code);
+        try {
+            return $this->removeModuleProxyUnlocked($code);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function removeModuleProxyUnlocked(string $code): bool
+    {
         $moduleCode = 'crm.language-pack-' . $code;
         $dir = dirname($this->basePath) . '/modules/' . $moduleCode;
         $manifestPath = $dir . '/manifest.json';
@@ -552,6 +585,28 @@ final class LanguagePackInstaller
         $this->removeDirectoryRecursively($dir);
 
         return !is_dir($dir);
+    }
+
+    private function acquireLocaleLock(string $code)
+    {
+        if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
+            throw new InvalidArgumentException('Invalid language pack code.');
+        }
+        $root = dirname($this->basePath);
+        $lockDir = $root . '/storage_api/locks';
+        if (is_link($root . '/storage_api') || is_link($lockDir)
+            || (!is_dir($lockDir) && !@mkdir($lockDir, 0700, true) && !is_dir($lockDir))) {
+            throw new RuntimeException('Cannot create safe language operation lock directory.');
+        }
+        $path = $lockDir . '/module-' . hash('sha256', 'crm.language-pack-' . $code) . '.lock';
+        if (is_link($path)) throw new RuntimeException('Unsafe language operation lock.');
+        $handle = @fopen($path, 'c');
+        if ($handle === false) throw new RuntimeException('Cannot open language operation lock.');
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            throw new RuntimeException('Another operation is running for this language pack.');
+        }
+        return $handle;
     }
 
     private function removeDirectoryRecursively(string $dir): void

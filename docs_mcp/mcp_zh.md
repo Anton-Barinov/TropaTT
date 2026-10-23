@@ -33,7 +33,7 @@ Core 配置文件使用 **mega-tools 与 AgentOS 核心编排工具** — 合并
 | `crm_time` | 工时记录、日历、商务日历、假期、工作时间 | list_worklogs, create_worklog, get_calendar_agenda + 25 个子操作 |
 | `crm_knowledge` | 知识库：空间、页面、版本、评论、标签、文件、AI | search, list_pages, create_page, ai_summary + 40 个子操作 |
 | `crm_ai` | AI 操作、建议、提供者、任务、语义搜索 | execute_action, task_summary, project_risks, day_plan + 25 个子操作 |
-| `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 35 个子操作 |
+| `crm_admin` | 设置、缓存、模块、更新、API 客户端、Webhook、日志 | list_settings, clear_cache, list_modules + 37 个子操作 |
 | `crm_agent_bundle` | **AgentOS 2026 Core**: 单次请求任务初始化 | 顺序创建任务、DoD、子任务、知识库关联与 QA 关系；部分失败时返回已完成步骤 ID（支持 `density: "compact"`） |
 | `crm_agent_memory` | **AgentOS 2026 Core**: 持久化代理记忆库 | `get`, `set`, `list`, `delete`, `search`（跨 scope/元数据搜索）、`export_graph`（关联实体关系图谱） |
 | `crm_chat` | **AgentOS 2026 Core**: 统一代理通信中枢 | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read`，支持结构化 JSON（`message_type: json/datapart`）与紧凑响应模式 |
@@ -965,6 +965,8 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `crm_list_feature_flags` | 列出功能标志 | settings.manage | 无 |
 | `crm_update_feature_flag` | 更新功能标志 | settings.manage | 更新 |
 | `crm_list_modules` | 列出模块 | settings.manage | 无 |
+| `crm_admin/list_module_updates` | 检查已安装模块的更新；`refresh` 用于刷新 Marketplace 数据 | settings.manage | 无 |
+| `crm_admin/update_module` | 按 Marketplace 模块代码调用标准安装器更新模块 | module.install | 安装/更新模块文件 |
 | `crm_get_module` | 获取模块 | settings.manage | 无 |
 | `crm_install_module` | 安装模块 | module.install | 安装 |
 | `crm_activate_module` | 激活模块 | settings.manage | 更新 |

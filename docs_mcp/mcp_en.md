@@ -33,7 +33,7 @@ The `core` profile uses **mega-tools and AgentOS orchestration hubs** — consol
 | `crm_time` | Worklogs, calendar, business calendars, holidays, working hours | list_worklogs, create_worklog, get_calendar_agenda, + 25 sub-actions |
 | `crm_knowledge` | Knowledge base: spaces, pages, versions, comments, tags, files, AI | search, list_pages, create_page, ai_summary, + 40 sub-actions |
 | `crm_ai` | AI actions, suggestions, providers, jobs, semantic search | execute_action, task_summary, project_risks, day_plan, + 25 sub-actions |
-| `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 35 sub-actions |
+| `crm_admin` | Settings, cache, modules, updates, API clients, webhooks, logs | list_settings, clear_cache, list_modules, + 37 sub-actions |
 | `crm_agent_bundle` | **AgentOS 2026 Core**: Single-request task initialization | Sequential creation of task, DoD checklists, subtasks, knowledge links and optional QA relation; partial receipts; compact density |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Persistent governed memory store | `get`, `set`, `list`, `delete`, `search` (cross-scope/metadata), `export_graph` with entity graph linking (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Unified agent communication hub | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` with structured JSON (`message_type: json/datapart`) and compact density |
@@ -965,6 +965,8 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 | `crm_list_feature_flags` | List feature flags | settings.manage | none |
 | `crm_update_feature_flag` | Update feature flag | settings.manage | update |
 | `crm_list_modules` | List modules | settings.manage | none |
+| `crm_admin/list_module_updates` | Check for updates to installed modules; `refresh` refreshes Marketplace data | settings.manage | none |
+| `crm_admin/update_module` | Update a module by its Marketplace code through the standard installer | module.install | install/update module files |
 | `crm_get_module` | Get module | settings.manage | none |
 | `crm_install_module` | Install module | module.install | install |
 | `crm_activate_module` | Activate module | settings.manage | update |

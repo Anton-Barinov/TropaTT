@@ -17,6 +17,7 @@ use Api\Controller\Auth\MenuController;
 use Api\Controller\Idea\IdeaController;
 use Api\Controller\Knowledge\KnowledgeAiController;
 use Api\Controller\Module\ModuleController;
+use Api\Controller\Module\ModuleMarketplaceController;
 use Api\Controller\Knowledge\KnowledgeController;
 use Api\Controller\Knowledge\KnowledgePageVersionController;
 use Api\Controller\Project\ProjectController;
@@ -3495,7 +3496,7 @@ $tools[] = $this->tool(
                 'action' => ['type' => 'string', 'enum' => [
                     'list_settings', 'get_setting',
                     'get_cache_stats', 'clear_cache',
-                    'list_modules', 'get_module', 'install_module', 'activate_module', 'deactivate_module', 'uninstall_module', 'get_module_config', 'update_module_config', 'get_module_health',
+                    'list_modules', 'get_module', 'list_module_updates', 'update_module', 'install_module', 'activate_module', 'deactivate_module', 'uninstall_module', 'get_module_config', 'update_module_config', 'get_module_health',
                     'get_core_version', 'get_core_update_status', 'check_core_update',
                     'get_ops_system', 'get_ops_metrics',
                     'list_api_clients', 'get_api_client', 'create_api_client', 'update_api_client', 'delete_api_client',
@@ -3518,7 +3519,8 @@ $tools[] = $this->tool(
                     'get_admin_summary_widget', 'get_admin_system_widget',
                 ]],
                 'public_id' => ['type' => 'string', 'description' => 'Record public_id for get/update/delete operations.'],
-                'name' => ['type' => 'string', 'description' => 'Setting name, module code, webhook URL, etc.'],
+                'name' => ['type' => 'string', 'description' => 'Setting name, module code (for get_module/update_module), webhook URL, etc.'],
+                'refresh' => ['type' => 'boolean', 'description' => 'list_module_updates only: refresh Marketplace data instead of using its cache.'],
                 'value' => ['type' => 'string', 'description' => 'Setting value.'],
                 'url' => ['type' => 'string', 'description' => 'Webhook URL (must be HTTPS).'],
                 'events' => ['type' => 'array', 'items' => ['type' => 'string']],
@@ -5252,6 +5254,8 @@ $tools[] = $this->tool(
             'clear_cache' => $this->withPermission('settings.manage', fn() => $this->crmClearCache()),
             'list_modules' => $this->withPermission('settings.manage', fn() => $this->crmListModules()),
             'get_module' => $this->withPermission('settings.manage', fn() => $this->crmGetModule($args)),
+            'list_module_updates' => $this->withPermission('settings.manage', fn() => $this->invokeControllerTool(ModuleMarketplaceController::class, 'updates', ['refresh' => !empty($args['refresh']) ? '1' : '0'], 'GET')),
+            'update_module' => $this->withPermission('module.install', fn() => $this->crmUpdateModule($args)),
             'install_module' => $this->withPermission('module.install', fn() => $this->crmInstallModule($args)),
             'activate_module' => $this->withPermission('settings.manage', fn() => $this->crmActivateModule($args)),
             'deactivate_module' => $this->withPermission('settings.manage', fn() => $this->crmDeactivateModule($args)),
@@ -7683,6 +7687,21 @@ $tools[] = $this->tool(
         }
 
         return ['items' => $this->publicData($items)];
+    }
+
+    private function crmUpdateModule(array $arguments): array
+    {
+        $name = trim((string)($arguments['name'] ?? ''));
+        if ($name === '') {
+            return ['error' => 'name is required.'];
+        }
+
+        return $this->invokeControllerTool(
+            ModuleMarketplaceController::class,
+            'update',
+            ['full_code' => $name],
+            'POST'
+        );
     }
 
     private function crmGetModule(array $arguments): array
