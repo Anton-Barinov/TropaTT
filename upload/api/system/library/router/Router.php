@@ -125,8 +125,14 @@ final class Router
 
     private function extractRoutePath(Request $request): string
     {
-        if (!empty($request->query['route'])) {
-            $rawRoute = (string)$request->query['route'];
+        $rawRoute = !empty($request->query['route'])
+            ? (string)$request->query['route']
+            : (!empty($request->query['_route_']) ? (string)$request->query['_route_'] : '');
+        if ($rawRoute !== '') {
+            $rawRoute = trim($rawRoute, '/');
+            if (str_starts_with($rawRoute, 'web/')) {
+                $rawRoute = substr($rawRoute, 4);
+            }
             if (str_contains($rawRoute, '?')) {
                 [$cleanRoute] = explode('?', $rawRoute, 2);
                 $r = '/' . ltrim($cleanRoute, '/');

@@ -41,6 +41,14 @@ use Api\System\Library\App;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Support\EnvLoader;
 
+if (empty($_GET['route']) && !empty($_GET['_route_'])) {
+    $r = trim((string)$_GET['_route_'], '/');
+    if (str_starts_with($r, 'web/')) {
+        $r = substr($r, 4);
+    }
+    $_GET['route'] = $r;
+}
+
 // Block direct access to sensitive files that nginx may serve before PHP processing.
 // .htaccess handles this for Apache; this is the defence-in-depth layer.
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
