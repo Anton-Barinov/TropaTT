@@ -1066,9 +1066,27 @@ final class KnowledgeRepository
         $offset = ($page - 1) * $limit;
         $sort = in_array((string)($filters['sort'] ?? ''), ['title', 'created_at', 'updated_at', 'published_at', 'views_count'], true) ? (string)$filters['sort'] : 'updated_at';
         $order = strtoupper((string)($filters['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
-        $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$where} ORDER BY p.{$sort} {$order}, p.public_id {$order} LIMIT {$limit} OFFSET {$offset}");
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        try {
+            $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$where} ORDER BY p.{$sort} {$order}, p.public_id {$order} LIMIT {$limit} OFFSET {$offset}");
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            // Safe fallback if fulltext MATCH fails on shared hosting, missing FT-index or boolean mode syntax
+            if (isset($params['q_ft'])) {
+                unset($params['q_ft']);
+                $like = '%' . (string)($filters['q'] ?? '') . '%';
+                $fallbackWhere = str_replace(
+                    'MATCH(p.title, p.content_text) AGAINST(:q_ft IN BOOLEAN MODE)',
+                    '(p.title LIKE :fallback_q OR p.content_text LIKE :fallback_q OR s.title LIKE :fallback_q)',
+                    $where
+                );
+                $params['fallback_q'] = $like;
+                $stmt = $this->pdo->prepare("SELECT p.*, s.public_id AS space_public_id, s.title AS space_title FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$fallbackWhere} ORDER BY p.{$sort} {$order}, p.public_id {$order} LIMIT {$limit} OFFSET {$offset}");
+                $stmt->execute($params);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+            throw $e;
+        }
     }
 
     public function createPage(array $payload, ?int $actorId, ?array $actor = null): array
@@ -1942,26 +1960,20 @@ final class KnowledgeRepository
             $q = (string)$filters['q'];
             $like = '%' . $q . '%';
             if (strlen($q) >= 4) {
-                $safeQ = preg_replace('/[^\p{L}\p{N}\s\-\_\']/u', ' ', $q);
-                $safeQ = trim(preg_replace('/\s+/', ' ', $safeQ));
-                if ($safeQ !== '') {
-                    $words = explode(' ', $safeQ);
-                    $terms = [];
+                // Strip all punctuation and MySQL BOOLEAN MODE operators (+ - < > ( ) ~ * " @), keep only unicode letters and numbers
+                $words = preg_split('/[^\p{L}\p{N}]+/u', $q, -1, PREG_SPLIT_NO_EMPTY);
+                $terms = [];
+                if (is_array($words)) {
                     foreach ($words as $w) {
                         $w = trim($w);
-                        if (strlen($w) >= 2) {
+                        if (mb_strlen($w) >= 2) {
                             $terms[] = '+' . $w . '*';
                         }
                     }
-                    if ($terms !== []) {
-                        $where[] = 'MATCH(p.title, p.content_text) AGAINST(:q_ft IN BOOLEAN MODE)';
-                        $params['q_ft'] = implode(' ', $terms);
-                    } else {
-                        $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
-                        $params['q_title'] = $like;
-                        $params['q_content'] = $like;
-                        $params['q_space'] = $like;
-                    }
+                }
+                if ($terms !== []) {
+                    $where[] = 'MATCH(p.title, p.content_text) AGAINST(:q_ft IN BOOLEAN MODE)';
+                    $params['q_ft'] = implode(' ', $terms);
                 } else {
                     $where[] = '(p.title LIKE :q_title OR p.content_text LIKE :q_content OR s.title LIKE :q_space)';
                     $params['q_title'] = $like;

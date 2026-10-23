@@ -31,6 +31,24 @@ if (str_starts_with($requestUri, '/.well-known/')) {
     exit;
 }
 
+// Delegate API requests to the API front controller
+$requestPath = ltrim($requestUri, '/');
+$rawRoute = (string)($_GET['route'] ?? $_GET['_route_'] ?? '');
+$cleanRoute = trim($rawRoute, '/');
+if (str_starts_with($cleanRoute, 'web/')) {
+    $cleanRoute = substr($cleanRoute, 4);
+}
+$isApiRoute = str_starts_with($requestPath, 'api/')
+    || str_starts_with($cleanRoute, 'api/')
+    || ($requestPath === 'index.php' && str_starts_with($cleanRoute, 'api/'));
+if ($isApiRoute) {
+    if ($cleanRoute !== '') {
+        $_GET['route'] = $cleanRoute;
+    }
+    require __DIR__ . '/api/index.php';
+    exit;
+}
+
 // SEC-008: Hide install API endpoints after setup.
 // The install endpoints (status, check, setup) reveal whether the system
 // is installed. When already installed, return 404 to avoid information

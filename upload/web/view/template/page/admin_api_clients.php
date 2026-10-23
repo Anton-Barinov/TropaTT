@@ -88,7 +88,9 @@
   var config = document.getElementById('apcMcpConfig');
   if (!endpoint || !config) { return; }
   try {
-    var url = new URL('../api/index.php?route=api/v1/mcp', window.location.href).href;
+    var url = (window.CRM && window.CRM.api && window.CRM.api.buildUrl)
+      ? window.CRM.api.buildUrl('api/v1/mcp')
+      : new URL('../api/index.php?route=api/v1/mcp', window.location.href).href;
     endpoint.value = url;
     config.textContent = JSON.stringify({
       mcpServers: {

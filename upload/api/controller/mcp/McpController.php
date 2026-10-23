@@ -738,6 +738,7 @@ MD;
         if ($this->canAny(['task.manage', 'project.manage', 'knowledge.view'])) {
             $tools[] = $this->tool('crm_search', 'Search tasks, projects, counterparties, contacts and published knowledge pages visible to the current CRM user.', [
                 'q' => ['type' => 'string', 'description' => 'Search query, at least 2 characters.'],
+                'query' => ['type' => 'string', 'description' => 'Search query alias.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 10],
                 'organization_public_id' => ['type' => 'string', 'description' => 'Optional active workspace context. It must belong to the current user.'],
             ], ['q']);
@@ -3148,6 +3149,7 @@ $tools[] = $this->tool(
                 'add_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to attach to every listed task.'],
                 'remove_tag_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Bulk update: tag public ids to detach from every listed task.'],
                 'related_task_public_id' => ['type' => 'string', 'description' => 'Related task for relations.'],
+                'target_task_public_id' => ['type' => 'string', 'description' => 'Target task for relations (alias for related_task_public_id).'],
                 'relation_type' => ['type' => 'string', 'enum' => ['FS', 'SS', 'FF', 'SF', 'BLOCKS', 'RELATED']],
                 'tag_public_id' => ['type' => 'string'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
@@ -3163,6 +3165,7 @@ $tools[] = $this->tool(
                 'entity_type' => ['type' => 'string', 'description' => 'Linked entity type (task/project/client/...).'],
                 'estimate_set_public_id' => ['type' => 'string', 'description' => 'Public identifier.'],
                 'is_done' => ['type' => 'boolean', 'description' => 'Boolean flag.'],
+                'is_completed' => ['type' => 'boolean', 'description' => 'Boolean flag (alias for is_done).'],
                 'remind_at' => ['type' => 'string', 'description' => 'Date/time value (ISO 8601 or YYYY-MM-DD).'],
                 'reviewer_public_ids' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'List of values.'],
                 'rrule' => ['type' => 'string', 'description' => 'Value.'],
@@ -3294,6 +3297,7 @@ $tools[] = $this->tool(
                 ]],
                 'public_id' => ['type' => 'string', 'description' => 'Record public_id (cli_/cpg_/cpy_/cnt_/org_...).'],
                 'title' => ['type' => 'string', 'description' => 'Record title/name. Required for create.'],
+                'name' => ['type' => 'string', 'description' => 'Alias for title/full_name.'],
                 'description' => ['type' => 'string'],
                 'status' => ['type' => 'string'],
                 'user_public_id' => ['type' => 'string', 'description' => 'For organization member operations.'],
@@ -3342,6 +3346,8 @@ $tools[] = $this->tool(
                 'month' => ['type' => 'integer'],
                 'hours' => ['type' => 'number', 'description' => 'Hours to log (for create_worklog).'],
                 'description' => ['type' => 'string'],
+                'note' => ['type' => 'string', 'description' => 'Worklog note.'],
+                'comment' => ['type' => 'string', 'description' => 'Worklog comment (alias for note).'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'calendar_public_id' => ['type' => 'string', 'description' => 'Business calendar public_id.'],
@@ -3394,6 +3400,7 @@ $tools[] = $this->tool(
                 'content_html' => ['type' => 'string', 'description' => 'Page content as HTML/Markdown (create_page/update_page/save_page_draft).'],
                 'content_json' => ['type' => 'string', 'description' => 'Page content as structured JSON (create_page/update_page/save_page_draft).'],
                 'q' => ['type' => 'string', 'description' => 'Search query (for search action).'],
+                'query' => ['type' => 'string', 'description' => 'Search query alias.'],
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
                 'access_level' => ['type' => 'string', 'description' => 'Access level (view/edit/manage).'],
@@ -3767,6 +3774,8 @@ $tools[] = $this->tool(
                 'chat_public_id' => ['type' => 'string', 'description' => 'Target chat public ID (chat_...).'],
                 'public_id' => ['type' => 'string', 'description' => 'Target chat public ID alias.'],
                 'text' => ['type' => 'string', 'description' => 'Message text content (Markdown, code blocks, or structured JSON).'],
+                'message' => ['type' => 'string', 'description' => 'Message text content alias.'],
+                'body' => ['type' => 'string', 'description' => 'Message text content alias.'],
                 'message_type' => ['type' => 'string', 'enum' => ['text', 'json', 'datapart'], 'description' => 'Message type (text, json, datapart). Defaults to text.'],
                 'data' => ['type' => 'object', 'description' => 'Structured JSON data payload for machine-to-machine exchange or datapart.'],
                 'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'description' => 'Chat type for create_chat.'],
@@ -4761,6 +4770,9 @@ $tools[] = $this->tool(
             return $this->toolError('action is required. Available actions depend on the tool.');
         }
 
+        $action = self::normalizeMegaAction($toolName, $action);
+        $arguments['action'] = $action;
+
         // The tool-level gate is not enough: mega-tools registered with mode "any"
         // (knowledge, people, crm, ai, admin) let a caller holding the weakest
         // permission in that list reach every action that does not check for itself
@@ -4855,6 +4867,35 @@ $tools[] = $this->tool(
         }
 
         return $arguments;
+    }
+
+    /**
+     * Map natural action aliases used by LLM agents and human users to canonical mega actions.
+     */
+    private static function normalizeMegaAction(string $toolName, string $action): string
+    {
+        return match ($toolName) {
+            'crm_time' => match ($action) {
+                'log_time' => 'create_worklog',
+                'report_summary', 'summary' => 'get_worklog_summary',
+                default => $action,
+            },
+            'crm_knowledge' => match ($action) {
+                'list_page_revisions', 'list_revisions' => 'list_versions',
+                default => $action,
+            },
+            'crm_chat' => match ($action) {
+                'list_channels' => 'list_chats',
+                'get_channel' => 'get_chat',
+                'create_channel' => 'create_chat',
+                default => $action,
+            },
+            'crm_project' => match ($action) {
+                'list_members', 'get_members' => 'summary',
+                default => $action,
+            },
+            default => $action,
+        };
     }
 
     /**
@@ -7055,7 +7096,8 @@ $tools[] = $this->tool(
     private function crmAgentCapabilities(array $arguments): array
     {
         $service = new \Api\System\Library\Service\AgentPipelineCapabilityService();
-        if (($arguments['action'] ?? null) !== 'status') {
+        $action = (string)($arguments['action'] ?? 'status');
+        if ($action !== 'status') {
             return ['error' => 'CAPABILITY_INVALID_ARGUMENT'];
         }
 
@@ -7745,7 +7787,7 @@ $tools[] = $this->tool(
         if ($contextError !== null) {
             return $contextError;
         }
-        $q = trim((string)($arguments['q'] ?? ''));
+        $q = trim((string)($arguments['q'] ?? $arguments['query'] ?? ''));
         if (mb_strlen($q) < 2) {
             return ['error' => 'Query must contain at least 2 characters.'];
         }
@@ -8070,6 +8112,12 @@ $tools[] = $this->tool(
         $input = [];
         if (array_key_exists('status_code', $arguments) && !array_key_exists('status', $arguments)) {
             $arguments['status'] = $arguments['status_code'];
+        }
+        if (array_key_exists('is_done', $arguments) && !array_key_exists('status', $arguments)) {
+            $arguments['status'] = !empty($arguments['is_done']) ? 'done' : 'todo';
+        }
+        if (array_key_exists('is_completed', $arguments) && !array_key_exists('status', $arguments)) {
+            $arguments['status'] = !empty($arguments['is_completed']) ? 'done' : 'todo';
         }
         foreach (['title', 'description', 'status', 'priority', 'due_at'] as $field) {
             if (array_key_exists($field, $arguments) && $arguments[$field] !== null) {
@@ -8888,8 +8936,16 @@ $tools[] = $this->tool(
     private function crmCreateTaskRelation(array $arguments): array
     {
         $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
-        $relatedPublicId = trim((string)($arguments['related_task_public_id'] ?? ''));
-        $relationType = trim((string)($arguments['relation_type'] ?? ''));
+        $relatedPublicId = trim((string)($arguments['related_task_public_id'] ?? $arguments['target_task_public_id'] ?? ''));
+        $rawRelationType = strtoupper(trim((string)($arguments['relation_type'] ?? '')));
+        $relationType = match ($rawRelationType) {
+            'RELATES_TO', 'RELATE' => 'RELATED',
+            'FINISH_TO_START' => 'FS',
+            'START_TO_START' => 'SS',
+            'FINISH_TO_FINISH' => 'FF',
+            'START_TO_FINISH' => 'SF',
+            default => $rawRelationType,
+        };
         if ($taskPublicId === '' || $relatedPublicId === '' || $relationType === '') {
             return ['error' => 'task_public_id, related_task_public_id and relation_type are required.'];
         }
@@ -10133,6 +10189,9 @@ $tools[] = $this->tool(
 
     private function crmCreateCounterparty(array $arguments): array
     {
+        if (trim((string)($arguments['title'] ?? '')) === '' && trim((string)($arguments['name'] ?? '')) !== '') {
+            $arguments['title'] = $arguments['name'];
+        }
         if (trim((string)($arguments['title'] ?? '')) === '') {
             return ['error' => 'title is required.'];
         }
@@ -10179,6 +10238,9 @@ $tools[] = $this->tool(
 
     private function crmCreateCompany(array $arguments): array
     {
+        if (trim((string)($arguments['title'] ?? '')) === '' && trim((string)($arguments['name'] ?? '')) !== '') {
+            $arguments['title'] = $arguments['name'];
+        }
         if (trim((string)($arguments['title'] ?? '')) === '') {
             return ['error' => 'title is required.'];
         }
@@ -10225,6 +10287,9 @@ $tools[] = $this->tool(
 
     private function crmCreateClient(array $arguments): array
     {
+        if (trim((string)($arguments['title'] ?? '')) === '' && trim((string)($arguments['name'] ?? '')) !== '') {
+            $arguments['title'] = $arguments['name'];
+        }
         if (trim((string)($arguments['title'] ?? '')) === '') {
             return ['error' => 'title is required.'];
         }
@@ -10271,6 +10336,9 @@ $tools[] = $this->tool(
 
     private function crmCreateContact(array $arguments): array
     {
+        if (trim((string)($arguments['full_name'] ?? '')) === '') {
+            $arguments['full_name'] = trim((string)($arguments['title'] ?? ($arguments['name'] ?? '')));
+        }
         if (trim((string)($arguments['full_name'] ?? '')) === '') {
             return ['error' => 'full_name is required.'];
         }
@@ -10786,7 +10854,7 @@ $tools[] = $this->tool(
 
     private function crmGetKnowledgeSuggest(array $arguments): array
     {
-        $q = trim((string)($arguments['q'] ?? ''));
+        $q = trim((string)($arguments['q'] ?? $arguments['query'] ?? ''));
         if ($q === '') {
             return ['error' => 'q is required.'];
         }
@@ -11019,7 +11087,7 @@ $tools[] = $this->tool(
 
     private function crmSearchKnowledge(array $arguments): array
     {
-        $q = trim((string)($arguments['q'] ?? ''));
+        $q = trim((string)($arguments['q'] ?? $arguments['query'] ?? ''));
         if ($q === '') {
             return ['error' => 'q is required.'];
         }
@@ -11983,7 +12051,7 @@ $tools[] = $this->tool(
 
     private function crmListMilestones(array $arguments): array
     {
-        $projectPublicId = trim((string)($arguments['project_public_id'] ?? ''));
+        $projectPublicId = $this->argumentPublicId($arguments, ['project_public_id', 'public_id']);
         if ($projectPublicId === '') {
             return ['error' => 'project_public_id is required.'];
         }
@@ -13029,6 +13097,15 @@ $tools[] = $this->tool(
             return ['error' => 'task_public_id and depends_on_task_public_id are required.'];
         }
 
+        $rawDepType = strtoupper(trim((string)($arguments['dependency_type'] ?? 'FS')));
+        $arguments['dependency_type'] = match ($rawDepType) {
+            'FINISH_TO_START' => 'FS',
+            'START_TO_START' => 'SS',
+            'FINISH_TO_FINISH' => 'FF',
+            'START_TO_FINISH' => 'SF',
+            default => $rawDepType,
+        };
+
         /** @var DependencyService $service */
         $service = $this->container->get('service.dependency');
         $dependency = $service->create($this->pick($arguments, ['task_public_id', 'depends_on_task_public_id', 'dependency_type']), $this->actor());
@@ -13064,6 +13141,16 @@ $tools[] = $this->tool(
 
     private function crmCreateWorklog(array $arguments): array
     {
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
+        }
         if ((int)($arguments['minutes_spent'] ?? 0) <= 0) {
             return ['error' => 'minutes_spent must be positive.'];
         }
@@ -13083,6 +13170,16 @@ $tools[] = $this->tool(
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
+        }
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
         }
         if (array_key_exists('minutes_spent', $arguments) && (int)$arguments['minutes_spent'] <= 0) {
             return ['error' => 'minutes_spent must be positive.'];
@@ -13390,7 +13487,7 @@ $tools[] = $this->tool(
 
     private function crmGetChat(array $arguments): array
     {
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13409,7 +13506,7 @@ $tools[] = $this->tool(
             return ['error' => 'Authenticated user is required.'];
         }
 
-        $type = (string)($arguments['type'] ?? 'direct');
+        $type = isset($arguments['type']) ? (string)$arguments['type'] : (!empty($arguments['title']) ? 'group' : 'direct');
         $pdo = $this->pdo();
         /** @var ChatService $service */
         $service = $this->container->get('service.chat');
@@ -13489,8 +13586,14 @@ $tools[] = $this->tool(
         if ($type === 'group') {
             $title = trim((string)($arguments['title'] ?? ''));
             $participantPublicIds = $arguments['participant_public_ids'] ?? [];
-            if ($title === '' || !is_array($participantPublicIds) || $participantPublicIds === []) {
-                return ['error' => 'title and participant_public_ids are required.'];
+            if (!is_array($participantPublicIds)) {
+                $participantPublicIds = [];
+            }
+            if ($participantPublicIds === [] && !empty($actor['public_id'])) {
+                $participantPublicIds = [(string)$actor['public_id']];
+            }
+            if ($title === '') {
+                return ['error' => 'title is required.'];
             }
             $participantPublicIds = array_values(array_unique(array_filter(array_map(static fn(mixed $id): string => trim((string)$id), $participantPublicIds))));
             $chat = $service->ensureGroupChat($title, $participantPublicIds, $actor);
@@ -13502,7 +13605,7 @@ $tools[] = $this->tool(
 
     private function crmGetChatParticipants(array $arguments): array
     {
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13517,7 +13620,7 @@ $tools[] = $this->tool(
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         if ($userId <= 0 || $chatPublicId === '') {
             return ['error' => 'public_id or chat_public_id is required.'];
         }
@@ -13571,12 +13674,12 @@ $tools[] = $this->tool(
     {
         $actor = $this->actor();
         $userId = (int)($actor['id'] ?? 0);
-        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
+        $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id', 'channel_public_id', 'chat_id', 'channel_id']);
         $messageType = trim((string)($arguments['message_type'] ?? 'text'));
         if (!in_array($messageType, ['text', 'json', 'datapart'], true)) {
             $messageType = 'text';
         }
-        $text = trim((string)($arguments['text'] ?? ''));
+        $text = trim((string)($arguments['text'] ?? $arguments['message'] ?? $arguments['body'] ?? $arguments['content'] ?? ''));
         $data = $arguments['data'] ?? null;
         if ($text === '' && $data !== null) {
             $text = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -13596,6 +13699,7 @@ $tools[] = $this->tool(
             return ['error' => 'Chat not found or access denied.'];
         }
 
+        $messagePublicId = 'msg_' . bin2hex(random_bytes(8));
         $reply = $this->resolveReplyMessage((int)$chat['id'], trim((string)($arguments['reply_to_message_public_id'] ?? '')));
         $chatOrgId = (int)($chat['organization_id'] ?? ($actor['organization_id'] ?? 0));
         $hasMsgOrg = $this->tableHasColumn('chat_messages', 'organization_id');
@@ -13660,7 +13764,7 @@ $tools[] = $this->tool(
         $userId = (int)($actor['id'] ?? 0);
         $chatPublicId = $this->argumentPublicId($arguments, ['public_id', 'chat_public_id']);
         $messagePublicId = trim((string)($arguments['message_public_id'] ?? ''));
-        $text = trim((string)($arguments['text'] ?? ''));
+        $text = trim((string)($arguments['text'] ?? $arguments['message'] ?? $arguments['body'] ?? $arguments['content'] ?? ''));
         if ($userId <= 0 || $chatPublicId === '' || $messagePublicId === '' || $text === '') {
             return ['error' => 'public_id or chat_public_id, message_public_id and text are required.'];
         }
@@ -13764,7 +13868,7 @@ $tools[] = $this->tool(
             return ['error' => $fileValidation['message'] ?? 'FILE_TYPE_NOT_ALLOWED'];
         }
 
-        $text = trim((string)($arguments['text'] ?? ''));
+        $text = trim((string)($arguments['text'] ?? $arguments['message'] ?? $arguments['body'] ?? $arguments['content'] ?? ''));
         if (mb_strlen($text) > 4000) {
             @unlink($tmpFile);
             return ['error' => 'Message text is too long.'];
@@ -15492,6 +15596,19 @@ $tools[] = $this->tool(
 
     private function worklogInput(array $arguments): array
     {
+        if (!isset($arguments['minutes_spent']) && isset($arguments['hours']) && is_numeric($arguments['hours'])) {
+            $arguments['minutes_spent'] = max(1, (int)round(((float)$arguments['hours']) * 60));
+        }
+        if (!isset($arguments['note'])) {
+            if (isset($arguments['comment'])) {
+                $arguments['note'] = trim((string)$arguments['comment']);
+            } elseif (isset($arguments['description'])) {
+                $arguments['note'] = trim((string)$arguments['description']);
+            }
+        }
+        if (!isset($arguments['task_public_id']) && isset($arguments['task_id'])) {
+            $arguments['task_public_id'] = trim((string)$arguments['task_id']);
+        }
         return $this->pick($arguments, [
             'minutes_spent', 'task_public_id', 'note', 'logged_at', 'user_public_id',
             'activity_code',

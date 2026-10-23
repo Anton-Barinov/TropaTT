@@ -16,5 +16,12 @@ return [
     ['methods' => ['DELETE'], 'route' => '/bindings/{id}', 'controller' => TelegramBotApiController::class, 'action' => 'deleteBinding', 'auth' => true],
     ['methods' => ['GET'], 'route' => '/recent-updates', 'controller' => TelegramBotApiController::class, 'action' => 'getRecentUpdates', 'auth' => true],
     ['methods' => ['POST'], 'route' => '/bind-request', 'controller' => TelegramBotApiController::class, 'action' => 'requestBinding', 'auth' => true],
+    ['methods' => ['GET'], 'route' => '/organizations', 'controller' => TelegramBotApiController::class, 'action' => 'listOrganizations', 'auth' => true],
+    ['methods' => ['GET'], 'route' => '/projects', 'controller' => TelegramBotApiController::class, 'action' => 'listProjects', 'auth' => true],
+    ['methods' => ['GET'], 'route' => '/dialogs', 'controller' => TelegramBotApiController::class, 'action' => 'listDialogs', 'auth' => true],
+    ['methods' => ['GET'], 'route' => '/dialogs/{id}', 'controller' => TelegramBotApiController::class, 'action' => 'getDialog', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/dialogs/{id}/reply', 'controller' => TelegramBotApiController::class, 'action' => 'replyDialog', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/dialogs/{id}/status', 'controller' => TelegramBotApiController::class, 'action' => 'updateDialogStatus', 'auth' => true],
+    ['methods' => ['POST'], 'route' => '/dialogs/{id}/create-task', 'controller' => TelegramBotApiController::class, 'action' => 'createTaskFromDialog', 'auth' => true],
     ['methods' => ['POST'], 'route' => '/webhook/{org_id}', 'controller' => TelegramBotApiController::class, 'action' => 'handleWebhook', 'auth' => false],
 ];

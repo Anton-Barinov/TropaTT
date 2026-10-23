@@ -26848,7 +26848,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           var jobId = String(btn.getAttribute('data-export-download') || '').trim();
           if (!jobId) return;
           try {
-            var response = await fetch('api/index.php?route=api/v1/export/jobs/' + encodeURIComponent(jobId) + '/download', {
+            var downloadUrl = window.CRM && window.CRM.api && window.CRM.api.buildUrl
+              ? window.CRM.api.buildUrl('api/v1/export/jobs/' + encodeURIComponent(jobId) + '/download')
+              : '/api/index.php?route=api/v1/export/jobs/' + encodeURIComponent(jobId) + '/download';
+            var response = await fetch(downloadUrl, {
               credentials: 'same-origin'
             });
             if (!response.ok) {
