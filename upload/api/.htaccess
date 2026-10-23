@@ -31,4 +31,9 @@
     RewriteRule ^storage_test_runtime/ - [F,L]
     # SEC-016: composer.json moved to project root; .dist reference is harmless
     RewriteRule ^composer\.json\.dist$ - [F,L]
+
+    # Route all other API requests through front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>

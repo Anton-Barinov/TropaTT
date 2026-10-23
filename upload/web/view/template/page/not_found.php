@@ -24,7 +24,10 @@
           result.style.display = 'block';
           result.innerHTML = '<span class="text-muted">' + t('not_found.activating', 'Активация ' + module + '…').replace('{module}', module) + '</span>';
           try {
-            var resp = await fetch('/api/index.php?route=api/v1/modules/' + module + '/activate', {
+            var activateUrl = window.CRM && window.CRM.api && window.CRM.api.buildUrl
+              ? window.CRM.api.buildUrl('api/v1/modules/' + encodeURIComponent(module) + '/activate')
+              : '/api/index.php?route=api/v1/modules/' + encodeURIComponent(module) + '/activate';
+            var resp = await fetch(activateUrl, {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               credentials: 'same-origin'

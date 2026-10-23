@@ -1152,7 +1152,7 @@ window.CRM.VisualEditor = (function () {
     this._textarea = textarea;
     this._options = {
       textarea: textarea,
-      uploadUrl: textarea.getAttribute('data-crm-visual-editor-upload-url') || '/api/index.php?route=api/v1/visual-editor/upload-image',
+      uploadUrl: textarea.getAttribute('data-crm-visual-editor-upload-url') || (window.CRM && window.CRM.api && window.CRM.api.buildUrl ? window.CRM.api.buildUrl('api/v1/visual-editor/upload-image') : '/api/index.php?route=api/v1/visual-editor/upload-image'),
       placeholder: textarea.getAttribute('data-crm-visual-editor-placeholder') || textarea.getAttribute('placeholder') || '',
       readonly: false,
       minImageWidth: parseInt(textarea.getAttribute('data-crm-visual-editor-min-image-width') || '120', 10) || 120,
@@ -2239,7 +2239,10 @@ window.CRM.VisualEditor = (function () {
   function fetchMentionUsers() {
     if (_mentionUsersCache) return Promise.resolve(_mentionUsersCache);
     if (_mentionUsersPromise) return _mentionUsersPromise;
-    _mentionUsersPromise = fetch('api/v1/users?limit=200', {
+    var url = window.CRM && window.CRM.api && window.CRM.api.buildUrl
+      ? window.CRM.api.buildUrl('api/v1/users', { limit: 200 })
+      : '/api/index.php?route=api/v1/users&limit=200';
+    _mentionUsersPromise = fetch(url, {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     })
@@ -2266,7 +2269,10 @@ window.CRM.VisualEditor = (function () {
   function fetchMentionPages() {
     if (_mentionPagesCache) return Promise.resolve(_mentionPagesCache);
     if (_mentionPagesPromise) return _mentionPagesPromise;
-    _mentionPagesPromise = fetch('api/v1/knowledge/pages?limit=100', {
+    var url = window.CRM && window.CRM.api && window.CRM.api.buildUrl
+      ? window.CRM.api.buildUrl('api/v1/knowledge/pages', { limit: 100 })
+      : '/api/index.php?route=api/v1/knowledge/pages&limit=100';
+    _mentionPagesPromise = fetch(url, {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     })

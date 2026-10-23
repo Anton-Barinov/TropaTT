@@ -250,7 +250,8 @@ if (str_starts_with($route, 'api/')) {
         exit;
     }
 
-    $_SERVER['REQUEST_URI'] = '/' . $route;
+    $qs = $_SERVER['QUERY_STRING'] ?? '';
+    $_SERVER['REQUEST_URI'] = '/' . $route . ($qs !== '' ? '?' . $qs : '');
     $_GET['route'] = $route;
     include dirname(__DIR__) . '/api/index.php';
     exit;
