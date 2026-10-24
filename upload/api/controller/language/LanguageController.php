@@ -5,8 +5,10 @@ namespace Api\Controller\Language;
 
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
+use Api\System\Library\Module\ModuleOperationLock;
 use Api\System\Library\Service\LanguageRegistryService;
 use InvalidArgumentException;
+use RuntimeException;
 
 final class LanguageController extends BaseController
 {
@@ -53,6 +55,16 @@ final class LanguageController extends BaseController
      * Toggle enabled state for a language.
      */
     public function adminToggle(): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $code = trim((string)($input['code'] ?? ''));
+        if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
+            return $this->adminToggleUnlocked();
+        }
+        return $this->withLanguageOperationLock($code, fn(): JsonResponse => $this->adminToggleUnlocked());
+    }
+
+    private function adminToggleUnlocked(): JsonResponse
     {
         $input = $this->request()->allInput();
         $code = trim((string)($input['code'] ?? ''));
@@ -105,6 +117,16 @@ final class LanguageController extends BaseController
      * Set system default language.
      */
     public function adminSetDefault(): JsonResponse
+    {
+        $input = $this->request()->allInput();
+        $code = trim((string)($input['code'] ?? ''));
+        if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
+            return $this->adminSetDefaultUnlocked();
+        }
+        return $this->withLanguageOperationLock($code, fn(): JsonResponse => $this->adminSetDefaultUnlocked());
+    }
+
+    private function adminSetDefaultUnlocked(): JsonResponse
     {
         $input = $this->request()->allInput();
         $code = trim((string)($input['code'] ?? ''));
@@ -216,6 +238,15 @@ final class LanguageController extends BaseController
      */
     public function adminDelete(array $params = []): JsonResponse
     {
+        $code = trim((string)($params['code'] ?? ''));
+        if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
+            return $this->adminDeleteUnlocked($params);
+        }
+        return $this->withLanguageOperationLock($code, fn(): JsonResponse => $this->adminDeleteUnlocked($params));
+    }
+
+    private function adminDeleteUnlocked(array $params = []): JsonResponse
+    {
         // Same contract as adminExport: the router hands over the params array.
         $code = trim((string)($params['code'] ?? ''));
         if ($code === '') {
@@ -226,7 +257,9 @@ final class LanguageController extends BaseController
         try {
             $result = $installer->deletePackage($code);
         } catch (\Throwable $e) {
-            return $this->error('DELETE_FAILED', $e->getMessage(), 422);
+            $status = $e->getMessage() === 'MODULE_BUSY' ? 409 : 422;
+            $codeName = $status === 409 ? 'LANGUAGE_OPERATION_BUSY' : 'DELETE_FAILED';
+            return $this->error($codeName, $status === 409 ? $this->t('module/messages.operation_busy') : $e->getMessage(), $status);
         }
 
         // A marketplace install registers a proxy module (manifest.json +
@@ -248,6 +281,23 @@ final class LanguageController extends BaseController
         }
 
         return $this->success('LANGUAGE_DELETED', $this->t('common/messages.success', 'Success'), $result);
+    }
+
+    private function withLanguageOperationLock(string $code, callable $operation): JsonResponse
+    {
+        try {
+            $lock = ModuleOperationLock::acquire(dirname(__DIR__, 3), 'crm.language-pack-' . $code);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'MODULE_BUSY') {
+                return $this->error('LANGUAGE_OPERATION_BUSY', $this->t('module/messages.operation_busy', 'Another operation is in progress for this language pack. Try again shortly.'), 409);
+            }
+            return $this->error('LANGUAGE_LOCK_FAILED', $this->t('common/messages.internal_error', 'Internal error'), 500);
+        }
+        try {
+            return $operation();
+        } finally {
+            $lock->release();
+        }
     }
 
 }

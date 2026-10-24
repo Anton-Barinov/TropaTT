@@ -176,6 +176,9 @@ final class PluginManager
                 if (!$this->isContainedRegularFile($realModuleDir, $providerRelativePath)) {
                     $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_FILE_UNSAFE', 'service_provider',
                         'Service provider file is missing or unsafe', $spClass, 'contained_file_exists');
+                } elseif (!$loadProvider && !$this->declaresProviderClass($realModuleDir . '/' . $providerRelativePath, $spClass)) {
+                    $errors[] = $this->errorStruct('E_SERVICE_PROVIDER_NOT_FOUND', 'service_provider',
+                        'Provider file does not declare its expected class', $spClass, 'class_declaration');
                 } elseif ($loadProvider && !class_exists($spClass)) {
                     $spFile = $realModuleDir . '/' . $providerRelativePath;
                     try {
@@ -487,6 +490,39 @@ final class PluginManager
         return preg_match('/^[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*$/', $class) === 1;
     }
 
+    private function declaresProviderClass(string $path, string $class): bool
+    {
+        $source = @file_get_contents($path);
+        if (!is_string($source)) return false;
+        try {
+            $tokens = token_get_all($source, TOKEN_PARSE);
+        } catch (\ParseError) {
+            return false;
+        }
+        $namespace = '';
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+            if (!is_array($token)) continue;
+            if ($token[0] === T_NAMESPACE) {
+                $namespace = '';
+                while (++$i < $count) {
+                    $part = $tokens[$i];
+                    if ($part === ';' || $part === '{') break;
+                    if (is_array($part) && in_array($part[0], [T_STRING, T_NAME_QUALIFIED, T_NS_SEPARATOR], true)) {
+                        $namespace .= $part[1];
+                    }
+                }
+            } elseif ($token[0] === T_CLASS) {
+                $next = $i + 1;
+                while ($next < $count && is_array($tokens[$next]) && in_array($tokens[$next][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) $next++;
+                if ($next < $count && is_array($tokens[$next]) && $tokens[$next][0] === T_STRING
+                    && strcasecmp(($namespace !== '' ? $namespace . '\\' : '') . $tokens[$next][1], $class) === 0) return true;
+            }
+        }
+        return false;
+    }
+
     private function isValidVersion(string $version): bool
     {
         return preg_match('/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*)?$/', $version) === 1
@@ -495,6 +531,9 @@ final class PluginManager
 
     private function versionMatches(string $current, string $constraint): bool
     {
+        if (preg_match('/^(>=|>|<=|<|=)?\s*(\d+\.\d+)$/', $constraint, $match)) {
+            return version_compare($current, $match[2], $match[1] !== '' ? $match[1] : '=');
+        }
         $currentParts = array_map('intval', explode('.', $current) + [0, 0, 0]);
 
         if ($constraint === '*' || $constraint === '') {

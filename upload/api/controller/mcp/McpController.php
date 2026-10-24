@@ -24,6 +24,7 @@ use Api\Controller\Project\ProjectController;
 use Api\Controller\Security\SessionController;
 use Api\Controller\Setting\RetentionController;
 use Api\System\Library\Module\ModuleEvents;
+use Api\System\Library\Module\ModuleRemoteInstaller;
 use Api\Controller\Tag\TagController;
 use Api\Controller\Status\StatusController;
 use Api\Controller\Priority\PriorityController;
@@ -5295,7 +5296,7 @@ $tools[] = $this->tool(
             'clear_cache' => $this->withPermission('settings.manage', fn() => $this->crmClearCache()),
             'list_modules' => $this->withPermission('settings.manage', fn() => $this->crmListModules()),
             'get_module' => $this->withPermission('settings.manage', fn() => $this->crmGetModule($args)),
-            'list_module_updates' => $this->withPermission('settings.manage', fn() => $this->invokeControllerTool(ModuleMarketplaceController::class, 'updates', ['refresh' => !empty($args['refresh']) ? '1' : '0'], 'GET')),
+            'list_module_updates' => $this->withPermission('settings.manage', fn() => $this->crmListModuleUpdates($args)),
             'update_module' => $this->withPermission('module.install', fn() => $this->crmUpdateModule($args)),
             'install_module' => $this->withPermission('module.install', fn() => $this->crmInstallModule($args)),
             'activate_module' => $this->withPermission('settings.manage', fn() => $this->crmActivateModule($args)),
@@ -7731,6 +7732,13 @@ $tools[] = $this->tool(
         return ['items' => $this->publicData($items)];
     }
 
+    private function crmListModuleUpdates(array $arguments): array
+    {
+        return $this->invokeControllerTool(
+            ModuleMarketplaceController::class, 'updates', ['refresh' => !empty($arguments['refresh']) ? '1' : '0'], 'GET'
+        );
+    }
+
     private function crmUpdateModule(array $arguments): array
     {
         $name = trim((string)($arguments['name'] ?? ''));
@@ -7775,6 +7783,8 @@ $tools[] = $this->tool(
             'api_routes' => $manifest->apiRoutes,
             'web_routes' => $manifest->webRoutes,
             'is_loaded' => $pluginManager->isLoaded($name),
+            'registry_version' => $registry ? (string)($registry['version'] ?? '') : null,
+            'update_in_progress' => ModuleRemoteInstaller::isUpdateRunning(dirname(__DIR__, 3), $name),
             'is_active' => $registry ? (bool)($registry['is_active'] ?? false) : false,
             'installed_at' => $registry['installed_at'] ?? null,
             'activated_at' => $registry['activated_at'] ?? null,

@@ -977,6 +977,7 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 | `crm_get_module_health` | Get module health | settings.manage | none |
 | `crm_get_module_migrations` | Get module migrations | settings.manage | none |
 | `crm_get_module_errors` | Get module errors | settings.manage | none |
+
 | `crm_clear_module_errors` | Clear module errors | settings.manage | delete |
 | `crm_install_module_from_url` | Install module from URL | settings.manage | install |
 | `crm_install_module_from_file` | Install module from file | settings.manage | install |
@@ -993,6 +994,8 @@ Invalid input and unknown mega-tool `action` values are returned **inside the ca
 | `crm_get_core_update_session` | Update session | settings.manage | create |
 | `crm_get_core_update_history` | Get core update history | settings.manage | none |
 | `crm_get_core_update_log` | Get core update log | settings.manage | none |
+
+After `crm_admin/update_module`, read the module again with `crm_get_module`: compare `version` with `registry_version` and confirm `update_in_progress` is `false`. The update list includes Marketplace modules and language packs; operations on the same module are serialized by a shared lock.
 
 ### Logs & Audit
 

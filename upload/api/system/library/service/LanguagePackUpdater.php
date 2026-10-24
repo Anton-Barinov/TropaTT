@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\System\Library\Module\ModuleConfig;
+use Api\System\Library\Module\ModuleOperationLock;
 use Api\System\Library\Security\UrlSafetyValidator;
 use InvalidArgumentException;
 use RuntimeException;
@@ -99,22 +100,7 @@ final class LanguagePackUpdater
             throw new RuntimeException('Marketplace version is not newer than installed language pack.');
         }
 
-        $lockDir = $root . '/storage_api/locks';
-        $this->ensurePrivateDirectory($lockDir);
-        @chmod($lockDir, 0700);
-        $lockPath = $lockDir . '/module-' . hash('sha256', $expectedModuleCode) . '.lock';
-        if (is_link($lockPath)) {
-            throw new RuntimeException('Unsafe language update lock.');
-        }
-        $lock = @fopen($lockPath, 'c');
-        if ($lock === false) {
-            throw new RuntimeException('Cannot open language update lock.');
-        }
-        @chmod($lockPath, 0600);
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
-            fclose($lock);
-            throw new RuntimeException('A language pack update is already running.');
-        }
+        $lock = ModuleOperationLock::acquire($root, $expectedModuleCode);
 
         $workDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/tropa-language-update-' . bin2hex(random_bytes(16));
         $stage = $workDir . '/stage';
@@ -220,8 +206,7 @@ final class LanguagePackUpdater
             throw $e;
         } finally {
             if (!$retainBackup) $this->removeTree($workDir);
-            flock($lock, LOCK_UN);
-            fclose($lock);
+            $lock->release();
         }
     }
 

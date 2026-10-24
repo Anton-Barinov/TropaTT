@@ -977,6 +977,7 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `crm_get_module_health` | 获取模块健康 | settings.manage | 无 |
 | `crm_get_module_migrations` | 获取模块迁移 | settings.manage | 无 |
 | `crm_get_module_errors` | 获取模块错误 | settings.manage | 无 |
+
 | `crm_clear_module_errors` | 清除模块错误 | settings.manage | 删除 |
 | `crm_install_module_from_url` | 从 URL 安装模块 | settings.manage | 安装 |
 | `crm_install_module_from_file` | 从文件安装模块 | settings.manage | 安装 |
@@ -993,6 +994,8 @@ AI 操作通过 AiJobService/AiAuditService 记录；导入/导出和工作流�
 | `crm_get_core_update_session` | 更新会话 | settings.manage | 创建 |
 | `crm_get_core_update_history` | 获取核心更新历史 | settings.manage | 无 |
 | `crm_get_core_update_log` | 获取核心更新日志 | settings.manage | 无 |
+
+调用 `crm_admin/update_module` 后，请使用 `crm_get_module` 重新读取模块：比较 `version` 与 `registry_version`，并确认 `update_in_progress` 为 `false`。更新列表包含 Marketplace 模块和语言包；同一模块的操作通过共享锁串行执行。
 
 ### 日志与审计
 

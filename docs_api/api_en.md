@@ -1319,7 +1319,7 @@ Module objects returned by `GET /api/v1/modules` and `GET /api/v1/modules/{name}
 
 ### Module marketplace
 
-Module updates are separate from CRM core updates. The admin UI processes selected updates sequentially, one HTTP request per module. Batch `POST /api/v1/marketplace/update` (`full_codes` or `all`) and `POST /api/v1/modules/bulk` (`action=update`) process at most one module per request and return `remaining` plus `complete`; submit only `remaining` to continue. After a lost response, check the result before retrying. `GET /api/v1/modules/{name}` reports `registry_version` and `update_in_progress` in addition to the file `version`: completion requires the expected version in both sources and no update lock. `GET /api/v1/marketplace/updates?refresh=1` bypasses the Marketplace cache.
+Module updates are separate from CRM core updates. The admin UI processes selected updates sequentially, one HTTP request per module. Batch `POST /api/v1/marketplace/update` (`full_codes` or `all`) and `POST /api/v1/modules/bulk` (`action=update`) process at most one module per request and return `remaining` plus `complete`; submit only `remaining` to continue. After a lost response, check the result before retrying. `GET /api/v1/modules/{name}` reports `registry_version` and `update_in_progress` in addition to the file `version`: completion requires the expected version in both sources and no update lock. `GET /api/v1/marketplace/updates?refresh=1` bypasses the Marketplace cache. Install, update, uninstall, activation, deactivation and configuration changes share a per-module lock. A concurrent operation returns HTTP 409 (`MODULE_OPERATION_BUSY`) without an automatic retry. Language packs use the same lock for their dictionaries, Marketplace proxy module and locale state; update archives are SHA-256 checked, restricted to the target locale and validated before each file is atomically replaced.
 
 Proxy to the official module marketplace (`https://marketplace.tropatt.com`). The base URL comes from the server configuration (`TROPATT_MARKETPLACE_URL`) and never from request data. Catalog responses carry `status` (whether the marketplace is enabled, configured and reachable) plus normalized `items` and `meta` for pagination.
 
@@ -1328,7 +1328,7 @@ Proxy to the official module marketplace (`https://marketplace.tropatt.com`). Th
 | GET | `/api/v1/marketplace/catalog` | Marketplace catalog | Yes | `settings.manage` | Filters: `q`, `category`, `page`, `limit` |
 | GET | `/api/v1/marketplace/categories` | Marketplace categories | Yes | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | Marketplace module details | Yes | `settings.manage` | Includes published releases |
-| GET | `/api/v1/marketplace/updates` | Installed modules with newer Marketplace releases | Yes | `settings.manage` | Language packs are reported as unsupported until their separate installer supports atomic updates |
+| GET | `/api/v1/marketplace/updates` | Installed modules with newer Marketplace releases | Yes | `settings.manage` | Includes language packs, updated through the dedicated safe dictionary installer |
 | POST | `/api/v1/marketplace/install` | Install a marketplace module | Yes | `module.install` | Root only. Body: `full_code`, `activate` |
 | POST | `/api/v1/marketplace/update` | Update one installed Marketplace module | Yes | `module.install` | Root only. Body: `full_code`; verifies package SHA-256 and module identity, preserves config/active state, restores old files and disables the module if update fails |
 

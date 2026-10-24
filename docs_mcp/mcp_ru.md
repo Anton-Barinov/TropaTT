@@ -979,6 +979,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_get_module_health` | Здоровье модуля | settings.manage | нет |
 | `crm_get_module_migrations` | Миграции модуля | settings.manage | нет |
 | `crm_get_module_errors` | Ошибки модуля | settings.manage | нет |
+
 | `crm_clear_module_errors` | Очистить ошибки | settings.manage | удаление |
 | `crm_install_module_from_url` | Установить из URL | settings.manage | установка |
 | `crm_install_module_from_file` | Установить из файла | settings.manage | установка |
@@ -995,6 +996,8 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_get_core_update_session` | Сессия обновления | settings.manage | создание |
 | `crm_get_core_update_history` | История обновлений | settings.manage | нет |
 | `crm_get_core_update_log` | Лог обновления | settings.manage | нет |
+
+Для проверки результата `crm_admin/update_module` перечитайте модуль через `crm_get_module`: сравните `version` и `registry_version`, затем убедитесь, что `update_in_progress` равно `false`. Список обновлений включает обычные Marketplace-модули и языковые пакеты; операции одного модуля сериализуются общей блокировкой.
 
 ### Логи и аудит
 

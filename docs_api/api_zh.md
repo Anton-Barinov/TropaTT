@@ -1278,7 +1278,7 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 
 ### 模块市场
 
-模块更新与 CRM 核心更新相互独立。管理界面按顺序更新模块，每个模块使用一个 HTTP 请求。批量 `POST /api/v1/marketplace/update`（`full_codes` 或 `all`）和 `POST /api/v1/modules/bulk`（`action=update`）每次最多处理一个模块，并返回 `remaining` 和 `complete`；后续请求只需提交 `remaining`。连接中断后应先核实结果，再决定是否重试。`GET /api/v1/modules/{name}` 除文件版本 `version` 外，还返回 `registry_version` 和 `update_in_progress`。只有两个版本均为目标版本且没有更新锁时，才能确认更新完成。`GET /api/v1/marketplace/updates?refresh=1` 可绕过模块市场缓存。
+模块更新与 CRM 核心更新相互独立。管理界面按顺序更新模块，每个模块使用一个 HTTP 请求。批量 `POST /api/v1/marketplace/update`（`full_codes` 或 `all`）和 `POST /api/v1/modules/bulk`（`action=update`）每次最多处理一个模块，并返回 `remaining` 和 `complete`；后续请求只需提交 `remaining`。连接中断后应先核实结果，再决定是否重试。`GET /api/v1/modules/{name}` 除文件版本 `version` 外，还返回 `registry_version` 和 `update_in_progress`。只有两个版本均为目标版本且没有更新锁时，才能确认更新完成。`GET /api/v1/marketplace/updates?refresh=1` 可绕过模块市场缓存。安装、更新、卸载、启用、停用和配置修改共用每模块互斥锁；并发冲突返回 HTTP 409（`MODULE_OPERATION_BUSY`），且不会自动重试。语言包使用同一锁保护目标语言文件、Marketplace 代理模块和语言状态；更新验证 SHA-256，只处理目标语言文件，并逐个原子替换文件。
 
 官方模块市场（`https://marketplace.tropatt.com`）的只读代理。地址来自服务器配置（`TROPATT_MARKETPLACE_URL`），绝不来自请求参数。目录响应包含 `status`（是否启用、是否配置、是否可达）以及规范化的 `items` 和分页 `meta`。
 
@@ -1287,7 +1287,9 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/marketplace/catalog` | 市场目录 | 是 | `settings.manage` | 过滤器：`q`、`category`、`page`、`limit` |
 | GET | `/api/v1/marketplace/categories` | 市场分类 | 是 | `settings.manage` | — |
 | GET | `/api/v1/marketplace/modules/{full_code}` | 市场模块详情 | 是 | `settings.manage` | 包含已发布版本 |
+| GET | `/api/v1/marketplace/updates` | 已安装且有新版本的 Marketplace 模块 | 是 | `settings.manage` | 包含语言包；`?refresh=1` 绕过缓存 |
 | POST | `/api/v1/marketplace/install` | 从市场安装模块 | 是 | `module.install` | 仅 root。Body：`full_code`、`activate` |
+| POST | `/api/v1/marketplace/update` | 更新一个已安装 Marketplace 模块 | 是 | `module.install` | 仅 root。Body：`full_code`；批次最多更新一个模块并返回 `remaining`、`complete` |
 
 安装接口会明确返回安装状态：`ALREADY_INSTALLED`（409）表示模块已注册，`MODULE_DISCOVERED_LOCALLY`（409）表示模块文件已在 CRM 中但未注册（请安装本地副本：`POST /api/v1/modules/{code}/install`，远程安装器不会覆盖已存在的目录），`MARKETPLACE_PACKAGE_MISMATCH`（502）表示市场包声明的模块代码与目录不一致，`INVALID_PARAM`（400）表示 `full_code` 不是 `<vendor>.<module>` 形式的代码。
 
