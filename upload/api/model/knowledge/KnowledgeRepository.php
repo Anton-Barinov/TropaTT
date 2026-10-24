@@ -1866,24 +1866,30 @@ final class KnowledgeRepository
         [$pageAclSql, $pageAclParams] = $this->pageAccessSql('p', 's', $actor, 'view');
         [$spaceAclSql, $spaceAclParams] = $this->spaceAccessSql('s', $actor, 'view');
         $pageWhere = 'p.deleted_at IS NULL AND ' . $pageAclSql;
-        $spaceWhere = 's.is_archived = 0 AND ' . $spaceAclSql;
-        $archivedSpaceWhere = 's.is_archived = 1 AND ' . $spaceAclSql;
-        $params = array_merge($pageAclParams, $spaceAclParams);
         $stmt = $this->pdo->prepare("SELECT
-            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere}) AS total_pages,
-            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'published') AS published,
-            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'draft') AS drafts,
-            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'review') AS review_queue,
-            (SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere} AND p.status = 'archived') AS archived,
-            (SELECT COUNT(*) FROM knowledge_spaces s WHERE {$spaceWhere}) AS active_spaces,
-            (SELECT COUNT(*) FROM knowledge_spaces s WHERE {$archivedSpaceWhere}) AS archived_spaces,
-            (SELECT COUNT(*) FROM knowledge_comments) AS total_comments,
-            (SELECT COUNT(*) FROM knowledge_page_versions) AS total_versions,
-            (SELECT COUNT(*) FROM knowledge_entity_links) AS total_links
+            COUNT(*) AS total_pages,
+            COALESCE(SUM(CASE WHEN p.status = 'published' THEN 1 ELSE 0 END), 0) AS published,
+            COALESCE(SUM(CASE WHEN p.status = 'draft' THEN 1 ELSE 0 END), 0) AS drafts,
+            COALESCE(SUM(CASE WHEN p.status = 'review' THEN 1 ELSE 0 END), 0) AS review_queue,
+            COALESCE(SUM(CASE WHEN p.status = 'archived' THEN 1 ELSE 0 END), 0) AS archived
+            FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere}
         ");
-        $stmt->execute($params);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return is_array($row) ? $row : [];
+        $stmt->execute($pageAclParams);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $stmt = $this->pdo->prepare("SELECT
+            COALESCE(SUM(CASE WHEN s.is_archived = 0 THEN 1 ELSE 0 END), 0) AS active_spaces,
+            COALESCE(SUM(CASE WHEN s.is_archived = 1 THEN 1 ELSE 0 END), 0) AS archived_spaces
+            FROM knowledge_spaces s WHERE {$spaceAclSql}");
+        $stmt->execute($spaceAclParams);
+        $row += $stmt->fetch(\PDO::FETCH_ASSOC) ?: [];
+        foreach (['total_comments' => 'knowledge_comments', 'total_versions' => 'knowledge_page_versions', 'total_links' => 'knowledge_entity_links'] as $key => $table) {
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM {$table} child
+                JOIN knowledge_pages p ON p.id = child.page_id
+                JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$pageWhere}");
+            $stmt->execute($pageAclParams);
+            $row[$key] = (int)$stmt->fetchColumn();
+        }
+        return $row;
     }
 
     public function pageSubscriberIds(string $pagePublicId): array
