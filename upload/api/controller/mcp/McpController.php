@@ -170,12 +170,16 @@ final class McpController extends BaseController
             return $this->response($this->errorPayload(null, -32600, 'Empty JSON-RPC request'), 400);
         }
 
-        $payload = json_decode($raw, true);
-        if (!is_array($payload)) {
+        $payload = json_decode($raw);
+        if (json_last_error() !== JSON_ERROR_NONE) {
             return $this->response($this->errorPayload(null, -32700, 'Parse error'), 400);
         }
 
-        $isBatch = array_is_list($payload);
+        if ((!is_array($payload) && !$payload instanceof \stdClass) || $payload === []) {
+            return $this->response($this->errorPayload(null, -32600, 'Invalid Request'), 400);
+        }
+
+        $isBatch = $raw[0] === '[';
         $messages = $isBatch ? $payload : [$payload];
         
         // Limit batch size to prevent amplification attacks
@@ -186,7 +190,7 @@ final class McpController extends BaseController
         $responses = [];
 
         foreach ($messages as $message) {
-            if (!is_array($message)) {
+            if (!$message instanceof \stdClass) {
                 $responses[] = $this->errorPayload(null, -32600, 'Invalid Request');
                 continue;
             }
@@ -250,16 +254,25 @@ final class McpController extends BaseController
         ]);
     }
 
-    private function handleMessage(array $message): ?array
+    private function handleMessage(\stdClass $message): ?array
     {
+        $message = get_object_vars($message);
         $id = $message['id'] ?? null;
+        $validId = $id === null || is_string($id) || is_int($id) || (is_float($id) && is_finite($id));
         $method = is_string($message['method'] ?? null) ? (string)$message['method'] : '';
-        $params = is_array($message['params'] ?? null) ? (array)$message['params'] : [];
         $isNotification = !array_key_exists('id', $message);
 
-        if (($message['jsonrpc'] ?? '') !== '2.0' || $method === '') {
-            return $this->errorPayload($id, -32600, 'Invalid Request');
+        if (!$validId || ($message['jsonrpc'] ?? '') !== '2.0' || $method === ''
+            || (array_key_exists('params', $message) && !is_array($message['params']) && !$message['params'] instanceof \stdClass)) {
+            return $this->errorPayload($validId ? $id : null, -32600, 'Invalid Request');
         }
+
+        $rawParams = $message['params'] ?? new \stdClass();
+        if ($method === 'tools/call' && (!$rawParams instanceof \stdClass
+            || (property_exists($rawParams, 'arguments') && !$rawParams->arguments instanceof \stdClass))) {
+            return $isNotification ? null : $this->errorPayload($id, -32602, 'Tool parameters and arguments must be objects');
+        }
+        $params = $this->parameterArray($rawParams);
 
         try {
             $result = match ($method) {
@@ -269,7 +282,7 @@ final class McpController extends BaseController
                 'resources/read' => $this->readResource($params),
                 'tools/list' => $this->listTools($params),
                 'tools/listToolsets' => $this->listToolsets(),
-                'tools/call' => $this->callTool($params),
+                'tools/call' => $this->callToolRequest($params),
                 'notifications/initialized' => null,
                 default => $this->methodNotFound($method),
             };
@@ -282,10 +295,10 @@ final class McpController extends BaseController
             } catch (\Throwable $inner) {
                 AppLog::error('[McpController::handle] Logger failed: ' . $inner->getMessage() . ' | Original error: ' . $e->getMessage());
             }
-            return $this->errorPayload($id, -32603, 'Internal error');
+            return $isNotification ? null : $this->errorPayload($id, -32603, 'Internal error');
         }
 
-        if ($isNotification || $result === null) {
+        if ($isNotification) {
             return null;
         }
 
@@ -298,6 +311,32 @@ final class McpController extends BaseController
             'id' => $id,
             'result' => $result,
         ];
+    }
+
+    private function parameterArray(array|\stdClass $value): array
+    {
+        $result = [];
+        foreach ($value as $key => $item) {
+            $result[$key] = is_array($item) || $item instanceof \stdClass ? $this->parameterArray($item) : $item;
+        }
+        return $result;
+    }
+
+    private function callToolRequest(array $params): array
+    {
+        $name = $params['name'] ?? null;
+        if (!is_string($name) || $name === '') {
+            return ['jsonrpc_error' => true, 'code' => -32602, 'message' => 'Tool name is required'];
+        }
+        if (array_key_exists('arguments', $params)
+            && (!is_array($params['arguments']) || ($params['arguments'] !== [] && array_is_list($params['arguments'])))) {
+            return ['jsonrpc_error' => true, 'code' => -32602, 'message' => 'Tool arguments must be an object'];
+        }
+        $permissions = require __DIR__ . '/../../config/mcp_permissions.php';
+        if (!isset($permissions[$name]) && !$this->getModuleMcpRegistry()->hasTool($name)) {
+            return ['jsonrpc_error' => true, 'code' => -32602, 'message' => 'Unknown tool: ' . $name];
+        }
+        return $this->callTool($params);
     }
 
     private function initializeResult(array $params): array
