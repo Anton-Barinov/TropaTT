@@ -9197,12 +9197,7 @@ $tools[] = $this->tool(
 
     private function crmGetOpenApiSpec(): array
     {
-        $path = dirname(__DIR__, 2) . '/docs/openapi/openapi.v1.json';
-        if (!is_file($path)) {
-            return ['error' => 'OpenAPI spec not found.'];
-        }
-        $json = json_decode((string)file_get_contents($path), true);
-        return is_array($json) ? ['spec' => $json] : ['error' => 'Failed to parse OpenAPI spec.'];
+        return ['spec' => \Api\System\Library\Support\OpenApiSpec::build()];
     }
 
     private function crmConvertStickyToTask(array $arguments): array
