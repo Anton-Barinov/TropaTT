@@ -8,6 +8,7 @@ use Api\System\Library\Module\ModuleMarketplaceClient;
 use Api\System\Library\Module\ModulePackageHashMismatchException;
 use Api\System\Library\Module\ModulePackageMismatchException;
 use Api\System\Library\Module\ModuleRemoteInstaller;
+use Api\System\Library\Module\ModuleOperationLock;
 use Api\System\Library\Support\AppLog;
 use Api\System\Library\Update\CoreUpdateConfig;
 use Api\System\Library\Update\CoreVersion;
@@ -249,11 +250,12 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
             throw new RuntimeException('Marketplace release metadata does not match the signed update request');
         }
         $minCore = trim((string)($releaseInfo['min_core_version'] ?? $detail['min_core_version'] ?? ''));
+        $minimumConstraint = ModuleMarketplaceClient::normalizeMinimumCoreVersion($minCore);
         $releaseConstraint = \Api\System\Library\Module\Manifest::fromArray([
             'name' => $fullCode,
             'version' => $targetVersion,
             'vendor' => 'marketplace',
-            'core_version' => $minCore,
+            'core_version' => $minimumConstraint,
         ]);
         if ($minCore !== '' && !$pm->checkCoreCompatibility($releaseConstraint, $this->coreVersion())) {
             throw new RuntimeException($this->t('module/messages.marketplace_core_incompatible'));
@@ -366,7 +368,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
                     AppLog::error('[ModuleMarketplaceController::update batch] ' . $code . ': ' . $e->getMessage());
                     $failed[] = [
                         'full_code' => $code,
-                        'error' => $e->getMessage(),
+                        'error' => $e->getMessage() === 'MODULE_BUSY'
+                            ? $this->t('module/messages.operation_busy', 'Another operation is in progress for this module. Try again shortly.')
+                            : $e->getMessage(),
                     ];
                 }
             }
@@ -394,6 +398,14 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         } catch (ModulePackageHashMismatchException $e) {
             AppLog::error('[ModuleMarketplaceController::update] ' . $fullCode . ': ' . $e->getMessage());
             return $this->error('MARKETPLACE_SHA256_MISMATCH', $this->t('module/messages.marketplace_sha256_mismatch'), 502);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'MODULE_BUSY') {
+                return $this->error('MODULE_OPERATION_BUSY', $this->t('module/messages.operation_busy', 'Another operation is in progress for this module. Try again shortly.'), 409, ['full_code' => $fullCode]);
+            }
+            AppLog::error('[ModuleMarketplaceController::update] ' . $fullCode . ': ' . $e->getMessage());
+            return $this->error('MODULE_UPDATE_FAILED', $e->getMessage() ?: $this->t('module/messages.marketplace_update_failed'), 500, [
+                'full_code' => $fullCode,
+            ]);
         } catch (\Throwable $e) {
             AppLog::error('[ModuleMarketplaceController::update] ' . $fullCode . ': ' . $e->getMessage());
             return $this->error('MODULE_UPDATE_FAILED', $e->getMessage() ?: $this->t('module/messages.marketplace_update_failed'), 500, [
@@ -407,6 +419,32 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
      * the same hardened path as an uploaded package.
      */
     public function install(): JsonResponse
+    {
+        if (!$this->isRoot()) {
+            return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
+        }
+        $input = $this->request()->allInput();
+        $fullCode = trim((string)($input['full_code'] ?? ''));
+        if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
+            return $this->installUnlocked();
+        }
+        try {
+            $lock = ModuleOperationLock::acquire(dirname(__DIR__, 3), $fullCode);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'MODULE_BUSY') {
+                return $this->error('MODULE_OPERATION_BUSY', $this->t('module/messages.operation_busy', 'Another operation is in progress for this module. Try again shortly.'), 409);
+            }
+            AppLog::error('[ModuleMarketplaceController::install] Could not acquire module lock for ' . $fullCode . ': ' . $e->getMessage());
+            return $this->error('MODULE_LOCK_FAILED', $this->t('common/messages.internal_error'), 500);
+        }
+        try {
+            return $this->installUnlocked();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function installUnlocked(): JsonResponse
     {
         if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);

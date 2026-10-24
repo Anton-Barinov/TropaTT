@@ -46,10 +46,14 @@ final class ModuleCodeValidator
         $violations = [];
         $content = file_get_contents($filePath);
         if ($content === false) {
-            return $violations;
+            return [['file' => $filePath, 'line' => 1, 'function' => 'unreadable_php']];
         }
 
-        $tokens = token_get_all($content);
+        try {
+            $tokens = token_get_all($content, TOKEN_PARSE);
+        } catch (\ParseError $error) {
+            return [['file' => $filePath, 'line' => $error->getLine(), 'function' => 'invalid_php_syntax']];
+        }
         $line = 1;
         $count = count($tokens);
 
@@ -193,7 +197,7 @@ final class ModuleCodeValidator
 
         /** @var \SplFileInfo $file */
         foreach ($files as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php') {
+            if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
                 continue;
             }
             $fileViolations = $this->validateFile($file->getPathname());

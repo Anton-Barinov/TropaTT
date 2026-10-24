@@ -341,6 +341,17 @@ final class ModuleMarketplaceClient
             && preg_match(self::CODE_PATTERN, $fullCode) === 1;
     }
 
+    public static function normalizeMinimumCoreVersion(string $minimum): string
+    {
+        $minimum = trim($minimum);
+        if ($minimum === '') {
+            return '';
+        }
+        return preg_match('/^\d+(?:\.\d+){1,2}(?:[-+][0-9A-Za-z.-]+)?$/', $minimum) === 1
+            ? '>=' . $minimum
+            : $minimum;
+    }
+
     private function assertCode(string $fullCode): string
     {
         $fullCode = trim($fullCode);

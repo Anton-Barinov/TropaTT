@@ -130,30 +130,11 @@ final class ModuleRemoteInstaller
             throw new RuntimeException('Marketplace version is not newer than the installed version');
         }
 
-        $lockDir = $this->projectRoot . '/storage_api/locks';
-        if (!is_dir($lockDir) && !@mkdir($lockDir, 0700, true) && !is_dir($lockDir)) {
-            throw new RuntimeException('Cannot create private module update lock directory');
-        }
-        if (is_link($lockDir)) {
-            throw new RuntimeException('Unsafe module update lock directory');
-        }
-        $lockPath = $lockDir . '/module-' . hash('sha256', $expectedName) . '.lock';
-        if (is_link($lockPath)) {
-            throw new RuntimeException('Unsafe module update lock file');
-        }
-        $lock = @fopen($lockPath, 'c');
-        if ($lock === false) {
-            throw new RuntimeException('Cannot open private module update lock');
-        }
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
-            fclose($lock);
-            throw new RuntimeException('A module update is already running');
-        }
+        $lock = ModuleOperationLock::acquire($this->projectRoot, $expectedName);
 
         $extractDir = sys_get_temp_dir() . '/crm_module_update_' . bin2hex(random_bytes(8));
         if (!@mkdir($extractDir, 0700, true)) {
-            flock($lock, LOCK_UN);
-            fclose($lock);
+            $lock->release();
             throw new RuntimeException('Cannot create temporary update directory');
         }
         $stageDir = $modulesDir . '/.crm-update-' . bin2hex(random_bytes(8));
@@ -269,8 +250,7 @@ final class ModuleRemoteInstaller
         } finally {
             $this->cleanDir($stageDir);
             $this->cleanDir($extractDir);
-            flock($lock, LOCK_UN);
-            fclose($lock);
+            $lock->release();
         }
     }
 
@@ -333,6 +313,7 @@ final class ModuleRemoteInstaller
 
         $extractDir = dirname($filePath) . '/extracted_' . bin2hex(random_bytes(4));
         @mkdir($extractDir, 0755, true);
+        $operationLock = null;
 
         try {
             $this->extract($filePath, $extractDir);
@@ -385,6 +366,12 @@ final class ModuleRemoteInstaller
                 } else {
                     throw new ModulePackageMismatchException($moduleName, $expectedName);
                 }
+            }
+
+            if (ModuleMarketplaceClient::isValidCode($moduleName)) {
+                $operationLock = ModuleOperationLock::acquire($this->projectRoot, $moduleName);
+            } else {
+                throw new RuntimeException('Invalid module name');
             }
 
             $targetDir = $this->projectRoot . '/modules/' . $moduleName;
@@ -442,6 +429,7 @@ final class ModuleRemoteInstaller
             return $moduleName;
         } finally {
             $this->cleanDir($extractDir);
+            $operationLock?->release();
         }
     }
 

@@ -33,7 +33,7 @@ Core-профиль использует **mega-tools и оркестратор�
 | `crm_time` | Worklog, календарь, бизнес-календари, праздники, рабочее время | list_worklogs, create_worklog, get_calendar_agenda, + 25 поддействий |
 | `crm_knowledge` | База знаний: пространства, страницы, версии, комментарии, теги, файлы, AI | search, list_pages, create_page, ai_summary, + 40 поддействий |
 | `crm_ai` | AI-действия, предложения, провайдеры, задачи, семантический поиск | execute_action, task_summary, project_risks, day_plan, + 25 поддействий |
-| `crm_admin` | Настройки, кеш, модули, обновления, API-клиенты, вебхуки, логи | list_settings, clear_cache, list_modules, + 35 поддействий |
+| `crm_admin` | Настройки, кеш, модули, обновления, API-клиенты, вебхуки, логи | list_settings, clear_cache, list_modules, + 37 поддействий |
 | `crm_agent_bundle` | **AgentOS 2026 Core**: Инициализация задач одним запросом | Последовательная настройка задачи, DoD, подзадач, БЗ и QA; при частичном сбое возвращает ID выполненных шагов с поддержкой `density: "compact"` |
 | `crm_agent_memory` | **AgentOS 2026 Core**: Персистентная память агентов | `get`, `set`, `list`, `delete`, `search` (по всем scope/метаданным), `export_graph` со связыванием графа сущностей (`task`, `project`, `client`) |
 | `crm_chat` | **AgentOS 2026 Core**: Хаб агентских коммуникаций | `list_chats`, `get_chat`, `create_chat`, `send_message`, `list_messages`, `mark_read` со структурированным JSON (`message_type: json/datapart`) и компактным режимом |
@@ -967,6 +967,8 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_list_feature_flags` | Feature flags | settings.manage | нет |
 | `crm_update_feature_flag` | Обновить flag | settings.manage | изменение |
 | `crm_list_modules` | Список модулей | settings.manage | нет |
+| `crm_admin/list_module_updates` | Проверить обновления установленных модулей; `refresh` обновляет данные Marketplace | settings.manage | нет |
+| `crm_admin/update_module` | Обновить модуль по его коду из Marketplace через штатный установщик | module.install | установка/обновление файлов модуля |
 | `crm_get_module` | Получить модуль | settings.manage | нет |
 | `crm_install_module` | Установить модуль | module.install | установка |
 | `crm_activate_module` | Активировать модуль | settings.manage | изменение |
@@ -977,6 +979,7 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_get_module_health` | Здоровье модуля | settings.manage | нет |
 | `crm_get_module_migrations` | Миграции модуля | settings.manage | нет |
 | `crm_get_module_errors` | Ошибки модуля | settings.manage | нет |
+
 | `crm_clear_module_errors` | Очистить ошибки | settings.manage | удаление |
 | `crm_install_module_from_url` | Установить из URL | settings.manage | установка |
 | `crm_install_module_from_file` | Установить из файла | settings.manage | установка |
@@ -993,6 +996,8 @@ AI-действия логируются через AiJobService/AiAuditService;
 | `crm_get_core_update_session` | Сессия обновления | settings.manage | создание |
 | `crm_get_core_update_history` | История обновлений | settings.manage | нет |
 | `crm_get_core_update_log` | Лог обновления | settings.manage | нет |
+
+Для проверки результата `crm_admin/update_module` перечитайте модуль через `crm_get_module`: сравните `version` и `registry_version`, затем убедитесь, что `update_in_progress` равно `false`. Список обновлений включает обычные Marketplace-модули и языковые пакеты; операции одного модуля сериализуются общей блокировкой.
 
 ### Логи и аудит
 

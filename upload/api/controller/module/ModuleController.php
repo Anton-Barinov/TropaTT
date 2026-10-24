@@ -16,6 +16,7 @@ use Api\System\Library\Module\ModuleRemoteInstaller;
 use Api\System\Library\Module\ModuleSigningKeyMissingException;
 use Api\System\Library\Module\ModuleCronScheduler;
 use Api\System\Library\Module\ModuleWebhookDispatcher;
+use Api\System\Library\Module\ModuleOperationLock;
 use Api\System\Library\Security\UrlSafetyValidator;
 
 final class ModuleController
@@ -171,6 +172,15 @@ final class ModuleController
 
     public function install(array $params = []): JsonResponse
     {
+        $name = trim((string)($params['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->installUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->installUnlocked($params));
+    }
+
+    private function installUnlocked(array $params = []): JsonResponse
+    {
         try {
             $name = $params['name'] ?? '';
             if ($name === '') {
@@ -218,6 +228,17 @@ final class ModuleController
     }
 
     public function activate(array $params = []): JsonResponse
+    {
+        $denial = $this->requireRoot();
+        if ($denial !== null) { return $denial; }
+        $name = trim((string)($params['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->activateUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->activateUnlocked($params));
+    }
+
+    private function activateUnlocked(array $params = []): JsonResponse
     {
         try {
             if ($this->requireRoot() !== null) { return $this->requireRoot(); }
@@ -272,7 +293,18 @@ final class ModuleController
             AppLog::error('[ModuleController::activate] ' . $name . ': ' . $e->getMessage());
             return JsonResponse::error('ACTIVATE_FAILED', $this->t('module/messages.activate_failed', 'Failed to activate module') . ': ' . $e->getMessage(), 500);
         }
-    }    public function deactivate(array $params = []): JsonResponse
+    }
+
+    public function deactivate(array $params = []): JsonResponse
+    {
+        $name = trim((string)($params['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->deactivateUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->deactivateUnlocked($params));
+    }
+
+    private function deactivateUnlocked(array $params = []): JsonResponse
     {
         try {
             $name = $params['name'] ?? '';
@@ -303,6 +335,15 @@ final class ModuleController
     }
 
     public function uninstall(array $params = []): JsonResponse
+    {
+        $name = trim((string)($params['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->uninstallUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->uninstallUnlocked($params));
+    }
+
+    private function uninstallUnlocked(array $params = []): JsonResponse
     {
         try {
             $name = $params['name'] ?? '';
@@ -362,6 +403,17 @@ final class ModuleController
      */
     public function purge(array $params = []): JsonResponse
     {
+        $denial = $this->requireRoot();
+        if ($denial !== null) { return $denial; }
+        $name = trim((string)($params['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->purgeUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->purgeUnlocked($params));
+    }
+
+    private function purgeUnlocked(array $params = []): JsonResponse
+    {
         if ($this->requireRoot() !== null) { return $this->requireRoot(); }
         $name = trim((string)($params['name'] ?? ''));
         if ($name === '') {
@@ -380,9 +432,13 @@ final class ModuleController
         // A NOT_INSTALLED result is fine — we still want to delete the files.
         if ($wasInstalled) {
             try {
-                $this->uninstall(['name' => $name]);
+                $uninstall = $this->uninstall(['name' => $name]);
+                if (($uninstall->payload()['success'] ?? false) !== true) {
+                    return JsonResponse::error('UNINSTALL_FAILED', $this->t('module/messages.uninstall_failed'), 409);
+                }
             } catch (\Throwable $e) {
                 AppLog::error('[ModuleController::purge] uninstall failed for ' . $name . ': ' . $e->getMessage());
+                return JsonResponse::error('UNINSTALL_FAILED', $this->t('module/messages.uninstall_failed'), 409);
             }
         }
 
@@ -702,6 +758,16 @@ final class ModuleController
     public function updateConfig(array $params = []): JsonResponse
     {
         $input = array_replace($this->request()->allInput(), $params);
+        $name = trim((string)($input['name'] ?? ''));
+        if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
+            return $this->updateConfigUnlocked($params);
+        }
+        return $this->withModuleOperationLock($name, fn(): JsonResponse => $this->updateConfigUnlocked($params));
+    }
+
+    private function updateConfigUnlocked(array $params = []): JsonResponse
+    {
+        $input = array_replace($this->request()->allInput(), $params);
         $name = $input['name'] ?? '';
         $config = $input['config'] ?? null;
 
@@ -910,6 +976,24 @@ final class ModuleController
         /** @var \Api\System\Library\Service\AuthzService $authz */
         $authz = $this->container->get('service.authz');
         return $authz->hasAnyPermissions($user, ['module.install']);
+    }
+
+    private function withModuleOperationLock(string $name, callable $operation): JsonResponse
+    {
+        try {
+            $lock = ModuleOperationLock::acquire(dirname(__DIR__, 3), $name);
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'MODULE_BUSY') {
+                return JsonResponse::error('MODULE_OPERATION_BUSY', $this->t('module/messages.operation_busy', 'Another operation is in progress for this module. Try again shortly.'), 409);
+            }
+            AppLog::error('[ModuleController] Could not acquire module operation lock for ' . $name . ': ' . $e->getMessage());
+            return JsonResponse::error('MODULE_LOCK_FAILED', $this->t('common/messages.internal_error', 'Internal error'), 500);
+        }
+        try {
+            return $operation();
+        } finally {
+            $lock->release();
+        }
     }
 
     private function requireRoot(): ?JsonResponse
