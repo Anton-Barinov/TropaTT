@@ -13066,8 +13066,8 @@ $tools[] = $this->tool(
             'ok' => true,
             'public_id' => $publicId,
             'name' => (string)($result['name'] ?? ''),
-            'mime_type' => (string)($result['mime_type'] ?? ''),
-            'size_bytes' => (int)($result['size_bytes'] ?? 0),
+            'mime_type' => (string)($result['mime'] ?? ''),
+            'size_bytes' => (int)($result['size'] ?? 0),
             'download_url' => '/api/index.php?route=api/v1/files/' . rawurlencode($publicId) . '/download',
         ];
     }
