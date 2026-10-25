@@ -114,61 +114,90 @@ final class MenuController extends BaseController
             unset($ei);
         } elseif ($this->container->has('module.service_provider_registry')) {
             $spRegistry = $this->container->get('module.service_provider_registry');
-            $moduleItems = $spRegistry->getAllMenuItems();
-            foreach ($moduleItems as $item) {
-                $perm = $item['permission'] ?? null;
-                $required = $perm !== null && $perm !== '' ? [$perm] : [];
-                if (!$this->canAccess($authz, $user, $required)) {
-                    continue;
+            /** @var \Api\System\Library\Module\PluginManager|null $pm */
+            $pm = $this->container->has('plugin.manager')
+                ? $this->container->get('plugin.manager')
+                : null;
+            $activeModules = $pm ? $pm->getActive() : [];
+            $registeredRoutes = [];
+            if ($pm) {
+                foreach ($activeModules as $moduleName => $manifest) {
+                    $registeredRoutes[$moduleName] = \Api\System\Library\Module\ModuleMenuRouteResolver::registeredRoutes(
+                        $pm->getModulesDir(),
+                        (string)$moduleName,
+                        $manifest->webRoutes
+                    );
                 }
-                $availableItems[] = [
-                    'key' => $item['route'],
-                    'i18n' => $item['route'],
-                    'label' => $item['label'],
-                    'href' => 'index.php?route=' . $item['route'],
-                    'icon' => $item['icon'] ?? null,
-                    'parent' => $item['parent'] ?? null,
-                ];
             }
 
-            // Also include menu items declared in active module manifests
-            if ($this->container->has('plugin.manager')) {
-                /** @var \Api\System\Library\Module\PluginManager $pm */
-                $pm = $this->container->get('plugin.manager');
-                foreach ($pm->getActive() as $moduleName => $manifest) {
-                    foreach ($manifest->menuItems as $mItem) {
-                        $route = (string)($mItem['route'] ?? $mItem['href'] ?? '');
-                        if ($route === '') {
-                            continue;
-                        }
-                        $alreadyPresent = false;
-                        foreach ($availableItems as $ai) {
-                            if ($ai['key'] === $route) {
-                                $alreadyPresent = true;
-                                break;
-                            }
-                        }
-                        if ($alreadyPresent) {
-                            continue;
-                        }
-                        $perm = $mItem['permission'] ?? null;
-                        $required = $perm !== null && $perm !== '' ? [$perm] : [];
-                        if (!$this->canAccess($authz, $user, $required)) {
-                            continue;
-                        }
-                        $icon = (string)($mItem['icon'] ?? '');
-                        if ($icon !== '' && !str_starts_with($icon, '<')) {
-                            $icon = '<i class="fa-solid fa-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '"></i>';
-                        }
-                        $availableItems[] = [
-                            'key' => $route,
-                            'i18n' => $route,
-                            'label' => (string)($mItem['title'] ?? $mItem['label'] ?? $moduleName),
-                            'href' => 'index.php?route=' . $route,
-                            'icon' => $icon !== '' ? $icon : '<i class="fa-solid fa-puzzle-piece"></i>',
-                            'parent' => $mItem['parent'] ?? null,
-                        ];
+            // Keep the provider's module identity while resolving its menu
+            // target. The flattened getAllMenuItems() loses this association.
+            foreach ($spRegistry->getProviders() as $moduleName => $provider) {
+                $routes = $registeredRoutes[$moduleName] ?? [];
+                if ($routes === []) {
+                    continue;
+                }
+                foreach ($provider->getMenuItems() as $item) {
+                    $rawRoute = (string)($item['route'] ?? '');
+                    $route = \Api\System\Library\Module\ModuleMenuRouteResolver::resolve($rawRoute, $routes);
+                    if ($route === null) {
+                        AppLog::warning("[MenuController] Skipping unresolved service-provider menu route for {$moduleName}");
+                        continue;
                     }
+                    $perm = $item['permission'] ?? null;
+                    $required = $perm !== null && $perm !== '' ? [$perm] : [];
+                    if (!$this->canAccess($authz, $user, $required)) {
+                        continue;
+                    }
+                    $href = 'index.php?route=' . rawurlencode($route);
+                    if ($this->hasMenuIdentity($availableItems, $rawRoute, $href)) {
+                        continue;
+                    }
+                    $availableItems[] = [
+                        'key' => $rawRoute,
+                        'i18n' => $rawRoute,
+                        'label' => $item['label'] ?? $moduleName,
+                        'href' => $href,
+                        'icon' => $item['icon'] ?? null,
+                        'parent' => $item['parent'] ?? null,
+                    ];
+                }
+            }
+
+            // Also include menu items declared in active module manifests.
+            foreach ($activeModules as $moduleName => $manifest) {
+                $routes = $registeredRoutes[$moduleName] ?? [];
+                if ($routes === []) {
+                    continue;
+                }
+                foreach ($manifest->menuItems as $mItem) {
+                    $rawRoute = (string)($mItem['route'] ?? $mItem['href'] ?? '');
+                    $route = \Api\System\Library\Module\ModuleMenuRouteResolver::resolve($rawRoute, $routes);
+                    if ($route === null) {
+                        AppLog::warning("[MenuController] Skipping unresolved manifest menu route for {$moduleName}");
+                        continue;
+                    }
+                    $perm = $mItem['permission'] ?? null;
+                    $required = $perm !== null && $perm !== '' ? [$perm] : [];
+                    if (!$this->canAccess($authz, $user, $required)) {
+                        continue;
+                    }
+                    $href = 'index.php?route=' . rawurlencode($route);
+                    if ($this->hasMenuIdentity($availableItems, $rawRoute, $href)) {
+                        continue;
+                    }
+                    $icon = (string)($mItem['icon'] ?? '');
+                    if ($icon !== '' && !str_starts_with($icon, '<')) {
+                        $icon = '<i class="fa-solid fa-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '"></i>';
+                    }
+                    $availableItems[] = [
+                        'key' => $rawRoute,
+                        'i18n' => $rawRoute,
+                        'label' => (string)($mItem['title'] ?? $mItem['label'] ?? $moduleName),
+                        'href' => $href,
+                        'icon' => $icon !== '' ? $icon : '<i class="fa-solid fa-puzzle-piece"></i>',
+                        'parent' => $mItem['parent'] ?? null,
+                    ];
                 }
             }
         }
@@ -974,6 +1003,17 @@ final class MenuController extends BaseController
 
         $scheme = parse_url($decoded, PHP_URL_SCHEME);
         return $scheme === null || in_array(strtolower((string)$scheme), ['http', 'https', 'mailto', 'tel'], true);
+    }
+
+    /** @param array<int,array<string,mixed>> $items */
+    private function hasMenuIdentity(array $items, string $key, string $href): bool
+    {
+        foreach ($items as $item) {
+            if (($item['key'] ?? null) === $key || ($item['href'] ?? null) === $href) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function canAccess(AuthzService $authz, array $user, array $requiredPermissions): bool
