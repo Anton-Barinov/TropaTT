@@ -1,6 +1,25 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/system/library/http/Request.php';
+
+$earlyRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if (Api\System\Library\Http\Request::isMcpTransport(
+    (string)($_SERVER['REQUEST_METHOD'] ?? 'GET'),
+    $earlyRequestPath,
+    $_GET
+) && Api\System\Library\Http\Request::mcpContentLengthExceedsLimit($_SERVER)) {
+    http_response_code(413);
+    header('Content-Type: application/json; charset=utf-8');
+    header('MCP-Protocol-Version: ' . Api\System\Library\Http\Request::MCP_PROTOCOL_VERSION);
+    echo json_encode([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'error' => ['code' => -32000, 'message' => 'MCP request body exceeds the allowed size.'],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // Remove PHP execution limits for long-running AI operations
 require_once __DIR__ . '/system/library/language/LanguageManager.php';
 
