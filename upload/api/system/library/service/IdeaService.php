@@ -73,16 +73,43 @@ final class IdeaService
             $where[] = 'i.organization_id = :organization_id';
             $params['organization_id'] = (int)$filters['organization_id'];
         }
-        if ($status !== '') { $where[] = 'status = :status'; $params['status'] = $status; }
+        if (isset($filters['user_id'])) {
+            $userId = (int)$filters['user_id'];
+            if ($userId > 0) {
+                $where[] = "(i.visibility = 'public' OR i.author_user_id = :user_id)";
+                $params['user_id'] = $userId;
+            } else {
+                $where[] = "i.visibility = 'public'";
+            }
+        }
+        if ($status !== '') { $where[] = 'i.status = :status'; $params['status'] = $status; }
+        if (isset($filters['category']) && (string)$filters['category'] !== '') {
+            $where[] = 'i.category = :category';
+            $params['category'] = (string)$filters['category'];
+        }
+        $period = (string)($filters['period'] ?? '');
+        if ($period === 'today') {
+            $where[] = 'DATE(i.created_at) = CURDATE()';
+        } elseif ($period === 'week') {
+            $where[] = 'i.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        } elseif ($period === 'month') {
+            $where[] = 'i.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        }
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $stmt = $this->pdo()->prepare("SELECT i.*, u.full_name as author_name, u.login as author_login FROM ideas i LEFT JOIN users u ON u.id = i.author_user_id {$whereSql} ORDER BY i.vote_count DESC, i.created_at DESC LIMIT :limit OFFSET :offset");
+        $orderBy = match ((string)($filters['sort'] ?? 'votes')) {
+            'newest' => 'i.created_at DESC',
+            'oldest' => 'i.created_at ASC',
+            'comments' => 'comment_count DESC, i.created_at DESC',
+            default => 'i.vote_count DESC, i.created_at DESC',
+        };
+        $stmt = $this->pdo()->prepare("SELECT i.*, u.full_name as author_name, u.login as author_login, u.public_id as author_public_id, (SELECT COUNT(*) FROM comments c WHERE c.entity_type = 'idea' AND c.entity_public_id = i.public_id) as comment_count FROM ideas i LEFT JOIN users u ON u.id = i.author_user_id {$whereSql} ORDER BY {$orderBy} LIMIT :limit OFFSET :offset");
         foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
-        $countStmt = $this->pdo()->prepare("SELECT COUNT(*) FROM ideas {$whereSql}");
+        $countStmt = $this->pdo()->prepare("SELECT COUNT(*) FROM ideas i {$whereSql}");
         foreach ($params as $k => $v) $countStmt->bindValue($k, $v);
         $countStmt->execute();
 

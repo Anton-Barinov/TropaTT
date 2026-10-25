@@ -187,7 +187,8 @@ final class ModuleMcpRegistry
         array $actor,
         Container $container,
         callable $canCheck,
-        ?int $explicitOrgId = null
+        ?int $explicitOrgId = null,
+        ?\stdClass $rawArguments = null
     ): array {
         $tool = $this->getTool($name);
         if (!$tool) {
@@ -221,6 +222,19 @@ final class ModuleMcpRegistry
             return [
                 'isError' => true,
                 'content' => [['type' => 'text', 'text' => "Module tool '{$name}' requires a complete, authorized workspace context."]],
+            ];
+        }
+
+        $argumentError = (new \Api\System\Library\Validation\McpArgumentValidator())->validate(
+            $rawArguments ?? $arguments,
+            $tool->inputSchema,
+            $rawArguments === null
+        );
+        if ($argumentError !== null) {
+            return [
+                'isError' => true,
+                'content' => [['type' => 'text', 'text' => $argumentError]],
+                'structuredContent' => ['error' => $argumentError, 'code' => 'INVALID_ARGUMENTS'],
             ];
         }
 

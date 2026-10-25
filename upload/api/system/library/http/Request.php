@@ -5,6 +5,10 @@ namespace Api\System\Library\Http;
 
 final class Request
 {
+    public const MCP_MAX_RAW_BODY_BYTES = 28 * 1024 * 1024;
+    public const MCP_PROTOCOL_VERSION = '2025-06-18';
+    private const MCP_MAX_JSON_STRUCTURAL_TOKENS = 10000;
+    private const MCP_MAX_JSON_NESTING = 64;
     private const PUBLIC_FORM_MAX_RAW_BODY_BYTES = 32769;
     private const WHATSAPP_WEBHOOK_MAX_RAW_BODY_BYTES = 262145;
 
@@ -25,10 +29,14 @@ final class Request
         public readonly string $requestId,
         public readonly string $correlationId,
         public readonly string $locale,
+        public readonly bool $bodyTooLarge = false,
+        bool $decodeJsonBody = true,
     ) {
-        $decoded = json_decode($this->rawBody, true);
-        if (is_array($decoded)) {
-            $this->jsonBody = $decoded;
+        if ($decodeJsonBody && !$this->bodyTooLarge) {
+            $decoded = json_decode($this->rawBody, true);
+            if (is_array($decoded)) {
+                $this->jsonBody = $decoded;
+            }
         }
     }
 
@@ -49,14 +57,20 @@ final class Request
         }
         $locale = (string)($headers['X-Locale'] ?? $headers['x-locale'] ?? $defaultLocale);
 
-        $rawBodyLimit = self::rawBodyLimit($method, $path);
-        $rawBodyStream = fopen('php://input', 'rb');
+        $isMcp = self::isMcpTransport($method, $path, $_GET);
+        $rawBodyLimit = self::rawBodyLimit($method, $path, $_GET);
+        $bodyTooLarge = $isMcp && self::mcpContentLengthExceedsLimit($_SERVER);
+        $rawBodyStream = $bodyTooLarge ? false : fopen('php://input', 'rb');
         $rawBody = '';
         if (is_resource($rawBodyStream)) {
             $rawBody = $rawBodyLimit === null
                 ? (stream_get_contents($rawBodyStream) ?: '')
                 : (stream_get_contents($rawBodyStream, $rawBodyLimit) ?: '');
             fclose($rawBodyStream);
+        }
+        if ($isMcp && strlen($rawBody) > self::MCP_MAX_RAW_BODY_BYTES) {
+            $bodyTooLarge = true;
+            $rawBody = '';
         }
 
         return new self(
@@ -73,19 +87,93 @@ final class Request
             requestId: $requestId,
             correlationId: $correlationId,
             locale: $locale,
+            bodyTooLarge: $bodyTooLarge,
+            decodeJsonBody: !$isMcp,
         );
     }
 
-    private static function rawBodyLimit(string $method, string $path): ?int
+    public static function resolveRoutePath(string $path, array $query = []): string
     {
+        $rawRoute = !empty($query['route']) ? $query['route'] : (!empty($query['_route_']) ? $query['_route_'] : '');
+        if (is_scalar($rawRoute) && (string)$rawRoute !== '') {
+            $rawRoute = trim((string)$rawRoute, '/');
+            if (str_starts_with($rawRoute, 'web/')) {
+                $rawRoute = substr($rawRoute, 4);
+            }
+            [$rawRoute] = explode('?', $rawRoute, 2);
+            return preg_replace('#/+#', '/', '/' . ltrim($rawRoute, '/')) ?: '/';
+        }
         $normalizedPath = preg_replace('#^/api/index\.php#', '', $path) ?? $path;
         $normalizedPath = preg_replace('#^/index\.php#', '', $normalizedPath) ?? $normalizedPath;
         if (str_starts_with($normalizedPath, '/v1/')) {
             $normalizedPath = '/api' . $normalizedPath;
         }
+        return preg_replace('#/+#', '/', $normalizedPath) ?: '/';
+    }
+
+    public static function isMcpTransport(string $method, string $path, array $query = []): bool
+    {
+        return strtoupper($method) === 'POST' && self::resolveRoutePath($path, $query) === '/api/v1/mcp';
+    }
+
+    public static function mcpContentLengthExceedsLimit(array $server): bool
+    {
+        $length = trim((string)($server['CONTENT_LENGTH'] ?? $server['HTTP_CONTENT_LENGTH'] ?? ''));
+        if ($length === '' || !ctype_digit($length)) {
+            return false;
+        }
+        $length = ltrim($length, '0');
+        $limit = (string)self::MCP_MAX_RAW_BODY_BYTES;
+        return strlen($length) > strlen($limit) || (strlen($length) === strlen($limit) && strcmp($length, $limit) > 0);
+    }
+
+    public static function mcpJsonExceedsComplexityLimit(string $body): bool
+    {
+        $inString = false;
+        $escaped = false;
+        $depth = 0;
+        $tokens = 0;
+        $length = strlen($body);
+        for ($index = 0; $index < $length; $index++) {
+            $character = $body[$index];
+            if ($inString) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($character === '\\') {
+                    $escaped = true;
+                } elseif ($character === '"') {
+                    $inString = false;
+                }
+                continue;
+            }
+            if ($character === '"') {
+                $inString = true;
+                continue;
+            }
+            if ($character === '{' || $character === '[') {
+                if (++$depth > self::MCP_MAX_JSON_NESTING) {
+                    return true;
+                }
+            } elseif ($character === '}' || $character === ']') {
+                $depth--;
+            } elseif ($character === ',' || $character === ':') {
+                if (++$tokens > self::MCP_MAX_JSON_STRUCTURAL_TOKENS) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static function rawBodyLimit(string $method, string $path, array $query = []): ?int
+    {
+        $normalizedPath = self::resolveRoutePath($path, $query);
 
         if (strtoupper($method) !== 'POST') {
             return null;
+        }
+        if ($normalizedPath === '/api/v1/mcp') {
+            return self::MCP_MAX_RAW_BODY_BYTES + 1;
         }
 
         if (preg_match('#^/api/v1/_module/crm\.public-forms/forms/[A-Za-z0-9_-]{1,64}/submit$#D', $normalizedPath) === 1) {
