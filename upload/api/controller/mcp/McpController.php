@@ -10196,7 +10196,12 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.work_cycle');
         $result = $service->removeTask($cyclePublicId, $taskPublicId, $this->actor());
 
-        return $result === true ? ['removed' => true] : ['error' => (string)$result];
+        if ($result === true) {
+            return ['removed' => true];
+        }
+
+        $error = is_string($result) ? trim($result) : '';
+        return ['error' => $error !== '' ? $error : 'CYCLE_TASK_NOT_FOUND'];
     }
 
     private function crmGetCycleSummary(array $arguments): array
@@ -10962,7 +10967,8 @@ $tools[] = $this->tool(
         if (!$page) {
             return ['error' => 'Knowledge page not found.'];
         }
-        return ['draft' => $this->publicData($this->knowledge()->draft($publicId, (int)($this->actor()['id'] ?? 0)))];
+        $actor = $this->actor();
+        return ['draft' => $this->publicData($this->knowledge()->draft($publicId, (int)($actor['id'] ?? 0), $actor))];
     }
 
     private function crmSaveKnowledgePageDraft(array $arguments): array
@@ -10975,7 +10981,8 @@ $tools[] = $this->tool(
             return ['error' => 'Knowledge page not found.'];
         }
         try {
-            $draft = $this->knowledge()->saveDraft($publicId, $this->pageContentInput($arguments), (int)($this->actor()['id'] ?? 0));
+            $actor = $this->actor();
+            $draft = $this->knowledge()->saveDraft($publicId, $this->pageContentInput($arguments), (int)($actor['id'] ?? 0), $actor);
         } catch (Throwable $e) {
             AppLog::error('[McpController::crmSaveKnowledgePageDraft] ' . $e->getMessage());
             return ['error' => 'Operation failed. Check server logs for details.'];
@@ -10992,7 +10999,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $favoritePublicId = $this->knowledge()->favoritePage($publicId, (int)($this->actor()['id'] ?? 0));
+        $actor = $this->actor();
+        $favoritePublicId = $this->knowledge()->favoritePage($publicId, (int)($actor['id'] ?? 0), $actor);
         return $favoritePublicId ? ['favorite_public_id' => $favoritePublicId] : ['error' => 'Knowledge page not found.'];
     }
 
@@ -11017,7 +11025,8 @@ $tools[] = $this->tool(
         if (!$this->knowledge()->page($publicId, $this->actor(), 'view')) {
             return ['error' => 'Knowledge page not found.'];
         }
-        $subscriptionPublicId = $this->knowledge()->subscribePage($publicId, (int)($this->actor()['id'] ?? 0));
+        $actor = $this->actor();
+        $subscriptionPublicId = $this->knowledge()->subscribePage($publicId, (int)($actor['id'] ?? 0), $actor);
         return $subscriptionPublicId ? ['subscription_public_id' => $subscriptionPublicId] : ['error' => 'Knowledge page not found.'];
     }
 
@@ -11838,7 +11847,8 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
-        $ok = $this->knowledge()->deleteDraft($publicId, (int)($this->actor()['id'] ?? 0));
+        $actor = $this->actor();
+        $ok = $this->knowledge()->deleteDraft($publicId, (int)($actor['id'] ?? 0), $actor);
         return $ok ? ['deleted' => true] : ['error' => 'Knowledge draft not found.'];
     }
 

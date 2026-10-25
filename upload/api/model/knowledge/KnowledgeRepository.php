@@ -1323,13 +1323,13 @@ final class KnowledgeRepository
         ], $actorId, $actor);
     }
 
-    public function saveDraft(string $pagePublicId, array $payload, int $userId): array
+    public function saveDraft(string $pagePublicId, array $payload, int $userId, ?array $actor = null): array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             throw new \RuntimeException('Knowledge page not found');
         }
-        $existing = $this->draft($pagePublicId, $userId);
+        $existing = $this->draft($pagePublicId, $userId, $actor);
         $html = $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? $page['content_html'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
         if ($existing) {
@@ -1344,7 +1344,7 @@ final class KnowledgeRepository
                 'updated_at' => $now,
                 'public_id' => $existing['public_id'],
             ]);
-            return $this->draft($pagePublicId, $userId) ?? $existing;
+            return $this->draft($pagePublicId, $userId, $actor) ?? $existing;
         }
         $publicId = $this->publicId('kbd');
         $stmt = $this->pdo->prepare('INSERT INTO knowledge_drafts (public_id, page_id, user_id, title, content_html, content_text, content_json, base_row_version, autosaved_at, created_at, updated_at) VALUES (:public_id, :page_id, :user_id, :title, :content_html, :content_text, :content_json, :base_row_version, :autosaved_at, :created_at, :updated_at)');
@@ -1361,12 +1361,12 @@ final class KnowledgeRepository
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        return $this->draft($pagePublicId, $userId) ?? [];
+        return $this->draft($pagePublicId, $userId, $actor) ?? [];
     }
 
-    public function draft(string $pagePublicId, int $userId): ?array
+    public function draft(string $pagePublicId, int $userId, ?array $actor = null): ?array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return null;
         }
@@ -1376,9 +1376,9 @@ final class KnowledgeRepository
         return is_array($draft) ? $draft : null;
     }
 
-    public function deleteDraft(string $pagePublicId, int $userId): bool
+    public function deleteDraft(string $pagePublicId, int $userId, ?array $actor = null): bool
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return false;
         }
@@ -1793,9 +1793,9 @@ final class KnowledgeRepository
         return $stmt->fetchColumn() !== false;
     }
 
-    public function favoritePage(string $pagePublicId, int $userId): ?string
+    public function favoritePage(string $pagePublicId, int $userId, ?array $actor = null): ?string
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'view');
         if (!$page) return null;
         $stmt = $this->pdo->prepare('SELECT public_id FROM favorites WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
         $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
@@ -1908,9 +1908,9 @@ final class KnowledgeRepository
         return $stmt->fetchColumn() !== false;
     }
 
-    public function subscribePage(string $pagePublicId, int $userId): ?string
+    public function subscribePage(string $pagePublicId, int $userId, ?array $actor = null): ?string
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'view');
         if (!$page) return null;
         $stmt = $this->pdo->prepare('SELECT public_id FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
         $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
