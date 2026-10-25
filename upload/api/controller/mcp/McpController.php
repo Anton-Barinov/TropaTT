@@ -13409,9 +13409,7 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        /** @var IdeaService $service */
-        $service = $this->container->get('service.idea');
-        $idea = $service->get($publicId, $this->activeOrganizationId());
+        $idea = $this->mcpAccessibleIdea($publicId);
         return $idea ? ['idea' => $this->publicData($idea)] : ['error' => 'Idea not found.'];
     }
 
@@ -13452,10 +13450,7 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $orgId = $this->activeOrganizationId();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
-        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
-        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        $idea = $this->mcpAccessibleIdea($publicId);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
         }
@@ -13477,7 +13472,7 @@ $tools[] = $this->tool(
         $pdo->prepare("
             UPDATE ideas
             SET title = :title, description = :description, category = :category, region = :region, visibility = :visibility, target_date = :target_date
-            WHERE public_id = :pid AND organization_id = :organization_id
+            WHERE id = :id
         ")->execute([
             'title' => $title,
             'description' => $description,
@@ -13485,8 +13480,7 @@ $tools[] = $this->tool(
             'region' => $region,
             'visibility' => $visibility,
             'target_date' => $targetDate,
-            'pid' => $publicId,
-            'organization_id' => $orgId,
+            'id' => (int)$idea['id'],
         ]);
 
         $this->invalidateCache('idea');
@@ -13503,10 +13497,7 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $orgId = $this->activeOrganizationId();
-        $stmt = $pdo->prepare("SELECT id, public_id, title, description, author_user_id, category, region, visibility, target_date, created_at, status, vote_count, coverage_json, known_facts_json, ai_analysis_at FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
-        $stmt->execute(['pid' => $publicId, 'organization_id' => $orgId]);
-        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        $idea = $this->mcpAccessibleIdea($publicId);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
         }
@@ -13518,7 +13509,7 @@ $tools[] = $this->tool(
 
         $pdo->prepare("DELETE FROM idea_votes WHERE idea_id = :iid")->execute(['iid' => (int)$idea['id']]);
         $pdo->prepare("DELETE FROM comments WHERE entity_type = 'idea' AND entity_public_id = :pid")->execute(['pid' => $publicId]);
-        $pdo->prepare("DELETE FROM ideas WHERE public_id = :pid AND organization_id = :organization_id")->execute(['pid' => $publicId, 'organization_id' => $orgId]);
+        $pdo->prepare("DELETE FROM ideas WHERE id = :id")->execute(['id' => (int)$idea['id']]);
         $this->invalidateCache('idea');
 
         return ['deleted' => true];
@@ -13531,13 +13522,11 @@ $tools[] = $this->tool(
             return ['error' => 'public_id is required.'];
         }
 
-        $pdo = $this->pdo();
-        $stmt = $pdo->prepare("SELECT id, author_user_id FROM ideas WHERE public_id = :pid AND organization_id = :organization_id");
-        $stmt->execute(['pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
-        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        $idea = $this->mcpAccessibleIdea($publicId);
         if (!$idea) {
             return ['error' => 'Idea not found.'];
         }
+        $pdo = $this->pdo();
 
         $userId = (int)($this->actor()['id'] ?? 0);
         if ($userId <= 0) {
@@ -13576,12 +13565,14 @@ $tools[] = $this->tool(
         }
 
         $pdo = $this->pdo();
-        $pdo->prepare("UPDATE ideas SET status = :status WHERE public_id = :pid AND organization_id = :organization_id")->execute(['status' => $status, 'pid' => $publicId, 'organization_id' => $this->activeOrganizationId()]);
+        $idea = $this->mcpAccessibleIdea($publicId);
+        if (!$idea) {
+            return ['error' => 'Idea not found.'];
+        }
+        $pdo->prepare("UPDATE ideas SET status = :status WHERE id = :id")->execute(['status' => $status, 'id' => (int)$idea['id']]);
         $this->invalidateCache('idea');
 
-        /** @var IdeaService $service */
-        $service = $this->container->get('service.idea');
-        return ['idea' => $this->publicData($service->get($publicId, $this->activeOrganizationId()) ?? ['public_id' => $publicId]), 'status' => $status];
+        return ['idea' => $this->publicData($this->mcpAccessibleIdea($publicId) ?? ['public_id' => $publicId]), 'status' => $status];
     }
 
     private function crmListIdeaComments(array $arguments): array
@@ -13593,6 +13584,9 @@ $tools[] = $this->tool(
             return ['error' => 'public_id (or idea_public_id) is required.'];
         }
 
+        if (!$this->mcpAccessibleIdea($publicId)) {
+            return ['error' => 'Idea not found.'];
+        }
         $pdo = $this->pdo();
         $stmt = $pdo->prepare("
             SELECT c.*, u.full_name AS author_name, u.login AS author_login
@@ -13617,9 +13611,7 @@ $tools[] = $this->tool(
             return ['error' => 'Comment body is too long.'];
         }
 
-        /** @var IdeaService $service */
-        $service = $this->container->get('service.idea');
-        if (!$service->get($ideaPublicId)) {
+        if (!$this->mcpAccessibleIdea($ideaPublicId)) {
             return ['error' => 'Idea not found.'];
         }
 
@@ -15447,6 +15439,43 @@ $tools[] = $this->tool(
         return (bool)($this->actor()['is_root'] ?? false);
     }
 
+    private function activeOrganizationId(): ?int
+    {
+        $id = (int)($this->actor()['organization_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function mcpAccessibleIdea(string $publicId): ?array
+    {
+        $actor = $this->actor();
+        $where = ['i.public_id = :public_id'];
+        $params = ['public_id' => $publicId];
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $where[] = 'i.organization_id = :organization_id';
+            $params['organization_id'] = $organizationId;
+        }
+        $userId = (int)($actor['id'] ?? 0);
+        if ($userId > 0) {
+            $where[] = "(i.visibility = 'public' OR i.author_user_id = :user_id)";
+            $params['user_id'] = $userId;
+        } else {
+            $where[] = "i.visibility = 'public'";
+        }
+
+        $stmt = $this->pdo()->prepare(
+            "SELECT i.*, u.full_name AS author_name, u.login AS author_login, u.public_id AS author_public_id,
+                (SELECT COUNT(*) FROM comments c WHERE c.entity_type = 'idea' AND c.entity_public_id = i.public_id) AS comment_count
+             FROM ideas i
+             LEFT JOIN users u ON u.id = i.author_user_id
+             WHERE " . implode(' AND ', $where)
+        );
+        $stmt->execute($params);
+        $idea = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($idea) ? $idea : null;
+    }
+
     private function actor(): array
     {
         $auth = $this->user();
@@ -15667,6 +15696,7 @@ $tools[] = $this->tool(
         if ($orgId) {
             $filters['organization_id'] = $orgId;
         }
+        $filters['user_id'] = (int)($this->actor()['id'] ?? 0);
 
         return $filters;
     }
