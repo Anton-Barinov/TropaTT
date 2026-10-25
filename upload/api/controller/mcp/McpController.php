@@ -3053,12 +3053,12 @@ MD;
             $tools[] = $this->tool('crm_list_idea_comments', 'List comments for a visible CRM idea.', [
                 'public_id' => ['type' => 'string'],
                 'idea_public_id' => ['type' => 'string', 'description' => 'Alias of public_id, matching crm_add_idea_comment.'],
-            ], ['public_id']);
+            ], [], [[['public_id'], ['idea_public_id']]]);
             $tools[] = $this->tool('crm_add_idea_comment', 'Add a comment to a visible CRM idea.', [
                 'idea_public_id' => ['type' => 'string'],
                 'public_id' => ['type' => 'string', 'description' => 'Alias of idea_public_id, matching crm_list_idea_comments.'],
                 'body' => ['type' => 'string'],
-            ], ['idea_public_id', 'body']);
+            ], ['body'], [[['idea_public_id'], ['public_id']]]);
         }
         foreach ($this->ideaWorkflowTools() as $toolName => $toolDef) {
             // Per-tool permission: the visible catalog must match what the call
@@ -13583,6 +13583,11 @@ $tools[] = $this->tool(
         if ($publicId === '') {
             return ['error' => 'public_id (or idea_public_id) is required.'];
         }
+        if (trim((string)($arguments['public_id'] ?? '')) !== ''
+            && trim((string)($arguments['idea_public_id'] ?? '')) !== ''
+            && trim((string)$arguments['public_id']) !== trim((string)$arguments['idea_public_id'])) {
+            return ['error' => 'public_id and idea_public_id must match.'];
+        }
 
         if (!$this->mcpAccessibleIdea($publicId)) {
             return ['error' => 'Idea not found.'];
@@ -13606,6 +13611,11 @@ $tools[] = $this->tool(
         $body = trim((string)($arguments['body'] ?? ''));
         if ($ideaPublicId === '' || $body === '') {
             return ['error' => 'idea_public_id and body are required.'];
+        }
+        if (trim((string)($arguments['idea_public_id'] ?? '')) !== ''
+            && trim((string)($arguments['public_id'] ?? '')) !== ''
+            && trim((string)$arguments['idea_public_id']) !== trim((string)$arguments['public_id'])) {
+            return ['error' => 'idea_public_id and public_id must match.'];
         }
         if (mb_strlen($body) > 8000) {
             return ['error' => 'Comment body is too long.'];
