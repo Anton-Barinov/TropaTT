@@ -1747,19 +1747,21 @@ MD;
             'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 50],
             'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
         ]);
-        $tools[] = $this->tool('crm_create_ai_prompt', 'Create an AI prompt template.', [
+        $tools[] = $this->tool('crm_create_ai_prompt', 'Create an AI prompt template. Use template_text (prompt is a compatibility alias).', [
             'intent_code' => ['type' => 'string'],
             'locale' => ['type' => 'string'],
+            'template_text' => ['type' => 'string'],
             'title' => ['type' => 'string'],
             'prompt' => ['type' => 'string'],
+            'version' => ['type' => 'integer', 'minimum' => 1],
             'is_active' => ['type' => 'boolean'],
-        ], ['intent_code', 'locale', 'title', 'prompt']);
-        $tools[] = $this->tool('crm_update_ai_prompt', 'Update an AI prompt template.', [
+        ], ['intent_code', 'locale'], [[['template_text'], ['prompt']]]);
+        $tools[] = $this->tool('crm_update_ai_prompt', 'Update an AI prompt template. Use template_text (prompt is a compatibility alias).', [
             'public_id' => ['type' => 'string'],
-            'intent_code' => ['type' => 'string'],
-            'locale' => ['type' => 'string'],
+            'template_text' => ['type' => 'string'],
             'title' => ['type' => 'string'],
             'prompt' => ['type' => 'string'],
+            'version' => ['type' => 'integer', 'minimum' => 1],
             'is_active' => ['type' => 'boolean'],
         ], ['public_id']);
         $tools[] = $this->tool('crm_list_ai_json_schemas', 'List AI JSON schemas.', [
@@ -6335,7 +6337,7 @@ $tools[] = $this->tool(
     {
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');
-        return $this->publicData($service->createPrompt($this->pick($arguments, ['intent_code', 'locale', 'title', 'prompt', 'is_active']), $this->actor()));
+        return $this->publicData($service->createPrompt($this->aiPromptInput($arguments, true), $this->actor()));
     }
 
     private function crmUpdateAiPrompt(array $arguments): array
@@ -6346,7 +6348,21 @@ $tools[] = $this->tool(
         }
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');
-        return $this->publicData($service->updatePrompt($publicId, $this->pick($arguments, ['intent_code', 'locale', 'title', 'prompt', 'is_active']), $this->actor()));
+        return $this->publicData($service->updatePrompt($publicId, $this->aiPromptInput($arguments, false), $this->actor()));
+    }
+
+    private function aiPromptInput(array $arguments, bool $includeIdentity): array
+    {
+        $keys = ['template_text', 'prompt', 'version', 'is_active'];
+        if ($includeIdentity) {
+            array_unshift($keys, 'intent_code', 'locale');
+        }
+        $input = $this->pick($arguments, $keys);
+        if (!array_key_exists('template_text', $input) && array_key_exists('prompt', $input)) {
+            $input['template_text'] = $input['prompt'];
+        }
+        unset($input['prompt']);
+        return $input;
     }
 
     private function crmListAiJsonSchemas(array $arguments): array
@@ -6874,7 +6890,7 @@ $tools[] = $this->tool(
         /** @var ProjectModuleService $service */
         $service = $this->container->get('service.project_module');
         $result = $service->tasks($publicId, $this->filters($arguments, 20, 100), $this->actor());
-        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+        return is_array($result) ? $this->publicData($result) : $this->projectModuleReadError($result);
     }
 
     private function crmListProjectModuleMembers(array $arguments): array
@@ -6887,7 +6903,7 @@ $tools[] = $this->tool(
         /** @var ProjectModuleService $service */
         $service = $this->container->get('service.project_module');
         $result = $service->members($publicId, $this->actor());
-        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+        return is_array($result) ? $this->publicData($result) : $this->projectModuleReadError($result);
     }
 
     private function crmListProjectModuleLinks(array $arguments): array
@@ -6900,7 +6916,16 @@ $tools[] = $this->tool(
         /** @var ProjectModuleService $service */
         $service = $this->container->get('service.project_module');
         $result = $service->links($publicId, $this->actor());
-        return $result === null ? ['error' => 'Project module not found.'] : $this->publicData($result);
+        return is_array($result) ? $this->publicData($result) : $this->projectModuleReadError($result);
+    }
+
+    private function projectModuleReadError(array|string|null $result): array
+    {
+        return match ($result) {
+            null, 'PROJECT_MODULE_NOT_FOUND' => ['error' => 'Project module not found.'],
+            'PROJECT_MODULE_FORBIDDEN' => ['error' => 'Forbidden.'],
+            default => ['error' => 'Could not read project module data.'],
+        };
     }
 
     private function crmAddTasksToProjectModule(array $arguments): array
@@ -8769,7 +8794,12 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.role');
         $item = $service->create($input, $this->actor());
 
-        return is_array($item) ? ['role' => $this->publicData($item)] : ['error' => (string)$item];
+        if (!is_array($item) || ($item['ok'] ?? false) !== true || !is_array($item['role'] ?? null)) {
+            $error = is_array($item) ? (string)($item['code'] ?? '') : (string)$item;
+            return ['error' => $error !== '' ? $error : 'Role could not be created.'];
+        }
+
+        return ['role' => $this->publicData($item['role'])];
     }
 
     private function crmUpdateRole(array $arguments): array
@@ -8793,7 +8823,12 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.role');
         $item = $service->update($publicId, $input, $this->actor());
 
-        return is_array($item) ? ['role' => $this->publicData($item)] : ['error' => (string)$item];
+        if (!is_array($item) || ($item['ok'] ?? false) !== true || !is_array($item['role'] ?? null)) {
+            $error = is_array($item) ? (string)($item['code'] ?? '') : (string)$item;
+            return ['error' => $error !== '' ? $error : 'Role could not be updated.'];
+        }
+
+        return ['role' => $this->publicData($item['role'])];
     }
 
     private function crmDeleteRole(array $arguments): array
