@@ -2674,7 +2674,7 @@ MD;
                 'public_id' => ['type' => 'string'],
                 'subject_public_id' => ['type' => 'string'],
                 'subject_type' => ['type' => 'string'],
-            ], ['permission_id'], [[['permission_id'], ['public_id', 'subject_type', 'subject_public_id']]]);
+            ], [], [[['permission_id'], ['public_id', 'subject_type', 'subject_public_id']]]);
             $tools[] = $this->tool('crm_get_knowledge_page_permissions', 'List knowledge page permissions.', [
                 'public_id' => ['type' => 'string'],
             ], ['public_id']);
@@ -2687,7 +2687,10 @@ MD;
             ], ['public_id', 'subject_type']);
             $tools[] = $this->tool('crm_remove_knowledge_page_permission', 'Remove a knowledge page permission.', [
                 'permission_id' => ['type' => 'integer'],
-            ], ['permission_id']);
+                'public_id' => ['type' => 'string'],
+                'subject_public_id' => ['type' => 'string'],
+                'subject_type' => ['type' => 'string'],
+            ], [], [[['permission_id'], ['public_id', 'subject_type', 'subject_public_id']]]);
         }
         {
             $tools[] = $this->tool('crm_get_admin_knowledge_settings', 'Get admin knowledge settings.', []);
@@ -12139,10 +12142,22 @@ $tools[] = $this->tool(
     {
         $permissionId = (int)($arguments['permission_id'] ?? 0);
         if ($permissionId <= 0) {
-            return ['error' => 'permission_id is required.'];
+            $permissionId = (int)($this->knowledge()->findPagePermissionIdBySubject(
+                trim((string)($arguments['public_id'] ?? '')),
+                trim((string)($arguments['subject_type'] ?? '')),
+                trim((string)($arguments['subject_public_id'] ?? ''))
+            ) ?? 0);
         }
-        $this->knowledge()->removePagePermission($permissionId);
-        return ['removed' => true];
+        if ($permissionId <= 0) {
+            return ['error' => 'permission_id, or public_id with subject_type and subject_public_id, is required.'];
+        }
+        $pagePublicId = $this->knowledge()->getPagePublicIdByPermissionId($permissionId);
+        if ($pagePublicId === null || !$this->knowledge()->page($pagePublicId, $this->actor(), 'manage')) {
+            return ['error' => 'Knowledge page not found.'];
+        }
+        return $this->knowledge()->removePagePermission($permissionId)
+            ? ['removed' => true]
+            : ['error' => 'Knowledge page permission not found.'];
     }
 
     private function crmGetAdminKnowledgeSettings(): array

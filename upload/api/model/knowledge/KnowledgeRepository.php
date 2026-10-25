@@ -503,6 +503,36 @@ final class KnowledgeRepository
         return $id === false ? null : (int)$id;
     }
 
+    /**
+     * Resolve a page permission by public identifiers so API clients can
+     * revoke a grant without access to internal database IDs.
+     */
+    public function findPagePermissionIdBySubject(string $pagePublicId, string $subjectType, string $subjectPublicId): ?int
+    {
+        $subjectTable = match ($subjectType) {
+            'user' => 'users',
+            'role' => 'roles',
+            'team' => 'teams',
+            'department' => 'departments',
+            default => null,
+        };
+        if ($subjectTable === null || $pagePublicId === '' || $subjectPublicId === '') {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT perm.id FROM knowledge_page_permissions perm'
+            . ' JOIN knowledge_pages page ON page.id = perm.page_id'
+            . ' JOIN ' . $subjectTable . ' subject ON subject.id = perm.subject_id'
+            . ' WHERE page.public_id = :page AND perm.subject_type = :type AND subject.public_id = :subject'
+            . ' LIMIT 1'
+        );
+        $stmt->execute(['page' => $pagePublicId, 'type' => $subjectType, 'subject' => $subjectPublicId]);
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int)$id;
+    }
+
     public function getSpacePublicIdByPermissionId(int $permissionId): ?string
     {
         $stmt = $this->pdo->prepare('SELECT s.public_id FROM knowledge_space_permissions p JOIN knowledge_spaces s ON s.id = p.space_id WHERE p.id = :id LIMIT 1');
