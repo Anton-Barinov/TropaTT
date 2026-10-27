@@ -4304,7 +4304,10 @@ $tools[] = $this->tool(
         return [
             'default' => 'core',
             'toolsets' => $toolsets,
-            'all_count' => count($all) + $moduleToolCount,
+            // Keep the advertised aggregate identical to tools/list?toolset=all.
+            // Module profiles may overlap or omit tools that are still visible in
+            // the all profile, so summing profile counts can diverge from reality.
+            'all_count' => count($this->toolsForToolset('all')),
         ];
     }
 

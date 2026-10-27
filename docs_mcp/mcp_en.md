@@ -14,8 +14,8 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol versions | `2026-07-28` (stateless) and legacy `2025-11-25`, `2025-06-18` |
 | Batch requests | Legacy only (`2025-11-25`, `2025-06-18`) |
 | Notifications | Legacy only |
-| MCP tools | 621 in the full catalog (`toolset=all`); `tools/list` defaults to the 27-tool `core` profile (8 mega-tools + 3 AgentOS orchestration tools + 16 regular) |
-| MCP resources | 6 |
+| MCP tools | Permission-filtered and module-dependent; see `tools/listToolsets` for live counts |
+| MCP resources | 7 (permission-filtered) |
 | MCP prompts | 0 |
 
 ---
@@ -126,7 +126,7 @@ For `Mcp-Name` values containing non-ASCII characters or leading/trailing whites
 - The same token is used as for the REST API
 - User tokens and API client keys are supported
 - A missing `Authorization` header and an invalid key are reported differently: the 401 error `data.auth_status` is `missing` when no credentials were sent and `invalid` when the provided token/key was not accepted
-- The `MCP-Protocol-Version` header is optional; when omitted, `2025-06-18` is assumed
+- For legacy requests only, the `MCP-Protocol-Version` header may be omitted; the server then assumes `2025-06-18`. Modern requests require the header and matching `_meta` version.
 
 ### RBAC
 
@@ -146,7 +146,7 @@ AI actions are logged via AiJobService/AiAuditService; import/export and workflo
 
 ## Toolsets (profiles)
 
-The full MCP catalog is large (621 tools). To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default (27 tools: profile, search, dashboard, notifications, activity, basic read/create, 8 mega-tools, plus 3 AgentOS orchestration tools). Domain profiles are available:
+The full MCP catalog is large and may vary by permissions and installed modules. To avoid loading it all into every agent session, `tools/list` returns a curated **`core`** profile by default. Domain profiles are available:
 
 | Profile | Scope |
 |---------|-------|
@@ -159,14 +159,14 @@ The full MCP catalog is large (621 tools). To avoid loading it all into every ag
 | `admin` | Settings, cache, modules, core updates, ops, API clients, webhooks, logs, custom fields, intake, import/export, recycle bin, AI configuration and jobs |
 | `modules` | Tools from all currently active extension modules |
 | `module:<vendor.name>` | Tools from a specific active module (e.g. `module:crm.fixture-connector`) |
-| `all` | The full permission-visible catalog: 621 core tools + active module tools (opt-in) |
+| `all` | The full permission-visible catalog including active module tools (opt-in) |
 
 Request a profile by appending `?toolset=tasks` to the MCP endpoint URL or by passing `"params": {"toolset": "tasks"}` to `tools/list`; comma-separated values build a union (`?toolset=tasks,projects` or `?toolset=core,modules`). Call `tools/listToolsets` (or read `tropatt://server/toolsets`) for the machine-readable catalog with per-profile counts, including dynamic module profiles (`module:<name>`). Tools not assigned to any profile remain callable by name and are listed under `all`.
 
 ### Module-owned MCP tools (Module MCP Tools)
 
 Active modules can register their own MCP tools for AI agents via the `mcp_tools` section in `manifest.json`:
-- **`core` profile isolation**: Module tools are excluded from the default 27-tool `core` profile to prevent context bloat and prompt interference.
+- **`core` profile isolation**: Module tools are excluded from the default `core` profile to prevent context bloat and prompt interference.
 - **Discovery and invocation**: Available when requesting `all`, `modules`, or targeted `module:<module-name>` profiles.
 - **Strict schema**: Argument schemas are strictly validated with `additionalProperties: false`.
 - **Workspace scoping**: Tools declaring `workspace_required: true` are guaranteed to run with an authorized `ModuleExecutionContext` for the active organization.
@@ -186,7 +186,7 @@ The catalog size affects every request: agent clients that register MCP tools in
 | `people` | 60 | ~5.7K tokens |
 | `time` | 32 | ~2.6K tokens |
 | `admin` | 149 | ~12.2K tokens |
-| `all` | 621 | ~53K tokens |
+| `all` | Varies by permissions and installed modules | Varies |
 
 The full catalog is ~18× more expensive than the default `core` profile, so prefer a narrow toolset whenever the session is domain-focused.
 
