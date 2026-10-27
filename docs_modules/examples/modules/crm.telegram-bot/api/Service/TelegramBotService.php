@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Module\Crm\TelegramBot\Service;
 
-use Api\System\Library\Security\KeyGuard;
 use PDO;
 use RuntimeException;
 use Throwable;
+use Closure;
 
 /**
  * Service managing Telegram Bot webhook/polling processing, staff binding,
@@ -16,10 +16,15 @@ final class TelegramBotService
 {
     private PDO $db;
     private bool $schemaEnsured = false;
+    /** @var Closure(string, array<string, mixed>, string, int):array<string, mixed>|null */
+    private ?Closure $telegramApiTransport;
 
-    public function __construct(PDO $db)
+    public function __construct(PDO $db, ?callable $telegramApiTransport = null)
     {
         $this->db = $db;
+        $this->telegramApiTransport = $telegramApiTransport !== null
+            ? Closure::fromCallable($telegramApiTransport)
+            : null;
     }
 
     /**
@@ -89,6 +94,21 @@ final class TelegramBotService
                 if (!in_array('welcome_message', $cols, true)) {
                     $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN welcome_message TEXT");
                 }
+                if (!in_array('proxy_type', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_type VARCHAR(16) NOT NULL DEFAULT 'none'");
+                }
+                if (!in_array('proxy_host', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_host TEXT");
+                }
+                if (!in_array('proxy_port', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_port INTEGER");
+                }
+                if (!in_array('proxy_username', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_username TEXT");
+                }
+                if (!in_array('proxy_password_encrypted', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_password_encrypted TEXT");
+                }
             } else {
                 // MySQL / MariaDB
                 $this->db->exec("CREATE TABLE IF NOT EXISTS crm_telegram_dialogs (
@@ -148,35 +168,46 @@ final class TelegramBotService
                 if (!in_array('welcome_message', $cols, true)) {
                     $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN welcome_message TEXT NULL");
                 }
+                if (!in_array('proxy_type', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_type VARCHAR(16) NOT NULL DEFAULT 'none'");
+                }
+                if (!in_array('proxy_host', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_host VARCHAR(255) NULL");
+                }
+                if (!in_array('proxy_port', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_port SMALLINT UNSIGNED NULL");
+                }
+                if (!in_array('proxy_username', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_username VARCHAR(255) NULL");
+                }
+                if (!in_array('proxy_password_encrypted', $cols, true)) {
+                    $this->db->exec("ALTER TABLE crm_telegram_configs ADD COLUMN proxy_password_encrypted TEXT NULL");
+                }
             }
         } catch (Throwable) {
             // Ignore schema alter errors if already present or restricted
         }
     }
 
-    /**
-     * Encrypt bot token using AES-256-GCM (with KeyGuard or safe openssl fallback).
-     */
+    /** Encrypt bot credentials with authenticated encryption; never fall back to plaintext. */
     private function encryptToken(string $token): string
     {
-        if (class_exists(KeyGuard::class) && method_exists(KeyGuard::class, 'encrypt')) {
-            try {
-                return KeyGuard::encrypt($token);
-            } catch (Throwable) {}
+        if ($token === '') {
+            return '';
         }
 
-        $key = (string)(getenv('APP_KEY') ?: ($_ENV['APP_KEY'] ?? 'crm-telegram-secret-key-32bytes!'));
-        $keyBin = hash('sha256', $key, true);
-
-        if (function_exists('openssl_encrypt')) {
-            $iv = random_bytes(12);
-            $tag = '';
-            $cipher = openssl_encrypt($token, 'aes-256-gcm', $keyBin, OPENSSL_RAW_DATA, $iv, $tag, '', 16);
-            if ($cipher !== false) {
-                return 'gcm:' . base64_encode($iv . $tag . $cipher);
-            }
+        if (!function_exists('openssl_encrypt')) {
+            throw new RuntimeException('Secure Telegram credential storage requires OpenSSL.');
         }
-        return 'b64:' . base64_encode($token);
+
+        $iv = random_bytes(12);
+        $tag = '';
+        $cipher = openssl_encrypt($token, 'aes-256-gcm', $this->credentialKey(), OPENSSL_RAW_DATA, $iv, $tag, '', 16);
+        if ($cipher === false || strlen($tag) !== 16) {
+            throw new RuntimeException('Failed to encrypt Telegram credentials.');
+        }
+
+        return 'gcm:' . base64_encode($iv . $tag . $cipher);
     }
 
     /**
@@ -189,52 +220,212 @@ final class TelegramBotService
             return '';
         }
 
-        // Already plain bot token (e.g. 123456789:AA...)
-        if (preg_match('/^[0-9]{8,12}:[a-zA-Z0-9_-]{30,50}$/', $encrypted)) {
-            return $encrypted;
-        }
-
         if (str_starts_with($encrypted, 'gcm:')) {
+            if (!function_exists('openssl_decrypt')) {
+                throw new RuntimeException('Secure Telegram credential storage requires OpenSSL.');
+            }
             $blob = base64_decode(substr($encrypted, 4), true);
             if ($blob !== false && strlen($blob) > 28) {
                 $iv = substr($blob, 0, 12);
                 $tag = substr($blob, 12, 16);
                 $cipher = substr($blob, 28);
-                $candidateKeys = array_unique(array_filter([
-                    (string)(getenv('APP_KEY') ?: ($_ENV['APP_KEY'] ?? '')),
-                    'crm-telegram-secret-key-32bytes!',
-                ]));
-                foreach ($candidateKeys as $key) {
-                    $keyBin = hash('sha256', $key, true);
-                    $plain = openssl_decrypt($cipher, 'aes-256-gcm', $keyBin, OPENSSL_RAW_DATA, $iv, $tag);
-                    if ($plain !== false && is_string($plain) && $plain !== '') {
-                        return trim($plain);
-                    }
-                }
-            }
-            return '';
-        }
-
-        if (class_exists(KeyGuard::class) && method_exists(KeyGuard::class, 'decrypt')) {
-            try {
-                $plain = KeyGuard::decrypt($encrypted);
+                $plain = openssl_decrypt($cipher, 'aes-256-gcm', $this->credentialKey(), OPENSSL_RAW_DATA, $iv, $tag);
                 if ($plain !== false && is_string($plain) && $plain !== '') {
                     return trim($plain);
                 }
-            } catch (Throwable) {}
+            }
+            throw new RuntimeException('Stored Telegram credentials are invalid or cannot be authenticated; re-enter the bot token.');
         }
 
-        if (str_starts_with($encrypted, 'b64:')) {
-            $raw = base64_decode(substr($encrypted, 4), true);
-            return $raw !== false && is_string($raw) ? trim($raw) : '';
+        // Plaintext and Base64 records are legacy obfuscation, not encryption.
+        // Do not silently recover them; require the workspace administrator to
+        // re-enter the credential through the authenticated settings screen.
+        if (str_starts_with($encrypted, 'b64:') || preg_match('/^[0-9]{8,12}:[a-zA-Z0-9_-]{30,50}$/', $encrypted)) {
+            throw new RuntimeException('Stored Telegram credentials use an insecure legacy format; re-enter the bot token.');
         }
 
-        $raw = base64_decode($encrypted, true);
-        if ($raw !== false && is_string($raw) && preg_match('/^[0-9]{8,12}:[a-zA-Z0-9_-]{30,50}$/', $raw)) {
-            return trim($raw);
+        throw new RuntimeException('Stored Telegram credentials are invalid; re-enter the bot token.');
+    }
+
+    /** Derive a per-installation key; public defaults are never accepted. */
+    private function credentialKey(): string
+    {
+        $key = trim((string)(getenv('APP_KEY') ?: ($_SERVER['APP_KEY'] ?? $_ENV['APP_KEY'] ?? '')));
+        if ($key === '' || strlen($key) < 32 || hash_equals('crm-telegram-secret-key-32bytes!', $key)) {
+            throw new RuntimeException('Secure Telegram credential storage is unavailable; configure a strong APP_KEY of at least 32 characters.');
+        }
+        if (!function_exists('openssl_encrypt') || !function_exists('openssl_decrypt')) {
+            throw new RuntimeException('Secure Telegram credential storage requires OpenSSL.');
         }
 
-        return '';
+        return hash('sha256', $key, true);
+    }
+
+    private function encryptProxyPassword(string $password): string
+    {
+        if ($password === '') {
+            return '';
+        }
+        $iv = random_bytes(12);
+        $tag = '';
+        $cipher = openssl_encrypt($password, 'aes-256-gcm', $this->credentialKey(), OPENSSL_RAW_DATA, $iv, $tag, 'crm.telegram.proxy-password.v1', 16);
+        if (!is_string($cipher) || strlen($tag) !== 16) {
+            throw new RuntimeException('Proxy password could not be stored securely.');
+        }
+        return 'tgproxy:v1:' . base64_encode($iv . $tag . $cipher);
+    }
+
+    private function decryptProxyPassword(string $stored): string
+    {
+        if ($stored === '') {
+            return '';
+        }
+        if (!str_starts_with($stored, 'tgproxy:v1:')) {
+            throw new RuntimeException('Stored Telegram proxy credentials are not encrypted. Re-enter the proxy password.');
+        }
+        $packed = base64_decode(substr($stored, 11), true);
+        if (!is_string($packed) || strlen($packed) < 29) {
+            throw new RuntimeException('Stored Telegram proxy credentials are invalid. Re-enter the proxy password.');
+        }
+        $plain = openssl_decrypt(substr($packed, 28), 'aes-256-gcm', $this->credentialKey(), OPENSSL_RAW_DATA, substr($packed, 0, 12), substr($packed, 12, 16), 'crm.telegram.proxy-password.v1');
+        if (!is_string($plain)) {
+            throw new RuntimeException('Stored Telegram proxy credentials cannot be authenticated. Re-enter the proxy password.');
+        }
+        return $plain;
+    }
+
+    /** @return array{proxy_type:string,proxy_host:?string,proxy_port:?int,proxy_username:?string,proxy_password_encrypted:?string} */
+    private function normalizeProxySettings(array $input, ?array $existing = null): array
+    {
+        if ($input === [] && $existing !== null) {
+            return [
+                'proxy_type' => (string)($existing['proxy_type'] ?? 'none'),
+                'proxy_host' => $existing['proxy_host'] ?? null,
+                'proxy_port' => isset($existing['proxy_port']) ? (int)$existing['proxy_port'] : null,
+                'proxy_username' => $existing['proxy_username'] ?? null,
+                'proxy_password_encrypted' => $existing['proxy_password_encrypted'] ?? null,
+            ];
+        }
+
+        $type = strtolower(trim((string)($input['proxy_type'] ?? 'none')));
+        if (!in_array($type, ['none', 'http', 'https', 'socks5'], true)) {
+            throw new RuntimeException('Choose HTTP, HTTPS, SOCKS5, or no proxy.');
+        }
+        if ($type === 'none') {
+            return ['proxy_type' => 'none', 'proxy_host' => null, 'proxy_port' => null, 'proxy_username' => null, 'proxy_password_encrypted' => null];
+        }
+
+        $host = trim((string)($input['proxy_host'] ?? ''));
+        $portRaw = trim((string)($input['proxy_port'] ?? ''));
+        $username = trim((string)($input['proxy_username'] ?? ''));
+        $password = (string)($input['proxy_password'] ?? '');
+        $clearPassword = !empty($input['proxy_clear_password']);
+        $hostIsIp = filter_var($host, FILTER_VALIDATE_IP) !== false;
+        $hostIsName = strlen($host) <= 253 && preg_match('/^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*\.?$/D', $host) === 1;
+        if ($host === '' || (!$hostIsIp && !$hostIsName)) {
+            throw new RuntimeException('Enter a proxy hostname or IP address without a scheme, path, or credentials.');
+        }
+        if ($portRaw === '' || !ctype_digit($portRaw) || (int)$portRaw < 1 || (int)$portRaw > 65535) {
+            throw new RuntimeException('Proxy port must be a number from 1 to 65535.');
+        }
+        if (strlen($username) > 255 || strlen($password) > 1024) {
+            throw new RuntimeException('Proxy username or password is too long.');
+        }
+        if ($password !== '' && $username === '') {
+            throw new RuntimeException('Enter a proxy username before setting its password.');
+        }
+
+        $sameEndpoint = $existing !== null
+            && (string)($existing['proxy_type'] ?? 'none') === $type
+            && strcasecmp((string)($existing['proxy_host'] ?? ''), $host) === 0
+            && (int)($existing['proxy_port'] ?? 0) === (int)$portRaw
+            && (string)($existing['proxy_username'] ?? '') === $username;
+        $encryptedPassword = null;
+        if ($password !== '') {
+            $encryptedPassword = $this->encryptProxyPassword($password);
+        } elseif (!$clearPassword && $sameEndpoint) {
+            $encryptedPassword = ($existing['proxy_password_encrypted'] ?? null) ?: null;
+        }
+
+        return [
+            'proxy_type' => $type,
+            'proxy_host' => $host,
+            'proxy_port' => (int)$portRaw,
+            'proxy_username' => $username !== '' ? $username : null,
+            'proxy_password_encrypted' => $encryptedPassword,
+        ];
+    }
+
+    /** Store Telegram webhook credentials with authenticated encryption. */
+    private function encryptWebhookSecret(string $secret, bool $validateTelegramFormat = true): string
+    {
+        if ($secret === '' || strlen($secret) > 256
+            || ($validateTelegramFormat && preg_match('/[^A-Za-z0-9_-]/', $secret))) {
+            throw new RuntimeException('Telegram webhook secret must contain 1–256 letters, digits, underscores, or hyphens.');
+        }
+        if (!function_exists('openssl_encrypt')) {
+            throw new RuntimeException('Secure Telegram credential storage requires OpenSSL.');
+        }
+
+        $nonce = random_bytes(12);
+        $tag = '';
+        $ciphertext = openssl_encrypt(
+            $secret,
+            'aes-256-gcm',
+            $this->credentialKey(),
+            OPENSSL_RAW_DATA,
+            $nonce,
+            $tag,
+            'crm.telegram.webhook.v1',
+            16
+        );
+        if (!is_string($ciphertext) || strlen($tag) !== 16) {
+            throw new RuntimeException('Telegram webhook secret could not be encrypted.');
+        }
+        return 'tgsec:v1:' . base64_encode($nonce . $tag . $ciphertext);
+    }
+
+    /**
+     * Decrypt stored webhook credentials and lazily upgrade pre-encryption values.
+     * The cleartext value is returned only to internal callers that must verify
+     * Telegram requests or configure Telegram's webhook; API responses mask it.
+     */
+    private function decryptWebhookSecret(string $stored, int $configId): string
+    {
+        if (str_starts_with($stored, 'tgsec:v1:')) {
+            if (!function_exists('openssl_decrypt')) {
+                throw new RuntimeException('Secure Telegram credential storage requires OpenSSL.');
+            }
+            $packed = base64_decode(substr($stored, 9), true);
+            if (!is_string($packed) || strlen($packed) < 29) {
+                throw new RuntimeException('Stored Telegram webhook secret is invalid.');
+            }
+            $plain = openssl_decrypt(
+                substr($packed, 28),
+                'aes-256-gcm',
+                $this->credentialKey(),
+                OPENSSL_RAW_DATA,
+                substr($packed, 0, 12),
+                substr($packed, 12, 16),
+                'crm.telegram.webhook.v1'
+            );
+            if (!is_string($plain) || $plain === '' || strlen($plain) > 256) {
+                throw new RuntimeException('Stored Telegram webhook secret cannot be authenticated. Re-enter the secret in module settings.');
+            }
+            return $plain;
+        }
+
+        // One-time, in-place upgrade for legacy plaintext records. Keep the
+        // exact secret so Telegram's already-registered webhook remains valid.
+        if ($stored === '' || strlen($stored) > 256 || $configId <= 0) {
+            throw new RuntimeException('Stored Telegram webhook secret is invalid.');
+        }
+        $encrypted = $this->encryptWebhookSecret($stored, false);
+        $stmt = $this->db->prepare(
+            'UPDATE crm_telegram_configs SET webhook_secret_token = :secret WHERE id = :id AND webhook_secret_token = :legacy'
+        );
+        $stmt->execute([':secret' => $encrypted, ':id' => $configId, ':legacy' => $stored]);
+        return $stored;
     }
 
     /**
@@ -336,6 +527,9 @@ final class TelegramBotService
      */
     public function getConfig(int $organizationId): ?array
     {
+        if ($organizationId <= 0) {
+            return null;
+        }
         $this->ensureSchema();
         $stmt = $this->db->prepare(
             "SELECT * FROM crm_telegram_configs WHERE organization_id = :org_id LIMIT 1"
@@ -344,68 +538,63 @@ final class TelegramBotService
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
-            try {
-                $anyStmt = $this->db->query("SELECT * FROM crm_telegram_configs WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1");
-                $row = $anyStmt ? $anyStmt->fetch(PDO::FETCH_ASSOC) : null;
-            } catch (Throwable) {}
-        }
-
-        if (!$row) {
-            // Check if available from .env as fallback
-            $env = $this->detectEnvConfig();
-            if ($env['has_env']) {
-                return [
-                    'public_id' => null,
-                    'organization_id' => $organizationId,
-                    'bot_token' => $env['bot_token'],
-                    'bot_token_masked' => $env['masked_token'],
-                    'webhook_secret_token' => $env['webhook_secret'],
-                    'webhook_url' => null,
-                    'bot_username' => $env['bot_username'],
-                    'auto_create_intake' => true,
-                    'welcome_message' => "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
-                    'default_project_public_id' => null,
-                    'default_assignee_user_public_id' => null,
-                    'is_active' => true,
-                    'is_from_env' => true,
-                ];
-            }
             return null;
         }
 
         $decryptedToken = $this->decryptToken((string)$row['bot_token_encrypted']);
-        if ($decryptedToken === '') {
-            try {
-                $anyStmt = $this->db->prepare("SELECT * FROM crm_telegram_configs WHERE is_active = 1 AND id != :curr_id ORDER BY updated_at DESC LIMIT 1");
-                $anyStmt->execute([':curr_id' => (int)($row['id'] ?? 0)]);
-                $fallbackRow = $anyStmt->fetch(PDO::FETCH_ASSOC);
-                if ($fallbackRow) {
-                    $fallbackToken = $this->decryptToken((string)$fallbackRow['bot_token_encrypted']);
-                    if ($fallbackToken !== '') {
-                        $row = $fallbackRow;
-                        $decryptedToken = $fallbackToken;
-                    }
-                }
-            } catch (Throwable) {}
-        }
+        $webhookSecret = $this->decryptWebhookSecret((string)$row['webhook_secret_token'], (int)$row['id']);
+        $this->migrateLegacyWebhookSecrets(10);
 
         return [
             'public_id' => (string)$row['public_id'],
             'organization_id' => (int)$row['organization_id'],
             'bot_token' => $decryptedToken,
             'bot_token_masked' => $this->maskToken($decryptedToken),
-            'webhook_secret_token' => (string)$row['webhook_secret_token'],
+            'webhook_secret_token' => $webhookSecret,
             'webhook_url' => $row['webhook_url'] ?? null,
             'bot_username' => $row['bot_username'] ?? null,
             'auto_create_intake' => !empty($row['auto_create_intake'] ?? 1),
             'welcome_message' => $row['welcome_message'] ?? "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
             'default_project_public_id' => $row['default_project_public_id'] ?? null,
             'default_assignee_user_public_id' => $row['default_assignee_user_public_id'] ?? null,
+            'proxy_type' => (string)($row['proxy_type'] ?? 'none'),
+            'proxy_host' => $row['proxy_host'] ?? null,
+            'proxy_port' => isset($row['proxy_port']) ? (int)$row['proxy_port'] : null,
+            'proxy_username' => $row['proxy_username'] ?? null,
+            'proxy_password' => $this->decryptProxyPassword((string)($row['proxy_password_encrypted'] ?? '')),
+            'proxy_password_set' => !empty($row['proxy_password_encrypted']),
             'is_active' => !empty($row['is_active']),
             'is_from_env' => false,
             'created_at' => $row['created_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
         ];
+    }
+
+    /** Upgrade a small bounded batch of legacy plaintext secrets per config read. */
+    private function migrateLegacyWebhookSecrets(int $limit): void
+    {
+        $limit = max(1, min(20, $limit));
+        $stmt = $this->db->query(
+            "SELECT id, webhook_secret_token FROM crm_telegram_configs
+             WHERE webhook_secret_token NOT LIKE 'tgsec:v1:%'
+               AND LENGTH(webhook_secret_token) BETWEEN 1 AND 256
+             ORDER BY id ASC LIMIT {$limit}"
+        );
+        if (!$stmt) {
+            return;
+        }
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $legacy) {
+            $legacyValue = (string)($legacy['webhook_secret_token'] ?? '');
+            $id = (int)($legacy['id'] ?? 0);
+            if ($id <= 0 || $legacyValue === '') {
+                continue;
+            }
+            $encrypted = $this->encryptWebhookSecret($legacyValue, false);
+            $update = $this->db->prepare(
+                'UPDATE crm_telegram_configs SET webhook_secret_token = :secret WHERE id = :id AND webhook_secret_token = :legacy'
+            );
+            $update->execute([':secret' => $encrypted, ':id' => $id, ':legacy' => $legacyValue]);
+        }
     }
 
     /**
@@ -420,7 +609,8 @@ final class TelegramBotService
         ?string $welcomeMessage = null,
         ?string $defaultProject = null,
         ?string $defaultAssignee = null,
-        ?string $webhookUrl = null
+        ?string $webhookUrl = null,
+        array $proxySettings = []
     ): string {
         $this->ensureSchema();
         $now = date('Y-m-d H:i:s');
@@ -432,12 +622,7 @@ final class TelegramBotService
         $stmt->execute([':org_id' => $organizationId]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$existing) {
-            try {
-                $anyStmt = $this->db->query("SELECT * FROM crm_telegram_configs WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 1");
-                $existing = $anyStmt ? $anyStmt->fetch(PDO::FETCH_ASSOC) : null;
-            } catch (Throwable) {}
-        }
+        $proxy = $this->normalizeProxySettings($proxySettings, is_array($existing) ? $existing : null);
 
         // If botToken contains bullets, ciphertext or is empty and existing exists, keep existing token
         if ($existing && ($botToken === '' || str_contains($botToken, '••••') || str_starts_with($botToken, 'gcm:') || str_starts_with($botToken, 'b64:'))) {
@@ -450,15 +635,21 @@ final class TelegramBotService
         }
 
         if ($webhookSecretToken === '') {
-            $webhookSecretToken = $existing['webhook_secret_token'] ?? bin2hex(random_bytes(16));
+            // Preserve an already encrypted secret as-is. Older installations
+            // have plaintext values; decryptWebhookSecret upgrades those on read.
+            $storedSecret = (string)($existing['webhook_secret_token'] ?? '');
+            $webhookSecretToken = $storedSecret !== ''
+                ? $this->decryptWebhookSecret($storedSecret, (int)($existing['id'] ?? 0))
+                : bin2hex(random_bytes(32));
         }
+        $encryptedWebhookSecret = $this->encryptWebhookSecret($webhookSecretToken);
 
         // Auto-discover bot username if empty
         if ($botUsername === null || trim($botUsername) === '') {
             try {
                 $plain = $this->decryptToken($encryptedToken);
                 if ($plain !== '') {
-                    $me = $this->callTelegramApi('getMe', [], $plain, $organizationId);
+                    $me = $this->callTelegramApi('getMe', [], $plain, $organizationId, $proxySettings !== [] ? $proxySettings : null);
                     if (!empty($me['ok']) && !empty($me['result']['username'])) {
                         $botUsername = '@' . ltrim((string)$me['result']['username'], '@');
                     }
@@ -481,19 +672,29 @@ final class TelegramBotService
                      welcome_message = :welcome,
                      default_project_public_id = :proj,
                      default_assignee_user_public_id = :usr,
+                     proxy_type = :proxy_type,
+                     proxy_host = :proxy_host,
+                     proxy_port = :proxy_port,
+                     proxy_username = :proxy_username,
+                     proxy_password_encrypted = :proxy_password_encrypted,
                      is_active = 1,
                      updated_at = :now
                  WHERE id = :id"
             );
             $upd->execute([
                 ':tok' => $encryptedToken,
-                ':sec' => $webhookSecretToken,
+                ':sec' => $encryptedWebhookSecret,
                 ':url' => $webhookUrl ?? $existing['webhook_url'],
                 ':uname' => $botUsername ?? $existing['bot_username'],
                 ':intake' => $autoIntakeVal,
                 ':welcome' => $welcomeVal,
                 ':proj' => $defaultProject,
                 ':usr' => $defaultAssignee,
+                ':proxy_type' => $proxy['proxy_type'],
+                ':proxy_host' => $proxy['proxy_host'],
+                ':proxy_port' => $proxy['proxy_port'],
+                ':proxy_username' => $proxy['proxy_username'],
+                ':proxy_password_encrypted' => $proxy['proxy_password_encrypted'],
                 ':now' => $now,
                 ':id' => $existing['id'],
             ]);
@@ -503,20 +704,25 @@ final class TelegramBotService
         $pubId = 'tgc_' . bin2hex(random_bytes(10));
         $ins = $this->db->prepare(
             "INSERT INTO crm_telegram_configs
-             (public_id, organization_id, bot_token_encrypted, webhook_secret_token, webhook_url, bot_username, auto_create_intake, welcome_message, default_project_public_id, default_assignee_user_public_id, is_active, created_at, updated_at)
-             VALUES (:pub_id, :org_id, :tok, :sec, :url, :uname, :intake, :welcome, :proj, :usr, 1, :created_at, :updated_at)"
+             (public_id, organization_id, bot_token_encrypted, webhook_secret_token, webhook_url, bot_username, auto_create_intake, welcome_message, default_project_public_id, default_assignee_user_public_id, proxy_type, proxy_host, proxy_port, proxy_username, proxy_password_encrypted, is_active, created_at, updated_at)
+             VALUES (:pub_id, :org_id, :tok, :sec, :url, :uname, :intake, :welcome, :proj, :usr, :proxy_type, :proxy_host, :proxy_port, :proxy_username, :proxy_password_encrypted, 1, :created_at, :updated_at)"
         );
         $ins->execute([
             ':pub_id' => $pubId,
             ':org_id' => $organizationId,
             ':tok' => $encryptedToken,
-            ':sec' => $webhookSecretToken,
+            ':sec' => $encryptedWebhookSecret,
             ':url' => $webhookUrl,
             ':uname' => $botUsername,
             ':intake' => $autoIntakeVal,
             ':welcome' => $welcomeVal,
             ':proj' => $defaultProject,
             ':usr' => $defaultAssignee,
+            ':proxy_type' => $proxy['proxy_type'],
+            ':proxy_host' => $proxy['proxy_host'],
+            ':proxy_port' => $proxy['proxy_port'],
+            ':proxy_username' => $proxy['proxy_username'],
+            ':proxy_password_encrypted' => $proxy['proxy_password_encrypted'],
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
@@ -530,20 +736,14 @@ final class TelegramBotService
      * @param array<string, mixed> $params
      * @return array{ok: bool, result?: mixed, description?: string, error_code?: int}
      */
-    public function callTelegramApi(string $method, array $params = [], ?string $token = null, int $organizationId = 1): array
+    public function callTelegramApi(string $method, array $params = [], ?string $token = null, int $organizationId = 0, ?array $proxySettings = null): array
     {
+        if ($organizationId <= 0) {
+            return ['ok' => false, 'description' => 'A valid workspace is required.'];
+        }
+        $cfg = $this->getConfig($organizationId);
         if ($token === null || $token === '' || str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:')) {
-            $cfg = $this->getConfig($organizationId);
             $token = $cfg['bot_token'] ?? '';
-            if ($token === '' || str_contains($token, '••••') || str_starts_with($token, 'gcm:')) {
-                try {
-                    $any = $this->db->query("SELECT bot_token_encrypted FROM crm_telegram_configs WHERE is_active = 1 AND bot_token_encrypted != '' ORDER BY id DESC LIMIT 1");
-                    $enc = $any ? (string)$any->fetchColumn() : '';
-                    if ($enc !== '') {
-                        $token = $this->decryptToken($enc);
-                    }
-                } catch (Throwable) {}
-            }
         }
 
         if ($token === '') {
@@ -551,6 +751,50 @@ final class TelegramBotService
                 'ok' => false,
                 'description' => 'Telegram Bot Token не настроен.',
             ];
+        }
+
+        if ($proxySettings === null) {
+            $proxy = [
+                'proxy_type' => (string)($cfg['proxy_type'] ?? 'none'),
+                'proxy_host' => (string)($cfg['proxy_host'] ?? ''),
+                'proxy_port' => (int)($cfg['proxy_port'] ?? 0),
+                'proxy_username' => (string)($cfg['proxy_username'] ?? ''),
+                'proxy_password' => (string)($cfg['proxy_password'] ?? ''),
+            ];
+        } else {
+            $normalizedProxy = $this->normalizeProxySettings($proxySettings);
+            $proxy = [
+                'proxy_type' => $normalizedProxy['proxy_type'],
+                'proxy_host' => (string)($normalizedProxy['proxy_host'] ?? ''),
+                'proxy_port' => (int)($normalizedProxy['proxy_port'] ?? 0),
+                'proxy_username' => (string)($normalizedProxy['proxy_username'] ?? ''),
+                'proxy_password' => (string)($proxySettings['proxy_password'] ?? ''),
+            ];
+        }
+
+        if ($this->telegramApiTransport !== null) {
+            $result = ($this->telegramApiTransport)($method, $params, $token, $organizationId, $proxy);
+            return is_array($result) ? $result : ['ok' => false, 'description' => 'Invalid Telegram transport response.'];
+        }
+
+        if ($proxy['proxy_type'] !== 'none') {
+            $host = (string)$proxy['proxy_host'];
+            $proxyHost = str_contains($host, ':') && !str_starts_with($host, '[') ? '[' . $host . ']' : $host;
+            $scheme = match ($proxy['proxy_type']) {
+                'http' => 'http://',
+                'https' => 'https://',
+                'socks5' => 'socks5h://',
+                default => '',
+            };
+            $proxy['url'] = $scheme . $proxyHost . ':' . (int)$proxy['proxy_port'];
+            if ($proxy['proxy_type'] === 'https') {
+                $curlVersion = curl_version();
+                if ((int)($curlVersion['version_number'] ?? 0) < 0x073400
+                    || !defined('CURLOPT_PROXY_SSL_VERIFYPEER')
+                    || !defined('CURLOPT_PROXY_SSL_VERIFYHOST')) {
+                    return ['ok' => false, 'description' => 'HTTPS proxy requires cURL/libcurl 7.52.0 or later with proxy TLS verification options.'];
+                }
+            }
         }
 
         $url = "https://api.telegram.org/bot{$token}/{$method}";
@@ -565,6 +809,25 @@ final class TelegramBotService
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT => 'TropaTT-CRM-TelegramBot/1.0',
         ]);
+
+        if ($proxy['proxy_type'] !== 'none') {
+            $proxyOptions = [CURLOPT_PROXY => (string)$proxy['url']];
+            if ($proxy['proxy_username'] !== '') {
+                $proxyOptions[CURLOPT_PROXYUSERNAME] = (string)$proxy['proxy_username'];
+                $proxyOptions[CURLOPT_PROXYPASSWORD] = (string)$proxy['proxy_password'];
+                if (in_array($proxy['proxy_type'], ['http', 'https'], true)) {
+                    $proxyOptions[CURLOPT_PROXYAUTH] = CURLAUTH_BASIC;
+                }
+            }
+            if ($proxy['proxy_type'] === 'https') {
+                $proxyOptions[CURLOPT_PROXY_SSL_VERIFYPEER] = true;
+                $proxyOptions[CURLOPT_PROXY_SSL_VERIFYHOST] = 2;
+            }
+            if (!curl_setopt_array($ch, $proxyOptions)) {
+                curl_close($ch);
+                return ['ok' => false, 'description' => 'This PHP/cURL build does not support the selected Telegram proxy configuration.'];
+            }
+        }
 
         if (!empty($params)) {
             $json = json_encode($params, JSON_UNESCAPED_UNICODE);
@@ -584,6 +847,7 @@ final class TelegramBotService
             return [
                 'ok' => false,
                 'description' => 'Сетевая ошибка обращения к Telegram API: ' . ($curlError ?: "HTTP {$httpCode}"),
+                '_delivery_unknown' => true,
             ];
         }
 
@@ -592,9 +856,11 @@ final class TelegramBotService
             return [
                 'ok' => false,
                 'description' => "Некорректный ответ от Telegram API (HTTP {$httpCode})",
+                '_delivery_unknown' => true,
             ];
         }
 
+        $decoded['_http_code'] = $httpCode;
         return $decoded;
     }
 
@@ -603,13 +869,13 @@ final class TelegramBotService
      *
      * @return array{ok: bool, bot?: array<string, mixed>, error?: string}
      */
-    public function testConnection(?string $token = null, int $organizationId = 1): array
+    public function testConnection(?string $token = null, int $organizationId = 0, ?array $proxySettings = null): array
     {
         if ($token !== null && (str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:'))) {
             $token = null;
         }
 
-        $res = $this->callTelegramApi('getMe', [], $token, $organizationId);
+        $res = $this->callTelegramApi('getMe', [], $token, $organizationId, $proxySettings);
         if (!empty($res['ok']) && !empty($res['result'])) {
             $bot = $res['result'];
             $username = (string)($bot['username'] ?? '');
@@ -619,7 +885,7 @@ final class TelegramBotService
                 $formattedUname = '@' . ltrim($username, '@');
                 try {
                     $this->db->prepare(
-                        "UPDATE crm_telegram_configs SET bot_username = :uname WHERE organization_id = :org_id OR is_active = 1"
+                        "UPDATE crm_telegram_configs SET bot_username = :uname WHERE organization_id = :org_id"
                     )->execute([':uname' => $formattedUname, ':org_id' => $organizationId]);
                 } catch (Throwable) {}
             }
@@ -641,12 +907,46 @@ final class TelegramBotService
      */
     public function setWebhook(int $organizationId, string $webhookUrl, ?string $secretToken = null): array
     {
+        if ($organizationId <= 0 || strlen($webhookUrl) > 255 || preg_match('/[\x00-\x20\\\\]/', $webhookUrl)) {
+            throw new RuntimeException('A valid workspace and webhook URL are required.');
+        }
+        $urlParts = parse_url($webhookUrl);
+        if (!is_array($urlParts) || strtolower((string)($urlParts['scheme'] ?? '')) !== 'https'
+            || empty($urlParts['host']) || isset($urlParts['user']) || isset($urlParts['pass'])
+            || isset($urlParts['fragment']) || (int)($urlParts['port'] ?? 443) !== 443) {
+            throw new RuntimeException('Telegram webhook URL must be an HTTPS URL on port 443 without embedded credentials or fragments.');
+        }
+
         $cfg = $this->getConfig($organizationId);
         if (!$cfg || empty($cfg['bot_token'])) {
             throw new RuntimeException("Бот не настроен.");
         }
 
-        $secret = $secretToken ?: ($cfg['webhook_secret_token'] ?: bin2hex(random_bytes(16)));
+        $secret = $secretToken ?: ($cfg['webhook_secret_token'] ?: bin2hex(random_bytes(32)));
+        // Validate/encrypt and persist locally before changing Telegram's remote
+        // configuration. This prevents a successful remote setWebhook from
+        // leaving the CRM unable to authenticate subsequent updates.
+        $encryptedSecret = $this->encryptWebhookSecret($secret);
+        $previous = $this->db->prepare(
+            'SELECT webhook_url, webhook_secret_token FROM crm_telegram_configs WHERE organization_id = :org_id LIMIT 1'
+        );
+        $previous->execute([':org_id' => $organizationId]);
+        $oldConfig = $previous->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($oldConfig)) {
+            throw new RuntimeException('Telegram bot configuration was not found for the active workspace.');
+        }
+        $persist = $this->db->prepare(
+            'UPDATE crm_telegram_configs SET webhook_url = :url, webhook_secret_token = :secret, updated_at = :now WHERE organization_id = :org_id'
+        );
+        $persist->execute([
+            ':url' => $webhookUrl,
+            ':secret' => $encryptedSecret,
+            ':now' => date('Y-m-d H:i:s'),
+            ':org_id' => $organizationId,
+        ]);
+        if ($persist->rowCount() < 1) {
+            throw new RuntimeException('The Telegram webhook configuration could not be saved locally.');
+        }
 
         $res = $this->callTelegramApi('setWebhook', [
             'url' => $webhookUrl,
@@ -654,19 +954,24 @@ final class TelegramBotService
             'drop_pending_updates' => false,
         ], $cfg['bot_token'], $organizationId);
 
-        if (!empty($res['ok'])) {
-            try {
-                $this->db->prepare(
-                    "UPDATE crm_telegram_configs
-                     SET webhook_url = :url, webhook_secret_token = :sec, updated_at = :now
-                     WHERE organization_id = :org_id"
-                )->execute([
-                    ':url' => $webhookUrl,
-                    ':sec' => $secret,
-                    ':now' => date('Y-m-d H:i:s'),
-                    ':org_id' => $organizationId,
-                ]);
-            } catch (Throwable) {}
+        if (empty($res['ok']) && isset($res['error_code'])) {
+            // Telegram explicitly rejected the request, so restore the exact
+            // previous local values. Transport errors without an error_code
+            // are ambiguous: keep the new expected secret so a successful but
+            // response-lost remote update remains verifiable; the caller can retry.
+            $restore = $this->db->prepare(
+                'UPDATE crm_telegram_configs SET webhook_url = :url, webhook_secret_token = :secret, updated_at = :now WHERE organization_id = :org_id AND webhook_secret_token = :expected'
+            );
+            $restore->execute([
+                ':url' => $oldConfig['webhook_url'],
+                ':secret' => $oldConfig['webhook_secret_token'],
+                ':now' => date('Y-m-d H:i:s'),
+                ':org_id' => $organizationId,
+                ':expected' => $encryptedSecret,
+            ]);
+            if ($restore->rowCount() < 1) {
+                throw new RuntimeException('Telegram rejected the webhook and CRM could not restore the previous local configuration.');
+            }
         }
 
         return $res;
@@ -741,21 +1046,49 @@ final class TelegramBotService
         $updates = (array)($res['result'] ?? []);
         $processed = 0;
         $maxUpdateId = $lastUpdateId;
+        $retryPending = false;
+        $failedUpdateId = null;
 
         foreach ($updates as $upd) {
-            if (!is_array($upd)) continue;
+            if (!is_array($upd)) {
+                // Do not move the provider cursor past an update we cannot identify.
+                $retryPending = true;
+                break;
+            }
             $uid = (int)($upd['update_id'] ?? 0);
-            if ($uid > $maxUpdateId) {
-                $maxUpdateId = $uid;
+            if ($uid <= 0) {
+                $retryPending = true;
+                break;
+            }
+            if ($uid <= $lastUpdateId) {
+                continue;
+            }
+            if ($uid <= $maxUpdateId) {
+                // The provider sequence should be increasing. Stop instead of
+                // advancing over an out-of-order or repeated unacknowledged ID.
+                $retryPending = true;
+                $failedUpdateId = $uid;
+                break;
             }
 
             try {
                 $handled = $this->handleUpdate($organizationId, '', $upd, true);
-                if (!empty($handled['ok']) && empty($handled['duplicate'])) {
+                if (empty($handled['ok'])) {
+                    $retryPending = true;
+                    $failedUpdateId = $uid;
+                    break;
+                }
+                if (empty($handled['duplicate'])) {
                     $processed++;
                 }
+                // Commit/known duplicate completed successfully; only now may
+                // this update ID become the persisted getUpdates offset.
+                $maxUpdateId = $uid;
             } catch (Throwable) {
-                // Continue processing other updates
+                // Keep this ID and all later IDs available for the next poll.
+                $retryPending = true;
+                $failedUpdateId = $uid;
+                break;
             }
         }
 
@@ -767,9 +1100,14 @@ final class TelegramBotService
             } catch (Throwable) {}
         }
 
+        // Drain durable, retryable replies even when getUpdates returned no new events.
+        try { $this->flushReplyOutbox($organizationId, null, 10); } catch (Throwable) {}
+
         return [
             'ok' => true,
             'processed_count' => $processed,
+            'retry_pending' => $retryPending,
+            'failed_update_id' => $failedUpdateId,
             'updates' => $updates,
         ];
     }
@@ -787,44 +1125,19 @@ final class TelegramBotService
         bool $skipSecretCheck = false
     ): array {
         $this->ensureSchema();
-
-        // Validate if organizationId exists in organizations table
-        try {
-            $checkOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
-            if ($checkOrg <= 0) {
-                $activeConfigOrg = (int)$this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 ORDER BY id DESC LIMIT 1")->fetchColumn();
-                if ($activeConfigOrg > 0) {
-                    $organizationId = $activeConfigOrg;
-                } else {
-                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
-                    if ($primaryOrg > 0) {
-                        $organizationId = $primaryOrg;
-                    }
-                }
-            }
-        } catch (Throwable) {}
-
+        if ($organizationId <= 0) {
+            throw new RuntimeException('A valid workspace is required for Telegram webhook updates.');
+        }
         $cfg = $this->getConfig($organizationId);
 
-        if (!$cfg || empty($cfg['bot_token'])) {
-            try {
-                $anyStmt = $this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 LIMIT 1");
-                $anyOrgId = $anyStmt ? (int)$anyStmt->fetchColumn() : 0;
-                if ($anyOrgId > 0) {
-                    $organizationId = $anyOrgId;
-                    $cfg = $this->getConfig($organizationId);
-                }
-            } catch (Throwable) {}
-        }
-
-        if (!$cfg || empty($cfg['bot_token'])) {
+        if (!$cfg || empty($cfg['bot_token']) || empty($cfg['is_active'])) {
             throw new RuntimeException("Telegram bot configuration not found or inactive.");
         }
 
         // Secret token validation (unless polling)
         if (!$skipSecretCheck) {
             $expectedSecret = (string)($cfg['webhook_secret_token'] ?? '');
-            if ($expectedSecret !== '' && !hash_equals($expectedSecret, $receivedSecretToken)) {
+            if ($expectedSecret === '' || $receivedSecretToken === '' || !hash_equals($expectedSecret, $receivedSecretToken)) {
                 throw new RuntimeException("Invalid Telegram webhook secret token.");
             }
         }
@@ -840,6 +1153,9 @@ final class TelegramBotService
         );
         $dupCheck->execute([':org_id' => $organizationId, ':uid' => $updateId]);
         if ($dupCheck->fetchColumn()) {
+            // Retry delivery of committed pending replies for this update.
+            // Ambiguous attempts are quarantined and never auto-replayed.
+            $this->flushReplyOutbox($organizationId, $updateId, 1);
             return [
                 'ok' => true,
                 'duplicate' => true,
@@ -847,8 +1163,53 @@ final class TelegramBotService
             ];
         }
 
-        $message = $update['message'] ?? ($update['edited_message'] ?? []);
-        $chatId = (int)($message['chat']['id'] ?? 0);
+        // Reserve update_id and all of its database-side effects in the same
+        // transaction. The unique index serializes concurrent webhook retries:
+        // a competing request either waits for this transaction and observes
+        // the completed row, or can take over after this transaction rolls back.
+        // A committed "processing" marker is never left behind on shared hosting.
+        $this->db->beginTransaction();
+        try {
+            $now = date('Y-m-d H:i:s');
+            $message = $update['message'] ?? ($update['edited_message'] ?? []);
+            $reservedChatId = (int)($message['chat']['id'] ?? 0);
+            $payloadJson = json_encode($update, JSON_UNESCAPED_UNICODE);
+            if (!is_string($payloadJson)) {
+                throw new RuntimeException('Telegram update could not be encoded for the processing log.');
+            }
+            $reservation = $this->db->prepare(
+                "INSERT INTO crm_telegram_updates_log
+                 (public_id, organization_id, update_id, chat_id, action_type, payload_json, created_at)
+                 VALUES (:pub_id, :org_id, :uid, :cid, 'processing', :payload, :now)"
+            );
+            try {
+                $reservation->execute([
+                    ':pub_id' => 'tgu_' . bin2hex(random_bytes(10)),
+                    ':org_id' => $organizationId,
+                    ':uid' => $updateId,
+                    ':cid' => $reservedChatId,
+                    ':payload' => $payloadJson,
+                    ':now' => $now,
+                ]);
+            } catch (\PDOException $reservationError) {
+                $this->db->rollBack();
+                // Re-check the exact update after rollback. Do not misclassify
+                // another integrity failure (for example a random public_id
+                // collision) as a duplicate webhook.
+                $duplicate = $this->db->prepare(
+                    'SELECT id FROM crm_telegram_updates_log WHERE organization_id = :org_id AND update_id = :uid LIMIT 1'
+                );
+                $duplicate->execute([':org_id' => $organizationId, ':uid' => $updateId]);
+                if ($duplicate->fetchColumn()) {
+                    // This path covers a concurrent request that lost the unique
+                    // reservation race after the winning transaction committed.
+                    $this->flushReplyOutbox($organizationId, $updateId, 1);
+                    return ['ok' => true, 'duplicate' => true, 'action' => 'ignored_duplicate'];
+                }
+                throw $reservationError;
+            }
+
+        $chatId = $reservedChatId;
         $messageId = (int)($message['message_id'] ?? 0);
         $text = trim((string)($message['text'] ?? ''));
         $from = (array)($message['from'] ?? []);
@@ -874,7 +1235,7 @@ final class TelegramBotService
             if (str_starts_with($text, '/start')) {
                 $welcome = (string)($cfg['welcome_message'] ?: "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.");
                 if ($chatId !== 0) {
-                    $this->sendMessage($organizationId, $chatId, $welcome);
+                    $this->queueReply($organizationId, $updateId, $chatId, $welcome);
                 }
                 $action = 'start_greeted';
             } elseif (str_starts_with($text, '/bind ')) {
@@ -882,8 +1243,9 @@ final class TelegramBotService
                 $bindResult = $this->verifyUserBinding($organizationId, $chatId, $fromUsername, $code);
                 if ($bindResult === 'bind_success') {
                     if ($chatId !== 0) {
-                        $this->sendMessage(
+                        $this->queueReply(
                             $organizationId,
+                            $updateId,
                             $chatId,
                             "✅ <b>Аккаунт успешно привязан!</b>\nТеперь вы будете получать персональные уведомления CRM в этот чат."
                         );
@@ -891,8 +1253,9 @@ final class TelegramBotService
                     $action = 'bind_success';
                 } else {
                     if ($chatId !== 0) {
-                        $this->sendMessage(
+                        $this->queueReply(
                             $organizationId,
+                            $updateId,
                             $chatId,
                             "❌ <b>Код не распознан.</b>\nПроверьте правильность одноразового кода или сгенерируйте новый в CRM."
                         );
@@ -919,8 +1282,9 @@ final class TelegramBotService
                         $action = 'intake_created';
                         if ($chatId !== 0) {
                             try {
-                                $this->sendMessage(
+                                $this->queueReply(
                                     $organizationId,
+                                    $updateId,
                                     $chatId,
                                     "Спасибо, <b>" . htmlspecialchars($senderName, ENT_QUOTES, 'UTF-8') . "</b>!\nВаше обращение принято в CRM. Наш менеджер скоро свяжется с вами."
                                 );
@@ -933,23 +1297,29 @@ final class TelegramBotService
             }
         }
 
-        // Record update log
-        $now = date('Y-m-d H:i:s');
-        $logPubId = 'tgu_' . bin2hex(random_bytes(10));
-        $ins = $this->db->prepare(
-            "INSERT INTO crm_telegram_updates_log
-             (public_id, organization_id, update_id, chat_id, action_type, payload_json, created_at)
-             VALUES (:pub_id, :org_id, :uid, :cid, :action, :payload, :now)"
+        // Finalize the reserved log row only after all database effects are
+        // ready to commit. Any exception rolls back both receipt and CRM data.
+        $complete = $this->db->prepare(
+            "UPDATE crm_telegram_updates_log
+             SET chat_id = :cid, action_type = :action, payload_json = :payload, created_at = :now
+             WHERE organization_id = :org_id AND update_id = :uid AND action_type = 'processing'"
         );
-        $ins->execute([
-            ':pub_id' => $logPubId,
-            ':org_id' => $organizationId,
-            ':uid' => $updateId,
+        $complete->execute([
             ':cid' => $chatId,
             ':action' => $action,
-            ':payload' => json_encode($update, JSON_UNESCAPED_UNICODE),
+            ':payload' => $payloadJson,
             ':now' => $now,
+            ':org_id' => $organizationId,
+            ':uid' => $updateId,
         ]);
+        if ($complete->rowCount() !== 1) {
+            throw new RuntimeException('Telegram update reservation could not be finalized.');
+        }
+        $this->db->commit();
+
+        // Outbound provider calls happen only after the CRM transaction commits.
+        // A failed/ambiguous delivery is retained in the outbox for safe review.
+        $this->flushReplyOutbox($organizationId, $updateId, 1);
 
         return [
             'ok' => true,
@@ -957,6 +1327,93 @@ final class TelegramBotService
             'action' => $action,
             'message_id' => $messageId,
         ];
+        } catch (Throwable $processingError) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $processingError;
+        }
+    }
+
+    /** Queue a reply in the same transaction as the inbound update effects. */
+    private function queueReply(int $organizationId, int $updateId, int $chatId, string $text): void
+    {
+        $stmt = $this->db->prepare(
+            "INSERT INTO crm_telegram_reply_outbox
+             (public_id, organization_id, update_id, chat_id, message_text, status, attempts, created_at, updated_at)
+             VALUES (:public_id, :org_id, :update_id, :chat_id, :message_text, 'pending', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+        );
+        $stmt->execute([
+            ':public_id' => 'tgo_' . bin2hex(random_bytes(10)),
+            ':org_id' => $organizationId,
+            ':update_id' => $updateId,
+            ':chat_id' => $chatId,
+            ':message_text' => $text,
+        ]);
+    }
+
+    /**
+     * Deliver pending replies at least once. A lost response after provider
+     * acceptance cannot be distinguished from non-delivery: sendMessage has no
+     * provider idempotency key. Such rows become uncertain and are not retried.
+     */
+    public function flushReplyOutbox(int $organizationId, ?int $updateId = null, int $limit = 10): array
+    {
+        if ($organizationId <= 0) throw new RuntimeException('A valid workspace is required to flush Telegram replies.');
+        $limit = max(1, min(25, $limit));
+        // A process can stop while a row is claimed. Never silently resend an
+        // expired claim: it may already have reached Telegram. Quarantine it.
+        $driver = (string)$this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $staleCutoff = match ($driver) {
+            'mysql' => 'DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 MINUTE)',
+            'sqlite' => "datetime(CURRENT_TIMESTAMP, '-2 minutes')",
+            default => throw new RuntimeException('Unsupported database driver for Telegram outbox recovery.'),
+        };
+        $this->db->prepare("UPDATE crm_telegram_reply_outbox SET status='uncertain', last_error='Delivery outcome is unknown after worker interruption; verify Telegram before retrying.', updated_at=CURRENT_TIMESTAMP WHERE organization_id=:org_id AND status='sending' AND attempt_started_at < {$staleCutoff}")->execute([':org_id' => $organizationId]);
+        $where = "organization_id = :org_id AND status = 'pending'";
+        $params = [':org_id' => $organizationId];
+        if ($updateId !== null) {
+            $where .= ' AND update_id = :update_id';
+            $params[':update_id'] = $updateId;
+        }
+        $stmt = $this->db->prepare("SELECT id, chat_id, message_text FROM crm_telegram_reply_outbox WHERE {$where} ORDER BY id ASC LIMIT {$limit}");
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sent = 0;
+        $uncertain = 0;
+        foreach ($rows as $row) {
+            $claim = $this->db->prepare("UPDATE crm_telegram_reply_outbox SET status='sending', attempts=attempts+1, attempt_started_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=:id AND organization_id=:org_id AND status='pending'");
+            $claim->execute([':id' => (int)$row['id'], ':org_id' => $organizationId]);
+            if ($claim->rowCount() !== 1) continue;
+
+            $result = $this->sendMessage($organizationId, (int)$row['chat_id'], (string)$row['message_text']);
+            if (!empty($result['ok'])) {
+                $done = $this->db->prepare("UPDATE crm_telegram_reply_outbox SET status='sent', telegram_message_id=:message_id, last_error=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=:id AND organization_id=:org_id AND status='sending'");
+                $done->execute([':message_id' => (int)($result['result']['message_id'] ?? 0) ?: null, ':id' => (int)$row['id'], ':org_id' => $organizationId]);
+                $sent++;
+                continue;
+            }
+
+            $http = (int)($result['_http_code'] ?? 0);
+            $errorCode = (int)($result['error_code'] ?? 0);
+            $unknown = !empty($result['_delivery_unknown']) || $http >= 500 || $http === 0;
+            if ($unknown) {
+                $state = 'uncertain';
+                $uncertain++;
+            } elseif ($errorCode === 429 || $http === 429) {
+                $state = 'pending';
+            } else {
+                $state = 'failed';
+            }
+            $failed = $this->db->prepare("UPDATE crm_telegram_reply_outbox SET status=:status, last_error=:error, updated_at=CURRENT_TIMESTAMP WHERE id=:id AND organization_id=:org_id AND status='sending'");
+            $failed->execute([
+                ':status' => $state,
+                ':error' => $unknown ? 'Provider delivery outcome is unknown; review before retrying.' : 'Telegram rejected the message; verify the chat and bot permissions.',
+                ':id' => (int)$row['id'],
+                ':org_id' => $organizationId,
+            ]);
+        }
+        return ['sent' => $sent, 'uncertain' => $uncertain];
     }
 
     /**
@@ -974,6 +1431,18 @@ final class TelegramBotService
         ?string $defaultAssigneePubId
     ): bool {
         try {
+            // External messages must never be assigned to a guessed/default
+            // workspace. A missing or stale bot workspace fails closed.
+            if ($organizationId <= 0) {
+                return false;
+            }
+
+            $orgStmt = $this->db->prepare('SELECT id FROM organizations WHERE id = :org_id LIMIT 1');
+            $orgStmt->execute([':org_id' => $organizationId]);
+            if ((int)$orgStmt->fetchColumn() !== $organizationId) {
+                return false;
+            }
+
             // Check if intake_items table exists
             $check = $this->db->query("SELECT 1 FROM intake_items LIMIT 1");
             if ($check === false) {
@@ -998,56 +1467,28 @@ final class TelegramBotService
             $externalId = "tg_{$chatId}_{$messageId}";
             $sourceRef = "telegram:{$chatId}";
 
-            // Check if organization_id column exists
-            $hasOrgIdCol = false;
+            // Without tenant ownership storage, do not create an unscoped item.
             try {
-                $colCheck = $this->db->query("SELECT organization_id FROM intake_items LIMIT 0");
-                $hasOrgIdCol = ($colCheck !== false);
-            } catch (Throwable) {}
-
-            // Validate that organizationId exists in organizations table
-            try {
-                $validOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
-                if ($validOrg <= 0) {
-                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
-                    if ($primaryOrg > 0) {
-                        $organizationId = $primaryOrg;
-                    }
-                }
-            } catch (Throwable) {}
-
-            if ($hasOrgIdCol) {
-                $ins = $this->db->prepare(
-                    "INSERT INTO intake_items
-                     (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, organization_id, created_at, updated_at)
-                     VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :org_id, :created_at, :updated_at)"
-                );
-                $ins->execute([
-                    ':pub_id' => $publicId,
-                    ':title' => $title,
-                    ':desc' => $description,
-                    ':sref' => $sourceRef,
-                    ':ext_id' => $externalId,
-                    ':org_id' => $organizationId > 0 ? $organizationId : 1,
-                    ':created_at' => $now,
-                    ':updated_at' => $now,
-                ]);
-            } else {
-                $ins = $this->db->prepare(
-                    "INSERT INTO intake_items
-                     (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, created_at, updated_at)
-                     VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :created_at, :updated_at)"
-                );
-                $ins->execute([
-                    ':pub_id' => $publicId,
-                    ':title' => $title,
-                    ':desc' => $description,
-                    ':sref' => $sourceRef,
-                    ':ext_id' => $externalId,
-                    ':created_at' => $now,
-                    ':updated_at' => $now,
-                ]);
+                $this->db->query("SELECT organization_id FROM intake_items LIMIT 0");
+            } catch (Throwable) {
+                return false;
             }
+
+            $ins = $this->db->prepare(
+                "INSERT INTO intake_items
+                 (public_id, title, description, status, source_type, source_ref, external_source, external_id, creator_user_id, organization_id, created_at, updated_at)
+                 VALUES (:pub_id, :title, :desc, 'pending', 'webhook', :sref, 'telegram', :ext_id, 1, :org_id, :created_at, :updated_at)"
+            );
+            $ins->execute([
+                ':pub_id' => $publicId,
+                ':title' => $title,
+                ':desc' => $description,
+                ':sref' => $sourceRef,
+                ':ext_id' => $externalId,
+                ':org_id' => $organizationId,
+                ':created_at' => $now,
+                ':updated_at' => $now,
+            ]);
 
             return true;
         } catch (Throwable $e) {
@@ -1189,10 +1630,11 @@ final class TelegramBotService
     public function getRecentUpdates(int $organizationId, int $limit = 15): array
     {
         $stmt = $this->db->prepare(
-            "SELECT public_id, update_id, chat_id, action_type, payload_json, created_at
-             FROM crm_telegram_updates_log
-             WHERE organization_id = :org_id
-             ORDER BY id DESC
+            "SELECT u.public_id, u.update_id, u.chat_id, u.action_type, u.payload_json, u.created_at,
+                    (SELECT o.status FROM crm_telegram_reply_outbox o WHERE o.organization_id=u.organization_id AND o.update_id=u.update_id LIMIT 1) AS reply_status
+             FROM crm_telegram_updates_log u
+             WHERE u.organization_id = :org_id
+             ORDER BY u.id DESC
              LIMIT " . max(1, min(100, $limit))
         );
         $stmt->execute([':org_id' => $organizationId]);
@@ -1207,6 +1649,7 @@ final class TelegramBotService
                 'update_id' => (int)$r['update_id'],
                 'chat_id' => (int)$r['chat_id'],
                 'action_type' => (string)$r['action_type'],
+                'reply_status' => isset($r['reply_status']) ? (string)$r['reply_status'] : null,
                 'message_preview' => mb_substr($text, 0, 100),
                 'created_at' => (string)$r['created_at'],
                 'payload' => $payload,
@@ -1221,21 +1664,9 @@ final class TelegramBotService
     {
         $this->ensureSchema();
 
-        // Validate if organizationId exists in organizations table
-        try {
-            $checkOrg = (int)$this->db->query("SELECT id FROM organizations WHERE id = " . (int)$organizationId)->fetchColumn();
-            if ($checkOrg <= 0) {
-                $activeConfigOrg = (int)$this->db->query("SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 ORDER BY id DESC LIMIT 1")->fetchColumn();
-                if ($activeConfigOrg > 0) {
-                    $organizationId = $activeConfigOrg;
-                } else {
-                    $primaryOrg = (int)$this->db->query("SELECT id FROM organizations ORDER BY id ASC LIMIT 1")->fetchColumn();
-                    if ($primaryOrg > 0) {
-                        $organizationId = $primaryOrg;
-                    }
-                }
-            }
-        } catch (Throwable) {}
+        if ($organizationId <= 0) {
+            throw new RuntimeException('A valid workspace is required to read Telegram status.');
+        }
 
         $cfg = $this->getConfig($organizationId);
         $env = $this->detectEnvConfig();
@@ -1288,6 +1719,11 @@ final class TelegramBotService
             'bot_username' => $botUsername,
             'bot_token_masked' => $cfg['bot_token_masked'] ?? '',
             'webhook_url' => $cfg['webhook_url'] ?? null,
+            'proxy_type' => $cfg['proxy_type'] ?? 'none',
+            'proxy_host' => $cfg['proxy_host'] ?? null,
+            'proxy_port' => $cfg['proxy_port'] ?? null,
+            'proxy_username' => $cfg['proxy_username'] ?? null,
+            'proxy_password_set' => !empty($cfg['proxy_password_set']),
             'webhook_secret_set' => !empty($cfg['webhook_secret_token']),
             'auto_create_intake' => $cfg ? !empty($cfg['auto_create_intake']) : true,
             'welcome_message' => $cfg['welcome_message'] ?? "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
@@ -1655,6 +2091,25 @@ final class TelegramBotService
             throw new RuntimeException("Диалог не найден.");
         }
 
+        if ($projectId !== null) {
+            $projectStmt = $this->db->prepare(
+                'SELECT id FROM projects WHERE id = :project_id AND organization_id = :org_id LIMIT 1'
+            );
+            $projectStmt->execute([':project_id' => $projectId, ':org_id' => $organizationId]);
+            if (!$projectStmt->fetchColumn()) {
+                throw new RuntimeException('Проект не найден в активном рабочем пространстве.');
+            }
+        }
+        if ($assigneeId !== null) {
+            $assigneeStmt = $this->db->prepare(
+                'SELECT 1 FROM organization_memberships WHERE user_id = :user_id AND organization_id = :org_id LIMIT 1'
+            );
+            $assigneeStmt->execute([':user_id' => $assigneeId, ':org_id' => $organizationId]);
+            if (!$assigneeStmt->fetchColumn()) {
+                throw new RuntimeException('Исполнитель не входит в активное рабочее пространство.');
+            }
+        }
+
         $title = trim($title);
         if ($title === '') {
             $clientName = $dialog['title'] ?: ($dialog['username'] ? '@' . $dialog['username'] : 'Клиент');
@@ -1744,25 +2199,22 @@ final class TelegramBotService
     public function listOrganizationsForUser(int $userId, bool $isRoot = false): array
     {
         try {
-            $raw = [];
-            if ($isRoot || $userId <= 0) {
-                $stmt = $this->db->query("SELECT * FROM organizations ORDER BY id ASC LIMIT 50");
-                $raw = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            if ($isRoot) {
+                $stmt = $this->db->query('SELECT id, public_id, title, slug FROM organizations ORDER BY id ASC LIMIT 50');
             } else {
+                if ($userId <= 0) {
+                    return [];
+                }
                 $stmt = $this->db->prepare(
-                    "SELECT o.*
+                    "SELECT o.id, o.public_id, o.title, o.slug
                      FROM organization_memberships om
                      JOIN organizations o ON o.id = om.organization_id
                      WHERE om.user_id = :uid
                      ORDER BY o.id ASC"
                 );
                 $stmt->execute([':uid' => $userId]);
-                $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-                if (empty($raw)) {
-                    $fallback = $this->db->query("SELECT * FROM organizations ORDER BY id ASC LIMIT 50");
-                    $raw = $fallback ? ($fallback->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
-                }
             }
+            $raw = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
 
             $items = [];
             foreach ($raw as $r) {
@@ -1788,9 +2240,15 @@ final class TelegramBotService
      */
     public function listProjectsForOrg(int $organizationId): array
     {
+        if ($organizationId <= 0) {
+            return [];
+        }
         try {
-            $stmt = $this->db->query("SELECT * FROM projects ORDER BY id ASC LIMIT 50");
-            $raw = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            $stmt = $this->db->prepare(
+                'SELECT id, public_id, title FROM projects WHERE organization_id = :org_id AND archived_at IS NULL ORDER BY id ASC LIMIT 50'
+            );
+            $stmt->execute([':org_id' => $organizationId]);
+            $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $items = [];
             foreach ($raw as $r) {
                 $title = (string)($r['title'] ?? $r['name'] ?? ('Проект #' . $r['id']));
