@@ -6,6 +6,7 @@ namespace Module\Crm\TelegramBot\Api\Controller;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Module\Crm\TelegramBot\Service\TelegramBotService;
+use RuntimeException;
 use Throwable;
 
 final class TelegramBotApiController extends BaseController
@@ -15,59 +16,57 @@ final class TelegramBotApiController extends BaseController
         return new TelegramBotService($this->container->get('db.pdo'));
     }
 
+    /** Return a stable public error while keeping exception text out of responses and logs. */
+    private function exceptionError(string $code, string $publicMessage, Throwable $exception, int $status): JsonResponse
+    {
+        $this->logError('[TelegramBotApiController] Operation failed.', [
+            'error_code' => $code,
+            'exception_class' => get_class($exception),
+            'exception_code' => is_scalar($exception->getCode()) ? (string)$exception->getCode() : '',
+        ]);
+        return $this->error($code, $publicMessage, $status);
+    }
+
     private function getOrganizationId(): int
     {
-        $explicitOrg = (int)($this->request()->input('organization_id') ?: $this->request()->input('org_ref') ?: $this->request()->input('org') ?: 0);
-        if ($explicitOrg > 0) {
-            return $explicitOrg;
-        }
-
         $auth = $this->user();
-        $orgId = (int)($auth['user']['organization_id'] ?? 0);
-        if ($orgId > 0) {
-            return $orgId;
+        $user = (array)($auth['user'] ?? []);
+        $userId = (int)($user['id'] ?? 0);
+
+        if ($userId <= 0) {
+            throw new RuntimeException('Authentication is required to resolve the Telegram workspace.');
         }
 
-        $hdr = (string)($this->request()->header('X-Organization-Id') ?? $this->request()->header('X-Organization-Public-Id') ?? '');
-        if ($hdr !== '' && is_numeric($hdr)) {
-            return (int)$hdr;
+        // Resolve exactly the same workspace as the core route middleware. A
+        // body/query organization_id is only a consistency hint; it must never
+        // override the trusted workspace selected by the core resolver.
+        if (!$this->container->has('service.organization_context')) {
+            throw new RuntimeException('Workspace context service is unavailable.');
         }
 
-        $userId = (int)($auth['user']['id'] ?? 0);
-        if ($userId > 0) {
-            try {
-                $stmt = $this->container->get('db.pdo')->prepare(
-                    "SELECT organization_id FROM organization_memberships WHERE user_id = :uid ORDER BY id ASC LIMIT 1"
-                );
-                $stmt->execute([':uid' => $userId]);
-                $userOrg = (int)$stmt->fetchColumn();
-                if ($userOrg > 0) {
-                    return $userOrg;
-                }
-            } catch (Throwable) {}
+        $resolved = $this->container->get('service.organization_context')->resolve($this->request(), $user);
+        $organization = $resolved['organization'] ?? null;
+        $orgId = (int)($organization['id'] ?? 0);
+        $orgPublicId = trim((string)($organization['public_id'] ?? ''));
+        if (($resolved['status'] ?? '') !== 'active' || $orgId <= 0 || $orgPublicId === '') {
+            throw new RuntimeException('An active, authorized workspace is required.');
         }
 
-        try {
-            $anyStmt = $this->container->get('db.pdo')->query(
-                "SELECT organization_id FROM crm_telegram_configs WHERE is_active = 1 LIMIT 1"
-            );
-            $anyOrg = $anyStmt ? (int)$anyStmt->fetchColumn() : 0;
-            if ($anyOrg > 0) {
-                return $anyOrg;
+        foreach (['organization_id', 'org_ref', 'org'] as $key) {
+            $selector = $this->request()->input($key);
+            if (!is_scalar($selector) || trim((string)$selector) === '') {
+                continue;
             }
-        } catch (Throwable) {}
-
-        try {
-            $primaryOrgStmt = $this->container->get('db.pdo')->query(
-                "SELECT id FROM organizations ORDER BY id ASC LIMIT 1"
-            );
-            $primaryOrg = $primaryOrgStmt ? (int)$primaryOrgStmt->fetchColumn() : 0;
-            if ($primaryOrg > 0) {
-                return $primaryOrg;
+            $selector = trim((string)$selector);
+            $matches = ctype_digit($selector)
+                ? (int)$selector === $orgId
+                : hash_equals($orgPublicId, $selector);
+            if (!$matches) {
+                throw new RuntimeException('The requested workspace does not match the active workspace context.');
             }
-        } catch (Throwable) {}
+        }
 
-        return 1;
+        return $orgId;
     }
 
     /**
@@ -85,7 +84,7 @@ final class TelegramBotApiController extends BaseController
             $status = $service->getStatus($this->getOrganizationId());
             return $this->success('TELEGRAM_STATUS', 'Status retrieved', $status);
         } catch (Throwable $e) {
-            return $this->error('STATUS_ERROR', 'Failed to retrieve telegram status: ' . $e->getMessage(), 500);
+            return $this->exceptionError('STATUS_ERROR', 'Unable to retrieve Telegram status.', $e, 500);
         }
     }
 
@@ -105,6 +104,10 @@ final class TelegramBotApiController extends BaseController
         $autoCreateIntake = (bool)$this->request()->input('auto_create_intake', true);
         $welcomeMessage = (string)$this->request()->input('welcome_message', '');
         $webhookUrl = trim((string)$this->request()->input('webhook_url', ''));
+        $proxySettings = $this->request()->input('proxy', []);
+        if (!is_array($proxySettings)) {
+            $proxySettings = [];
+        }
 
         try {
             $service = $this->getService();
@@ -117,7 +120,8 @@ final class TelegramBotApiController extends BaseController
                 $welcomeMessage ?: null,
                 null,
                 null,
-                $webhookUrl ?: null
+                $webhookUrl ?: null,
+                $proxySettings
             );
 
             $status = $service->getStatus($this->getOrganizationId());
@@ -126,7 +130,7 @@ final class TelegramBotApiController extends BaseController
                 'status' => $status,
             ]);
         } catch (Throwable $e) {
-            return $this->error('SAVE_CONFIG_ERROR', $e->getMessage(), 400);
+            return $this->exceptionError('SAVE_CONFIG_ERROR', 'Unable to save Telegram configuration.', $e, 400);
         }
     }
 
@@ -144,16 +148,20 @@ final class TelegramBotApiController extends BaseController
         if (str_contains($token, '••••') || str_starts_with($token, 'gcm:') || str_starts_with($token, 'b64:')) {
             $token = '';
         }
+        $proxySettings = $this->request()->input('proxy', []);
+        if (!is_array($proxySettings)) {
+            $proxySettings = [];
+        }
 
         try {
             $service = $this->getService();
-            $result = $service->testConnection($token ?: null, $this->getOrganizationId());
+            $result = $service->testConnection($token ?: null, $this->getOrganizationId(), $proxySettings !== [] ? $proxySettings : null);
             if (!empty($result['ok'])) {
                 return $this->success('TELEGRAM_CONNECTED', 'Связь с Telegram API успешно подтверждена', $result);
             }
             return $this->error('TELEGRAM_CONNECT_FAILED', $result['error'] ?? 'Не удалось подключиться к Telegram', 400);
         } catch (Throwable $e) {
-            return $this->error('TEST_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('TEST_ERROR', 'Unable to test the Telegram connection.', $e, 500);
         }
     }
 
@@ -182,7 +190,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->error('WEBHOOK_ERROR', (string)($res['description'] ?? 'Ошибка установки вебхука'), 400);
         } catch (Throwable $e) {
-            return $this->error('WEBHOOK_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('WEBHOOK_ERROR', 'Unable to update the Telegram webhook.', $e, 500);
         }
     }
 
@@ -204,7 +212,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->error('WEBHOOK_ERROR', (string)($res['description'] ?? 'Ошибка удаления вебхука'), 400);
         } catch (Throwable $e) {
-            return $this->error('WEBHOOK_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('WEBHOOK_ERROR', 'Unable to update the Telegram webhook.', $e, 500);
         }
     }
 
@@ -228,7 +236,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->error('POLL_ERROR', $res['error'] ?? 'Ошибка опроса Telegram', 400);
         } catch (Throwable $e) {
-            return $this->error('POLL_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('POLL_ERROR', 'Unable to poll Telegram updates.', $e, 500);
         }
     }
 
@@ -257,7 +265,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->error('SEND_FAILED', (string)($res['description'] ?? 'Не удалось отправить сообщение'), 400);
         } catch (Throwable $e) {
-            return $this->error('SEND_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('SEND_ERROR', 'Unable to send the Telegram message.', $e, 500);
         }
     }
 
@@ -276,7 +284,7 @@ final class TelegramBotApiController extends BaseController
             $status = $service->importFromEnv($this->getOrganizationId());
             return $this->success('ENV_IMPORTED', 'Параметры Telegram успешно импортированы из .env', $status);
         } catch (Throwable $e) {
-            return $this->error('IMPORT_ERROR', $e->getMessage(), 400);
+            return $this->exceptionError('IMPORT_ERROR', 'Unable to import Telegram configuration.', $e, 400);
         }
     }
 
@@ -295,7 +303,7 @@ final class TelegramBotApiController extends BaseController
             $items = $service->listBindings($this->getOrganizationId());
             return $this->success('BINDINGS_LIST', 'Список привязанных сотрудников получен', ['items' => $items]);
         } catch (Throwable $e) {
-            return $this->error('LIST_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('LIST_ERROR', 'Unable to list Telegram bindings.', $e, 500);
         }
     }
 
@@ -324,7 +332,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->error('NOT_FOUND', 'Привязка не найдена', 404);
         } catch (Throwable $e) {
-            return $this->error('DELETE_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('DELETE_ERROR', 'Unable to delete the Telegram binding.', $e, 500);
         }
     }
 
@@ -345,7 +353,7 @@ final class TelegramBotApiController extends BaseController
             $items = $service->getRecentUpdates($this->getOrganizationId(), $limit);
             return $this->success('UPDATES_LOG', 'Журнал обновлений получен', ['items' => $items]);
         } catch (Throwable $e) {
-            return $this->error('LOG_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('LOG_ERROR', 'Unable to retrieve Telegram updates.', $e, 500);
         }
     }
 
@@ -367,7 +375,7 @@ final class TelegramBotApiController extends BaseController
             $code = $service->generateBindingCode($orgId, $userPubId);
             return $this->success('TELEGRAM_BINDING_CODE', 'Код привязки сгенерирован', ['verification_code' => $code]);
         } catch (Throwable $e) {
-            return $this->error('BIND_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('BIND_ERROR', 'Unable to create the Telegram binding.', $e, 500);
         }
     }
 
@@ -380,28 +388,30 @@ final class TelegramBotApiController extends BaseController
     {
         $orgId = (int)($params['org_id'] ?? 0);
         if ($orgId <= 0) {
-            $orgId = $this->getOrganizationId();
+            return $this->error('VALIDATION_ERROR', 'Webhook workspace identifier is required.', 400);
+        }
+        if ($this->request()->bodyTooLarge) {
+            return $this->error('PAYLOAD_TOO_LARGE', 'Telegram webhook payload exceeds the 1 MiB limit.', 413);
         }
         $secretToken = (string)($this->request()->header('X-Telegram-Bot-Api-Secret-Token') ?? '');
-        $update = $this->request()->allInput();
-
-        if (empty($update)) {
-            // Check raw input
-            $raw = file_get_contents('php://input');
-            if ($raw) {
-                $decoded = json_decode($raw, true);
-                if (is_array($decoded)) {
-                    $update = $decoded;
-                }
-            }
+        $update = json_decode($this->request()->rawBody, true);
+        if (!is_array($update) || $update === []) {
+            return $this->error('INVALID_PAYLOAD', 'Telegram webhook body must contain a valid JSON update.', 400);
         }
 
-        $service = $this->getService();
         try {
+            $service = $this->getService();
             $result = $service->handleUpdate($orgId, $secretToken, $update);
             return $this->success('TELEGRAM_UPDATE_HANDLED', 'Update processed', $result);
         } catch (Throwable $e) {
-            return $this->error('TELEGRAM_ERROR', $e->getMessage(), 400);
+            // This endpoint is public. Do not reveal whether the workspace has
+            // a configured bot, whether the secret matched, or internal SQL /
+            // crypto errors. Keep diagnostics in the server log without the
+            // exception message, which can contain request or credential data.
+            $this->logError('Telegram webhook update could not be processed.', [
+                'exception' => get_class($e),
+            ]);
+            return $this->error('TELEGRAM_WEBHOOK_FAILED', 'Webhook update could not be processed.', 500);
         }
     }
 
@@ -417,15 +427,26 @@ final class TelegramBotApiController extends BaseController
         try {
             $service = $this->getService();
             $userId = (int)($auth['user']['id'] ?? 0);
-            $items = $service->listOrganizationsForUser($userId);
+            $isRoot = !empty($auth['user']['is_root']);
+            $items = $service->listOrganizationsForUser($userId, $isRoot);
             $activeOrg = $this->getOrganizationId();
+            $activeOrgPublicId = '';
+            foreach ($items as $item) {
+                if ((int)($item['id'] ?? 0) === $activeOrg) {
+                    $activeOrgPublicId = (string)($item['public_id'] ?? '');
+                    break;
+                }
+            }
+            if ($activeOrgPublicId === '') {
+                throw new RuntimeException('Active workspace is not present in the authorized workspace list.');
+            }
             return $this->success('ORGANIZATIONS_LIST', 'Список организаций получен', [
                 'items' => $items,
                 'active_org_ref' => (string)$activeOrg,
-                'active_organization_public_id' => 'org_' . $activeOrg,
+                'active_organization_public_id' => $activeOrgPublicId,
             ]);
         } catch (Throwable $e) {
-            return $this->error('ORG_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('ORG_ERROR', 'Unable to list workspaces.', $e, 500);
         }
     }
 
@@ -443,7 +464,7 @@ final class TelegramBotApiController extends BaseController
             $items = $service->listProjectsForOrg($this->getOrganizationId());
             return $this->success('PROJECTS_LIST', 'Список проектов получен', ['items' => $items]);
         } catch (Throwable $e) {
-            return $this->error('PROJECTS_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('PROJECTS_ERROR', 'Unable to list projects.', $e, 500);
         }
     }
 
@@ -468,7 +489,7 @@ final class TelegramBotApiController extends BaseController
                 'total_unread' => $res['total_unread'] ?? 0,
             ]);
         } catch (Throwable $e) {
-            return $this->error('DIALOGS_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('DIALOGS_ERROR', 'Unable to list Telegram dialogs.', $e, 500);
         }
     }
 
@@ -498,7 +519,7 @@ final class TelegramBotApiController extends BaseController
                 'messages' => $dialog['messages'] ?? [],
             ]);
         } catch (Throwable $e) {
-            return $this->error('DIALOG_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('DIALOG_ERROR', 'Unable to retrieve the Telegram dialog.', $e, 500);
         }
     }
 
@@ -530,7 +551,7 @@ final class TelegramBotApiController extends BaseController
             $res = $service->replyDialog($this->getOrganizationId(), $dialogId, $text, $staffUserId, $staffName);
             return $this->success('REPLY_SENT', 'Ответ отправлен в Telegram', $res);
         } catch (Throwable $e) {
-            return $this->error('REPLY_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('REPLY_ERROR', 'Unable to send the Telegram reply.', $e, 500);
         }
     }
 
@@ -555,7 +576,7 @@ final class TelegramBotApiController extends BaseController
             }
             return $this->success('STATUS_UPDATED', 'Статус диалога обновлен');
         } catch (Throwable $e) {
-            return $this->error('STATUS_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('STATUS_ERROR', 'Unable to retrieve Telegram status.', $e, 500);
         }
     }
 
@@ -588,7 +609,7 @@ final class TelegramBotApiController extends BaseController
             $res = $service->createTaskFromDialog($this->getOrganizationId(), $dialogId, $title, $description, $projectId ?: null, $priority, null, $staffUserId);
             return $this->success('TASK_CREATED', 'Задача создана в CRM', $res);
         } catch (Throwable $e) {
-            return $this->error('TASK_ERROR', $e->getMessage(), 500);
+            return $this->exceptionError('TASK_ERROR', 'Unable to create a task from the Telegram dialog.', $e, 500);
         }
     }
 }

@@ -1,6 +1,6 @@
 {
     "name": "crm.telegram-bot",
-    "version": "1.0.12",
+    "version": "1.0.18",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -12,7 +12,10 @@
     "dependencies": [],
     "require_permissions": [
         "settings.view",
-        "settings.edit"
+        "settings.edit",
+        "intake.view",
+        "intake.manage",
+        "task.manage"
     ],
     "service_provider": "Module\\Crm\\TelegramBot\\TelegramBotServiceProvider",
     "migrations": "api/migrations",
@@ -25,6 +28,10 @@
         "webhook_secret_token": "",
         "auto_create_intake": true,
         "welcome_message": "Здравствуйте! Я официальный бот TropaTT CRM. Напишите ваш вопрос или заявку, и наша команда свяжется с вами.",
+        "proxy_type": "none",
+        "proxy_host": "",
+        "proxy_port": "",
+        "proxy_username": "",
         "polling_enabled": false
     },
     "menu_items": [
