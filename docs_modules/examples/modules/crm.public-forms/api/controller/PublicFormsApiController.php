@@ -215,7 +215,7 @@ final class PublicFormsApiController extends BaseController
         $service = $this->getService(true);
         $request = $this->request();
         $contentLength = (int)($request->server['CONTENT_LENGTH'] ?? $request->server['HTTP_CONTENT_LENGTH'] ?? 0);
-        if ($contentLength > 32768 || strlen($request->rawBody) > 32768) {
+        if ($request->bodyTooLarge || $contentLength > 32768 || strlen($request->rawBody) > 32768) {
             return $this->error('PAYLOAD_TOO_LARGE', 'Submission exceeds the 32 KB limit.', 413);
         }
         $contentType = strtolower(trim(explode(';', (string)($request->header('Content-Type') ?? ''))[0]));

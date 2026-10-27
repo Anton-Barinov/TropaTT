@@ -25,6 +25,10 @@ From the repository root, run:
 
 ```sh
 php -d zend.assertions=1 upload/api/tests/unit/public_forms_admin_service_unit.php
+php docs_modules/examples/modules/crm.public-forms/qa/service_workspace_test.php
+php docs_modules/examples/modules/crm.public-forms/qa/submission_security_test.php
+php docs_modules/examples/modules/crm.public-forms/qa/booking_workflow_test.php
+php docs_modules/examples/modules/crm.public-forms/qa/request_body_limit_test.php
 ```
 
-The service test uses an in-memory SQLite database and does not send public submissions over the network.
+The service and module tests use in-memory SQLite fixtures and do not send public submissions over the network. The request-size test simulates the core request parser's oversized-body flag, including missing or understated `Content-Length` values.
