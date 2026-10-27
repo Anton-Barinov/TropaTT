@@ -74,7 +74,7 @@ final class GitHubWorkerHandler
                     continue;
                 }
 
-                $sync = new GitHubSyncService($container, $repo, new GitHubClient(30, 3));
+                $sync = new GitHubSyncService($container, $repo, new GitHubClient(30, 3, self::allowedHosts($container)));
                 $counts = $sync->syncLink($link, $token, $actor, $batchSize, $syncComments);
                 $repo->markSynced($publicId);
                 $repo->addLog((int)$link['id'], 'info', 'Poll sync completed: ' . json_encode($counts, JSON_UNESCAPED_UNICODE));
@@ -87,6 +87,17 @@ final class GitHubWorkerHandler
         }
 
         return json_encode(['processed' => $processed, 'synced' => $synced, 'failed' => $failed], JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    /** @return list<string> */
+    private static function allowedHosts(\Api\System\Library\Container $container): array
+    {
+        try {
+            $config = $container->has('module.config') ? $container->get('module.config')->getAll('crm.github-integration') : [];
+            return GitHubClient::normalizeAllowedHosts(is_array($config) ? (array)($config['allowed_api_hosts'] ?? []) : []);
+        } catch (\Throwable) {
+            return ['api.github.com'];
+        }
     }
 
     /**

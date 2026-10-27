@@ -16,6 +16,8 @@ final class GitHubController
     private PDO $pdo;
     private GitHubRepository $repo;
     private int $organizationId = 0;
+    /** @var list<string> */
+    private array $allowedApiHosts = ['api.github.com'];
 
     public function __construct(private readonly Container $container)
     {
@@ -27,6 +29,8 @@ final class GitHubController
             ? (int)($organizationContext['organization']['id'] ?? 0)
             : 0;
         $this->organizationId = $organizationId;
+        $config = $container->has('module.config') ? $container->get('module.config')->getAll('crm.github-integration') : [];
+        $this->allowedApiHosts = GitHubClient::normalizeAllowedHosts(is_array($config) ? (array)($config['allowed_api_hosts'] ?? []) : []);
         $this->repo = new GitHubRepository($this->pdo, $organizationId);
     }
 
@@ -269,7 +273,7 @@ final class GitHubController
         if ($token === null) {
             return JsonResponse::error('GITHUB_DECRYPT_FAILED', 'Failed to decrypt token', 500);
         }
-        $client = new GitHubClient();
+        $client = new GitHubClient(30, 3, $this->allowedApiHosts);
         $result = $client->testConnection($token, (string)$connection['base_url']);
         $this->repo->updateConnectionLastCheck((string)$params['public_id'], $result['success'] ? 'success' : 'failed', $result['message']);
         if (!$result['success']) {
@@ -299,7 +303,7 @@ final class GitHubController
         if ($token === null) {
             return JsonResponse::error('GITHUB_DECRYPT_FAILED', 'Failed to decrypt token', 500);
         }
-        $client = new GitHubClient();
+        $client = new GitHubClient(30, 3, $this->allowedApiHosts);
         try {
             $repos = array_map(
                 fn(array $r): array => [
@@ -439,7 +443,7 @@ final class GitHubController
 
         $settings = $this->repo->getSettings();
         $batch = max(1, (int)($settings['batch_size'] ?? 100));
-        $sync = new GitHubSyncService($this->container, $this->repo, new GitHubClient());
+        $sync = new GitHubSyncService($this->container, $this->repo, new GitHubClient(30, 3, $this->allowedApiHosts));
         try {
             $actor = $this->actor();
             $actor['organization_id'] = (int)$link['organization_id'];
@@ -542,11 +546,12 @@ final class GitHubController
             return null;
         }
         try {
-            GitHubClient::resolvePublicBaseUrl($baseUrl);
+            if (!GitHubClient::validateBaseUrl($baseUrl, $this->allowedApiHosts)) { return null; }
+            GitHubClient::resolvePublicBaseUrl($baseUrl, $this->allowedApiHosts);
         } catch (\Throwable) {
             return null;
         }
-        // Public GitHub Enterprise hosts remain supported; local/private network targets are rejected.
+        // Self-hosted GitHub Enterprise is accepted only when a root administrator added its exact FQDN to allowed_api_hosts.
         return $baseUrl;
     }
 

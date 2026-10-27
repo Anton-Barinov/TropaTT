@@ -48,7 +48,7 @@ final class GithubServiceProvider extends AbstractModuleServiceProvider
             $push = new GitHubPushService(
                 $container,
                 new GitHubRepository($container->get('db.pdo'), (int)($context['organization_id'] ?? 0)),
-                new GitHubClient(30, 3),
+                new GitHubClient(30, 3, GitHubClient::normalizeAllowedHosts((array)($config['allowed_api_hosts'] ?? []))),
                 $config
             );
             if ($kind === 'comment') {

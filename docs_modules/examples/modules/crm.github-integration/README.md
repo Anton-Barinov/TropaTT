@@ -37,7 +37,7 @@
 - PAT хранится зашифрованным (aes-256-gcm на `APP_SECRET`), не возвращается в API и не логируется.
 - Секрет webhook хранится зашифрованным; подпись проверяется `hash_equals`.
 - Синхронизируются только явно привязанные репозитории.
-- Base URL разрешён только для `api.github.com` / `*.github.com` / явно указанного GHES-хоста (настраивается).
+- `api.github.com` разрешён по умолчанию. GHES допускается только по точному hostname из root-managed `allowed_api_hosts`; wildcard/IP/HTTP/нестандартные порты запрещены.
 
 ## Права
 
@@ -48,6 +48,11 @@
 
 ## Примечание про версию
 
+- **1.1.2** — exact-host allowlist для API, блокировка SSRF/private DNS и безопасное закрепление DNS в cURL.
 - **1.1.1** — изоляция подключений, привязок, очередей и фоновой синхронизации по рабочим пространствам.
 - **1.1.0** — двусторонняя синхронизация (комментарии и статусы), сохранение маппинга задача↔issue/PR.
 - **1.0.0** — односторонняя синхронизация GitHub → TropaTT.
+
+## Network trust boundary
+
+GitHub.com (`api.github.com`) разрешён по умолчанию. Self-hosted GHES требует точного hostname в root-managed `allowed_api_hosts`; wildcard/IP/HTTP/нестандартный порт запрещены. DNS A/AAAA проверяются на public-only и закрепляются в cURL. Legacy connections outside the allowlist fail closed. The Marketplace signature must be regenerated when packaging a release.

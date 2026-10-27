@@ -1,0 +1,17 @@
+[data-page="module-gitlab-integration"] .crm-page-title {
+    margin-bottom: 0.25rem;
+}
+
+[data-page="module-gitlab-integration"] .crm-subtitle {
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+[data-page="module-gitlab-integration"] .list-group-item .btn-group .btn {
+    margin-left: 0.25rem;
+}
+
+[data-page="module-gitlab-integration"] table td {
+    vertical-align: middle;
+}
