@@ -3258,7 +3258,9 @@ MD;
         $tools[] = $this->tool('crm_create_chat', 'Create a direct, team, project or group chat.', [
             'type' => ['type' => 'string', 'enum' => ['direct', 'project', 'team', 'group'], 'default' => 'direct'],
             'user_id' => ['type' => 'integer'],
+            'project_public_id' => ['type' => 'string', 'description' => 'Public project ID (prj_...). Preferred over the legacy numeric project_id.'],
             'project_id' => ['type' => 'integer'],
+            'team_public_id' => ['type' => 'string', 'description' => 'Public team ID (tem_...). Preferred over the legacy numeric team_id.'],
             'team_id' => ['type' => 'integer'],
             'title' => ['type' => 'string'],
             'participant_public_ids' => ['type' => 'array', 'items' => ['type' => 'string']],
@@ -14008,8 +14010,13 @@ $tools[] = $this->tool(
 
         if ($type === 'project') {
             $projectId = (int)($arguments['project_id'] ?? 0);
+            if (!empty($arguments['project_public_id'])) {
+                /** @var ProjectService $projectService */
+                $projectService = $this->container->get('service.project');
+                $projectId = (int)($projectService->resolveProjectIdForActor(trim((string)$arguments['project_public_id']), $actor) ?? 0);
+            }
             if ($projectId <= 0) {
-                return ['error' => 'project_id is required.'];
+                return ['error' => 'project_public_id or project_id is required and must identify an accessible project.'];
             }
             $stmt = $pdo->prepare("SELECT p.*, t.manager_user_id AS team_manager_user_id, t.member_user_ids AS team_member_user_ids FROM projects p LEFT JOIN teams t ON t.public_id = p.team_public_id WHERE p.id = :id AND p.archived_at IS NULL");
             $stmt->execute(['id' => $projectId]);
@@ -14028,8 +14035,14 @@ $tools[] = $this->tool(
 
         if ($type === 'team') {
             $teamId = (int)($arguments['team_id'] ?? 0);
+            if (!empty($arguments['team_public_id'])) {
+                /** @var TeamService $teamService */
+                $teamService = $this->container->get('service.team');
+                $team = $teamService->get(trim((string)$arguments['team_public_id']), $actor);
+                $teamId = (int)($team['id'] ?? 0);
+            }
             if ($teamId <= 0) {
-                return ['error' => 'team_id is required.'];
+                return ['error' => 'team_public_id or team_id is required and must identify an accessible team.'];
             }
             $stmt = $pdo->prepare('SELECT id, public_id, title, manager_user_id, created_by_user_id, member_user_ids, created_at, updated_at FROM teams WHERE id = :id');
             $stmt->execute(['id' => $teamId]);
