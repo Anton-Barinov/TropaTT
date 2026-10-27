@@ -7,6 +7,7 @@ final class Request
 {
     public const MCP_MAX_RAW_BODY_BYTES = 28 * 1024 * 1024;
     public const MCP_PROTOCOL_VERSION = '2025-06-18';
+    public const MCP_MODERN_PROTOCOL_VERSION = '2026-07-28';
     private const MCP_MAX_JSON_STRUCTURAL_TOKENS = 10000;
     private const MCP_MAX_JSON_NESTING = 64;
     private const PUBLIC_FORM_MAX_RAW_BODY_BYTES = 32769;
@@ -114,6 +115,82 @@ final class Request
     public static function isMcpTransport(string $method, string $path, array $query = []): bool
     {
         return strtoupper($method) === 'POST' && self::resolveRoutePath($path, $query) === '/api/v1/mcp';
+    }
+
+    /**
+     * MCP's Origin check must run before auth and request-size short-circuits,
+     * so it is shared by the front controller and MCP handler. Requests from
+     * non-browser clients may omit Origin; when present, it must be same-origin.
+     */
+    public static function isMcpOriginAllowed(array $server, array $headers = []): bool
+    {
+        $origin = '';
+        foreach ($headers as $name => $value) {
+            if (strtolower((string)$name) === 'origin') {
+                $origin = trim(is_array($value) ? (string)($value[0] ?? '') : (string)$value);
+                break;
+            }
+        }
+        if ($origin === '') {
+            $origin = trim((string)($server['HTTP_ORIGIN'] ?? ''));
+        }
+        if ($origin === '') {
+            return true;
+        }
+
+        try {
+            $originParts = parse_url($origin);
+            $requestHost = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+            $requestParts = $requestHost !== '' ? parse_url('//' . $requestHost) : false;
+        } catch (\Throwable) {
+            return false;
+        }
+        if (!is_array($originParts) || !is_array($requestParts)) {
+            return false;
+        }
+
+        $originScheme = strtolower((string)($originParts['scheme'] ?? ''));
+        $originHost = strtolower((string)($originParts['host'] ?? ''));
+        $requestHostName = strtolower((string)($requestParts['host'] ?? ''));
+        $https = strtolower((string)($server['HTTPS'] ?? ''));
+        $requestScheme = ($https !== '' && $https !== 'off' && $https !== '0') ? 'https' : 'http';
+
+        $forwardedProto = '';
+        foreach ($headers as $name => $value) {
+            if (strtolower((string)$name) === 'x-forwarded-proto') {
+                $forwardedProto = strtolower(trim(is_array($value) ? (string)($value[0] ?? '') : (string)$value));
+                break;
+            }
+        }
+        if ($forwardedProto === '') {
+            $forwardedProto = strtolower(trim((string)($server['HTTP_X_FORWARDED_PROTO'] ?? '')));
+        }
+        if (in_array($forwardedProto, ['http', 'https'], true)) {
+            $requestScheme = $forwardedProto;
+        } elseif (in_array(strtolower((string)($server['REQUEST_SCHEME'] ?? '')), ['http', 'https'], true)) {
+            $requestScheme = strtolower((string)$server['REQUEST_SCHEME']);
+        }
+
+        $originPort = (int)($originParts['port'] ?? ($originScheme === 'https' ? 443 : 80));
+        $requestPort = (int)($requestParts['port'] ?? ($requestScheme === 'https' ? 443 : 80));
+        $hasOriginTail = isset($originParts['user']) || isset($originParts['pass'])
+            || isset($originParts['query']) || isset($originParts['fragment'])
+            || isset($originParts['path']);
+
+        return in_array($originScheme, ['http', 'https'], true)
+            && $originHost !== ''
+            && $requestHostName !== ''
+            && !$hasOriginTail
+            && $originPort >= 1 && $originPort <= 65535
+            && $requestPort >= 1 && $requestPort <= 65535
+            && $originScheme === $requestScheme
+            && $originPort === $requestPort
+            && strcasecmp($originHost, $requestHostName) === 0;
+    }
+
+    public function mcpOriginIsAllowed(): bool
+    {
+        return self::isMcpOriginAllowed($this->server, $this->headers);
     }
 
     public static function mcpContentLengthExceedsLimit(array $server): bool

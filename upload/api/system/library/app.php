@@ -276,6 +276,26 @@ final class App
                 }
             }
 
+            if ($routePath === '/api/v1/mcp' && !$request->mcpOriginIsAllowed()) {
+                $protocolHeader = trim((string)$request->header('MCP-Protocol-Version', ''));
+                $mcpResponseVersion = in_array($protocolHeader, [
+                    Request::MCP_MODERN_PROTOCOL_VERSION,
+                    '2025-11-25',
+                    Request::MCP_PROTOCOL_VERSION,
+                ], true) ? $protocolHeader : Request::MCP_PROTOCOL_VERSION;
+                $response = new RawJsonResponse([
+                    'jsonrpc' => '2.0',
+                    'id' => null,
+                    'error' => [
+                        'code' => -32003,
+                        'message' => 'Cross-origin MCP requests are not allowed for this installation.',
+                    ],
+                ], 403, ['MCP-Protocol-Version' => $mcpResponseVersion]);
+                $statusCode = 403;
+                $resultCode = 'MCP_ORIGIN_REJECTED';
+                return $response;
+            }
+
             if (($matched['auth'] ?? true) === true) {
                 $auth = $this->authenticate();
                 if (!$auth) {
@@ -300,7 +320,9 @@ final class App
                                 ],
                             ],
                         ], 401, [
-                            'MCP-Protocol-Version' => '2025-06-18',
+                            'MCP-Protocol-Version' => in_array(trim((string)$request->header('MCP-Protocol-Version', '')), ['2026-07-28', '2025-11-25'], true)
+                                ? trim((string)$request->header('MCP-Protocol-Version'))
+                                : '2025-06-18',
                         ]);
                         $statusCode = 401;
                         $resultCode = 'MCP_UNAUTHORIZED';
@@ -1339,7 +1361,8 @@ final class App
             $c->get('repository.subtask'),
             $c->has('service.setting') ? $c->get('service.setting') : null,
             $c->get('db.pdo'),
-            new \Api\System\Library\Service\AgentLeaseService($c->get('db.pdo'))
+            new \Api\System\Library\Service\AgentLeaseService($c->get('db.pdo')),
+            $c->get('repository.task_relation')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),

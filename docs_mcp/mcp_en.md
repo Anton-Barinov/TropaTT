@@ -11,9 +11,9 @@ TropaTT CRM ships an embedded MCP server — a JSON-RPC 2.0 interface that gives
 | Protocol | JSON-RPC 2.0 |
 | Transport | HTTP POST (request–response) |
 | Endpoint | `POST /api/index.php?route=api/v1/mcp` |
-| Protocol version | `2025-06-18` |
-| Batch requests | Supported (JSON array) |
-| Notifications | Supported (messages without id) |
+| Protocol versions | `2026-07-28` (stateless) and legacy `2025-11-25`, `2025-06-18` |
+| Batch requests | Legacy only (`2025-11-25`, `2025-06-18`) |
+| Notifications | Legacy only |
 | MCP tools | 621 in the full catalog (`toolset=all`); `tools/list` defaults to the 27-tool `core` profile (8 mega-tools + 3 AgentOS orchestration tools + 16 regular) |
 | MCP resources | 6 |
 | MCP prompts | 0 |
@@ -56,9 +56,26 @@ MCP mirrors the REST API but provides a safe layer between agents and the CRM:
 
 - **Protocol**: JSON-RPC 2.0
 - **Endpoint**: `POST /api/index.php?route=api/v1/mcp`
-- **Protocol version**: `2025-06-18`
+- **Protocol versions**: `2026-07-28` (stateless) and legacy `2025-11-25`, `2025-06-18`
 - **Content-Type**: `application/json`
 - **Accept**: `application/json, text/event-stream`
+
+### Modern stateless protocol (`2026-07-28`)
+
+Each HTTP POST carries the protocol version in `MCP-Protocol-Version` and `params._meta`; `Mcp-Method` must match `method`. `tools/call`, `resources/read`, and `prompts/get` also require `Mcp-Name` matching `params.name` or `params.uri`, respectively. The server implements `server/discover`; the `initialize` handshake, `ping`, and legacy notifications are not used in this mode. Batch requests are rejected.
+
+Discovery example:
+
+```http
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: server/discover
+```
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
+```
+
+For `Mcp-Name` values containing non-ASCII characters or leading/trailing whitespace, use the `=?base64?{base64-utf8}?=` encoding. Missing or mismatched required headers return HTTP 400 with JSON-RPC `-32020`; unsupported protocol versions return `-32022` and list the supported versions.
 
 ### Request
 

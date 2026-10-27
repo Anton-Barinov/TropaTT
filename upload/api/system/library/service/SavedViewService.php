@@ -619,9 +619,11 @@ final class SavedViewService
             return true;
         }
 
-        // Private: only owner
-        if ($accessLevel === 'private' && $userId !== $ownerId) {
-            return 'SAVED_VIEW_FORBIDDEN';
+        // Private: only owner. Return immediately for the owner; falling
+        // through to the public/system branch would incorrectly deny every
+        // private view, including the user's own view.
+        if ($accessLevel === 'private') {
+            return $userId === $ownerId ? true : 'SAVED_VIEW_FORBIDDEN';
         }
 
         // Public/system: all authenticated users can view

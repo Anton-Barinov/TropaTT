@@ -922,10 +922,7 @@
     if (loadingMessages) return;
     loadingMessages = true;
     try {
-      var detailPromise = request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
-      var messagesPromise = request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
-      var loaded = await Promise.all([detailPromise, messagesPromise]);
-      var detailEnv = loaded[0];
+      var detailEnv = await request('api/v1/chats/' + encodeURIComponent(id), { method: 'GET' });
       var chat = detailEnv.data.chat || {};
       renderConversationShell(chat);
       if (chat.is_archived || chat.archived_at) {
@@ -935,7 +932,7 @@
         lastMessageId = 0;
         return;
       }
-      var messagesEnv = loaded[1];
+      var messagesEnv = await request('api/v1/chats/' + encodeURIComponent(id) + '/messages', { method: 'GET', query: { limit: 80 } });
       var loadedItems = (messagesEnv.data && messagesEnv.data.items) || [];
       allOlderLoaded = loadedItems.length < 80;
       renderMessages(loadedItems);

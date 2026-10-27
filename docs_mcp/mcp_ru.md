@@ -11,9 +11,9 @@ TropaTT CRM включает встроенный MCP-сервер — инте�
 | Протокол | JSON-RPC 2.0 |
 | Транспорт | HTTP POST (request–response) |
 | Endpoint | `POST /api/index.php?route=api/v1/mcp` |
-| Версия протокола | `2025-06-18` |
-| Batch-запросы | Поддерживаются (JSON-массив) |
-| Notifications | Поддерживаются (сообщения без id) |
+| Версии протокола | `2026-07-28` (stateless) и legacy `2025-11-25`, `2025-06-18` |
+| Batch-запросы | Только legacy (`2025-11-25`, `2025-06-18`) |
+| Notifications | Только legacy |
 | MCP tools | 621 в полном каталоге (`toolset=all`); `tools/list` по умолчанию возвращает core-профиль (27 инструментов: 8 mega-tools + 3 оркестратора AgentOS + 16 regular) |
 | MCP resources | 6 |
 | MCP prompts | 0 |
@@ -56,9 +56,26 @@ MCP дублирует функционал REST API, но обеспечива�
 
 - **Protocol**: JSON-RPC 2.0
 - **Endpoint**: `POST /api/index.php?route=api/v1/mcp`
-- **Protocol version**: `2025-06-18`
+- **Protocol versions**: `2026-07-28` (stateless) и legacy `2025-11-25`, `2025-06-18`
 - **Content-Type**: `application/json`
 - **Accept**: `application/json, text/event-stream`
+
+### Современный stateless-протокол (`2026-07-28`)
+
+Каждый HTTP POST содержит версию протокола в `MCP-Protocol-Version` и в `params._meta`; `Mcp-Method` должен совпадать с `method`. Для `tools/call`, `resources/read` и `prompts/get` также требуется `Mcp-Name`, совпадающий с `params.name` или `params.uri` соответственно. Сервер предоставляет `server/discover`; handshake `initialize`, `ping` и legacy notifications в этом режиме не используются. Batch-запросы запрещены.
+
+Пример discovery:
+
+```http
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: server/discover
+```
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
+```
+
+Для `Mcp-Name` с не-ASCII символами или пробелами по краям используйте кодирование `=?base64?{base64-utf8}?=`. Несовпадающие или отсутствующие обязательные заголовки возвращают HTTP 400 и JSON-RPC `-32020`; неподдерживаемая версия возвращает `-32022` со списком поддерживаемых версий.
 
 ### Запрос
 

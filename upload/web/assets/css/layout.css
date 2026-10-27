@@ -465,8 +465,8 @@ a:focus-visible {
   flex: 0 0 auto;
 }
 
-/* Hide mobile sidebar toggle on desktop */
-@media (min-width: 992px) {
+/* Hide the drawer toggle on wide desktop screens */
+@media (min-width: 1200px) {
   #sidebarToggle {
     display: none !important;
   }

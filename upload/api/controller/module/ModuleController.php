@@ -780,6 +780,9 @@ final class ModuleController
 
         try {
             $mc = $this->container->get('module.config');
+            if ($mc->getRegistry((string)$name) === null) {
+                return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
+            }
             $mc->setMultiple($name, $config);
 
             if ($name === 'crm.telegram-bot' && $this->container->has('db.pdo')) {

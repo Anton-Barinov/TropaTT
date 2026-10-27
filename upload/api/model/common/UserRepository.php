@@ -59,6 +59,7 @@ final class UserRepository
             ->from('users')
             ->select(['id', 'public_id', 'login', 'full_name', 'is_active', 'is_external', 'external_role', 'deleted_at'])
             ->where('public_id', '=', $publicId)
+            ->whereNull('deleted_at')
             ->first();
     }
 
@@ -78,7 +79,8 @@ final class UserRepository
         $query = (new QueryBuilder($this->pdo))
             ->from('users u')
             ->select(['u.id', 'u.public_id', 'u.login', 'u.full_name', 'u.is_active', 'u.is_external', 'u.external_role', 'u.deleted_at'])
-            ->where('u.public_id', '=', $publicId);
+            ->where('u.public_id', '=', $publicId)
+            ->whereNull('u.deleted_at');
 
         if ($organizationId !== null && $organizationId > 0) {
             $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')

@@ -36,6 +36,7 @@ final class UserManagementRepository
             ->from('users')
             ->select(['id', 'public_id', 'login', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'is_external', 'external_role', 'cost_rate', 'bill_rate', 'payout_rate', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId)
+            ->whereNull('deleted_at')
             ->first();
     }
 
