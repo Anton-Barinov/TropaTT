@@ -187,7 +187,6 @@ final class GitHubClient
 
                 $result = curl_exec($ch);
                 $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
                 if ($responseTooLarge) {
                     throw new RuntimeException('GITHUB_RESPONSE_TOO_LARGE');
                 }
