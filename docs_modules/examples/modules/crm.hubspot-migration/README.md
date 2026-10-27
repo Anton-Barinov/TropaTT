@@ -25,12 +25,12 @@ The module supports only contacts and the fields `firstname`, `lastname`, `email
 
 ## Limits and safety
 
-- Up to 100 contacts and 512 KiB of record data per staging request; import executes at most 25 contacts per request.
+- Up to 100 contacts and 512 KiB of record data per staging request; a session accepts at most 1,000 contacts; import executes at most 25 contacts per request. The preview is paginated (25 rows by default, at most 50) while summary counts cover the complete session.
 - Each contact object is limited to 16 KiB, with scalar HubSpot properties only.
 - Every session, staging row, and idempotency mapping is scoped to the active workspace. CRM records are created through the existing `ClientService`, which applies workspace ownership and business rules.
 - HubSpot IDs are unique per workspace. Retrying or importing the same ID in another session does not create a duplicate.
 - Staging stores only fields needed for the import. On success, normalized PII payloads are cleared. Failed rows retain their normalized data in the workspace-scoped staging table so they can be retried in bounded batches; the explicit discard action erases failed rows. The import report keeps the HubSpot ID, contact label, state, and an opaque fingerprint needed for safe rollback.
-- Rollback deletes only records created by that session whose CRM fields still match the import fingerprint. If a record has since been edited or is inaccessible, it is retained and reported. No pre-existing CRM contact is deleted.
+- Rollback deletes only records created by that session whose complete set of semantic CRM fields still matches the import fingerprint. The comparison and delete run while the workspace-scoped counterparty row is locked in the same database transaction; any semantic edit leaves that record intact. If a record has since been edited or is inaccessible, it is retained and reported. No pre-existing CRM contact is deleted.
 - Module uninstall removes its migration tables and ID mappings, not imported CRM contacts. Reinstalling the module removes the module-side duplicate guard; do not reimport a previously imported HubSpot dataset after reinstall without first reconciling those records.
 
 ## Workflow
@@ -48,7 +48,7 @@ All routes require an authenticated internal user, valid active workspace contex
 - `GET /api/v1/_module/crm.hubspot-migration/status` — workspace-scoped session summary.
 - `POST /api/v1/_module/crm.hubspot-migration/sessions` — create a session.
 - `POST /api/v1/_module/crm.hubspot-migration/sessions/contacts` — validate and stage contacts; body contains `session_id`, `records`, and optional `mapping`.
-- `GET /api/v1/_module/crm.hubspot-migration/sessions/{session_id}` — preview/report.
+- `GET /api/v1/_module/crm.hubspot-migration/sessions/{session_id}?page=1&per_page=25` — bounded preview/report; `per_page` is clamped to 1–50.
 - `POST /api/v1/_module/crm.hubspot-migration/sessions/{session_id}/import` — import one batch; JSON body may set `limit` 1–25.
 - `POST /api/v1/_module/crm.hubspot-migration/sessions/{session_id}/retry-errors` — reprocess up to 25 failed records whose normalized staging data is retained.
 - `POST /api/v1/_module/crm.hubspot-migration/sessions/{session_id}/rollback` — safely remove unchanged records created by the session.
@@ -58,6 +58,17 @@ All routes require an authenticated internal user, valid active workspace contex
 
 - `hubspot_migration_status` returns a session summary in the authorized workspace.
 - `hubspot_migration_run` can import one batch or run safe rollback for an existing session. It accepts only `import_batch` or `rollback`, a valid session ID, and a limit up to 25. MCP authorization must grant `client.manage`; the runtime actor and workspace are resolved by the CRM MCP registry.
+
+## Local regression checks
+
+Run from the repository root before packaging:
+
+```sh
+php docs_modules/examples/modules/crm.hubspot-migration/qa/security_regression.php
+php docs_modules/examples/modules/crm.hubspot-migration/qa/retry_failed_rows_test.php
+```
+
+The module checks use in-memory SQLite fixtures and synthetic contact data. They do not call HubSpot, send contact data to MCP, or require credentials.
 
 ## Installation/update
 

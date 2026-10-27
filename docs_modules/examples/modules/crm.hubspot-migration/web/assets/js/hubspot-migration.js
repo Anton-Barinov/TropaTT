@@ -3,6 +3,8 @@
   const $ = id => document.getElementById(id);
   const api = (path, options = {}) => window.CRM?.api?.request ? window.CRM.api.request(path, options).then(x => x.data || x) : Promise.reject(new Error('CRM API client unavailable'));
   let sessionId = '';
+  let currentPage = 1;
+  let totalPages = 0;
   const message = (text, error = false) => { const el = $('hubmMessage'); el.textContent = text; el.className = 'small ' + (error ? 'hubm-state-error' : 'text-success'); };
   const mapping = () => ({firstname:$('mapFirstname').value.trim(),lastname:$('mapLastname').value.trim(),email:$('mapEmail').value.trim(),phone:$('mapPhone').value.trim(),notes:$('mapNotes').value.trim()});
   const paint = report => {
@@ -10,12 +12,25 @@
     const rows = (report.items || []).map(item => { const tr=document.createElement('tr'); for (const val of [item.hubspot_id, item.contact?.title || '', item.status === 'pending' ? (item.already_imported ? 'Уже импортирован' : 'Готов к импорту') : item.status]) { const td=document.createElement('td'); td.textContent=String(val); tr.append(td); } return tr; });
     if (!rows.length) { const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=3; td.textContent='В сессии пока нет записей.'; tr.append(td); rows.push(tr); }
     $('hubmRows').replaceChildren(...rows);
+    const pagination = report.pagination || {page: 1, total_pages: 1, total_records: rows.length};
+    currentPage = Number(pagination.page) || 1;
+    totalPages = Number(pagination.total_pages) || 1;
+    $('hubmPageLabel').textContent = `Страница ${currentPage} из ${totalPages} · записей: ${Number(pagination.total_records) || 0}`;
+    $('hubmPrevPage').disabled = !sessionId || currentPage <= 1;
+    $('hubmNextPage').disabled = !sessionId || currentPage >= totalPages;
     $('hubmImport').disabled = !sessionId || !(report.counts?.ready > 0);
     $('hubmRetry').disabled = !sessionId || !(report.counts?.failed > 0);
     $('hubmRollback').disabled = !sessionId || !(report.counts?.imported_this_session > 0);
     $('hubmDiscard').disabled = !sessionId || !(report.counts?.ready > 0 || report.counts?.already_imported > 0 || report.counts?.failed > 0);
   };
+  const loadPage = async page => {
+    if (!sessionId) return;
+    const report = await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}?page=${page}&per_page=25`);
+    paint(report);
+  };
   document.addEventListener('DOMContentLoaded', () => {
+    $('hubmPrevPage')?.addEventListener('click', () => loadPage(Math.max(1, currentPage - 1)).catch(e => message(e.message || 'Не удалось загрузить страницу.', true)));
+    $('hubmNextPage')?.addEventListener('click', () => loadPage(Math.min(totalPages, currentPage + 1)).catch(e => message(e.message || 'Не удалось загрузить страницу.', true)));
     $('hubmCreateSession')?.addEventListener('click', async () => { try { const r=await api('/api/v1/_module/crm.hubspot-migration/sessions',{method:'POST',body:{}}); sessionId=r.session_id; sessionStorage.setItem('hubmSessionId',sessionId); $('hubmSessionLabel').textContent=`Сессия: ${sessionId}`; $('hubmPreview').disabled=false; message('Сессия создана. Вставьте JSON и подготовьте предпросмотр.'); } catch(e) { message(e.message || 'Не удалось создать сессию.',true); } });
     $('hubmPreview')?.addEventListener('click', async () => { try { if (!sessionId) throw new Error('Сначала создайте сессию.'); const records=JSON.parse($('hubmJson').value); if (!Array.isArray(records)) throw new Error('Корневое значение JSON должно быть массивом.'); const r=await api('/api/v1/_module/crm.hubspot-migration/sessions/contacts',{method:'POST',body:{session_id:sessionId,records,mapping:mapping()}}); paint(r); message('Предпросмотр готов. CRM пока не изменена.'); } catch(e) { message(e.message || 'Не удалось подготовить предпросмотр.',true); } });
     $('hubmImport')?.addEventListener('click', async () => { try { const r=await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}/import`,{method:'POST',body:{limit:25}}); paint(r.report); message(`Пакет обработан: импортировано ${r.imported}, пропущено ${r.skipped}, ошибок ${r.errors}.`); } catch(e) { message(e.message || 'Импорт не выполнен.',true); } });

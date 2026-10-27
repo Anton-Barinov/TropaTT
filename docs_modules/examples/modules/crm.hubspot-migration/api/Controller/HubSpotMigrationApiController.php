@@ -71,7 +71,13 @@ final class HubSpotMigrationApiController extends BaseController
         $access = $this->authorizedWorkspace('client.view');
         if ($access instanceof JsonResponse) return $access;
         [$actor, $workspaceId] = $access;
-        try { return $this->success('HUBSPOT_MIGRATION_PREVIEW', 'Отчёт сессии загружен.', $this->migrationService($actor, $workspaceId)->preview((string)($params['session_id'] ?? ''))); }
+        try {
+            $query = $this->request()->query;
+            $page = filter_var($query['page'] ?? 1, FILTER_VALIDATE_INT);
+            $perPage = filter_var($query['per_page'] ?? 25, FILTER_VALIDATE_INT);
+            if ($page === false || $perPage === false) return $this->error('HUBSPOT_PREVIEW_PAGE_INVALID', 'Параметры страницы должны быть целыми числами.', 422);
+            return $this->success('HUBSPOT_MIGRATION_PREVIEW', 'Отчёт сессии загружен.', $this->migrationService($actor, $workspaceId)->preview((string)($params['session_id'] ?? ''), $page, $perPage));
+        }
         catch (Throwable $e) { return $this->mapError($e); }
     }
 
@@ -146,7 +152,7 @@ final class HubSpotMigrationApiController extends BaseController
     {
         if ($e instanceof \JsonException) return $this->error('HUBSPOT_IMPORT_INVALID_JSON', 'В данных есть некорректный JSON или кодировка.', 422);
         $code = $e->getMessage();
-        $known = ['SESSION_NOT_FOUND', 'INVALID_SESSION_ID', 'SESSION_NOT_EDITABLE', 'SESSION_NOT_READY', 'NO_RETRYABLE_RECORDS', 'BATCH_MUST_CONTAIN_1_TO_100_CONTACTS', 'PAYLOAD_LIMIT_EXCEEDED', 'INVALID_HUBSPOT_CONTACT', 'INVALID_HUBSPOT_CONTACT_ID', 'CONTACT_NAME_REQUIRED_OR_TOO_LONG', 'INVALID_EMAIL', 'PHONE_TOO_LONG', 'NOTES_TOO_LONG', 'DUPLICATE_HUBSPOT_ID_IN_SESSION', 'INVALID_FIELD_MAPPING', 'ID_CANNOT_BE_MAPPED_AS_CONTACT_DATA', 'NESTED_PROPERTIES_NOT_SUPPORTED'];
+        $known = ['SESSION_NOT_FOUND', 'INVALID_SESSION_ID', 'SESSION_NOT_EDITABLE', 'SESSION_NOT_READY', 'SESSION_RECORD_LIMIT_EXCEEDED', 'NO_RETRYABLE_RECORDS', 'BATCH_MUST_CONTAIN_1_TO_100_CONTACTS', 'PAYLOAD_LIMIT_EXCEEDED', 'INVALID_HUBSPOT_CONTACT', 'INVALID_HUBSPOT_CONTACT_ID', 'CONTACT_NAME_REQUIRED_OR_TOO_LONG', 'INVALID_EMAIL', 'PHONE_TOO_LONG', 'NOTES_TOO_LONG', 'DUPLICATE_HUBSPOT_ID_IN_SESSION', 'INVALID_FIELD_MAPPING', 'ID_CANNOT_BE_MAPPED_AS_CONTACT_DATA', 'NESTED_PROPERTIES_NOT_SUPPORTED'];
         $status = in_array($code, ['SESSION_NOT_FOUND'], true) ? 404 : (in_array($code, $known, true) ? 422 : 503);
         return $this->error(in_array($code, $known, true) ? $code : 'HUBSPOT_MIGRATION_FAILED', in_array($code, $known, true) ? 'Проверьте данные и состояние сессии миграции.' : 'Операция миграции не выполнена.', $status);
     }

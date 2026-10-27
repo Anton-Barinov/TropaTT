@@ -38,9 +38,21 @@ final class MigrationRunTool
                 $cache = $container->get('cache.api');
                 if ($cache instanceof ApiFileCache) $cache->invalidateNamespace('client');
             }
-            return $result;
+            return self::publicResult($operation, $result);
         } catch (Throwable) {
             return ['success' => false, 'error' => 'Migration action failed safely. Check the session report in the CRM module.'];
         }
+    }
+
+    /** MCP returns operation counts only; contact names and reports remain in the CRM UI. */
+    public static function publicResult(string $operation, array $result): array
+    {
+        $keys = $operation === 'rollback'
+            ? ['deleted_unchanged_records', 'retained_changed_or_unavailable_records']
+            : ['processed', 'imported', 'skipped', 'errors'];
+        $safe = ['success' => true, 'operation' => $operation];
+        if (isset($result['session_id']) && is_string($result['session_id'])) $safe['session_id'] = $result['session_id'];
+        foreach ($keys as $key) $safe[$key] = max(0, (int)($result[$key] ?? 0));
+        return $safe;
     }
 }

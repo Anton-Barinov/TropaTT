@@ -287,7 +287,7 @@ final class Request
             return self::TELEGRAM_WEBHOOK_MAX_RAW_BODY_BYTES;
         }
 
-        if (preg_match('#^/api/v1/_module/crm\.hubspot-migration/(?:sessions|sessions/contacts|sessions/[A-Za-z0-9_-]{1,64}/(?:import|discard-pending|rollback))$#D', $normalizedPath) === 1) {
+        if (preg_match('#^/api/v1/_module/crm\.hubspot-migration/(?:sessions|sessions/contacts|sessions/[A-Za-z0-9_-]{1,64}/(?:import|retry-errors|discard-pending|rollback))$#D', $normalizedPath) === 1) {
             return self::HUBSPOT_MAX_RAW_BODY_BYTES + 1;
         }
 
