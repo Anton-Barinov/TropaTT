@@ -67,6 +67,7 @@ window.CRM.navigation = (function () {
   }
 
   var SIDEBAR_COLLAPSE_KEY = 'crm_sidebar_collapsed';
+  var SIDEBAR_DRAWER_MAX_WIDTH = 1199.98;
   var sidebarCollapsed = false;
   var sidebarDocumentClickBound = false;
 
@@ -779,7 +780,7 @@ window.CRM.navigation = (function () {
 
     // Close mobile menu on orientation change to desktop
     var mobileResizeHandler = function () {
-      if (window.innerWidth > 991.98) {
+      if (window.innerWidth > SIDEBAR_DRAWER_MAX_WIDTH) {
         closeMobileMenu();
       }
     };
@@ -795,7 +796,7 @@ window.CRM.navigation = (function () {
     // Close on nav link click on mobile
     document.addEventListener('click', function (e) {
       var navLink = e.target.closest('.crm-nav .nav-link');
-      if (navLink && window.innerWidth <= 991.98 && document.body.classList.contains('sidebar-open')) {
+      if (navLink && window.innerWidth <= SIDEBAR_DRAWER_MAX_WIDTH && document.body.classList.contains('sidebar-open')) {
         closeMobileMenu();
       }
     });
@@ -803,7 +804,7 @@ window.CRM.navigation = (function () {
     if (!sidebarDocumentClickBound) {
       sidebarDocumentClickBound = true;
       document.addEventListener('click', function (e) {
-        if (window.innerWidth > 991.98) return;
+        if (window.innerWidth > SIDEBAR_DRAWER_MAX_WIDTH) return;
         if (!document.body.classList.contains('sidebar-open')) return;
         var insideSidebar = e.target.closest('.crm-sidebar');
         var isToggle = e.target.closest('#sidebarToggle');
@@ -815,7 +816,7 @@ window.CRM.navigation = (function () {
     if (collapseToggle && collapseToggle.dataset.sidebarCollapseBound !== '1') {
       collapseToggle.dataset.sidebarCollapseBound = '1';
       collapseToggle.addEventListener('click', function () {
-        if (window.innerWidth <= 991.98) {
+        if (window.innerWidth <= SIDEBAR_DRAWER_MAX_WIDTH) {
           openMobileMenu();
           return;
         }

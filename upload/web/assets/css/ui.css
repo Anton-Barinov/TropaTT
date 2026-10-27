@@ -3476,6 +3476,24 @@ small.text-muted {
     width: 100%;
   }
 
+  /* The sidebar becomes a drawer at this breakpoint, so keep its opener in
+     the topbar for the full drawer range (including 992–1199px). */
+  .crm-topbar #sidebarToggle {
+    display: inline-flex !important;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--crm-border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--crm-text-muted);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 0 0 36px;
+  }
+
   .crm-sidebar {
     position: fixed;
     top: 0;
@@ -3484,6 +3502,38 @@ small.text-muted {
     height: 100dvh;
     flex-basis: 278px;
     transition: left var(--motion-normal) ease, box-shadow var(--motion-normal) ease;
+  }
+
+  /* A saved desktop-collapsed preference should not turn the drawer into a
+     72px icon rail. Show the full navigation while the drawer is in use. */
+  .crm-sidebar-collapsed .crm-sidebar {
+    width: 278px;
+    flex-basis: 278px;
+    padding: var(--space-4);
+  }
+
+  .crm-sidebar-collapsed .crm-brand {
+    flex-direction: row;
+    gap: var(--space-2);
+    justify-content: flex-start;
+    font-size: 1rem;
+    margin-bottom: var(--space-4);
+  }
+
+  .crm-sidebar-collapsed .crm-nav .nav-link {
+    width: auto;
+    height: auto;
+    margin: 0 0 0.25rem;
+    justify-content: flex-start;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .crm-sidebar-collapsed .crm-nav .crm-nav-label {
+    display: block;
+  }
+
+  .crm-sidebar .crm-brand .crm-sidebar-toggle {
+    display: none;
   }
 
   body.sidebar-open .crm-sidebar {
