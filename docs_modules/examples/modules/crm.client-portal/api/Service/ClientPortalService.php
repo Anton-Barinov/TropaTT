@@ -182,7 +182,7 @@ final class ClientPortalService
         $selectVisibility = $clientPublicId !== null ? '' : ', m.is_client_visible';
         $clientClause = $clientPublicId !== null ? ' AND r.client_public_id = :client_id' : '';
         $stmt = $this->db->prepare(
-            "SELECT m.public_id, m.author_type, m.author_public_id{$selectVisibility}, m.message_text, m.created_at
+            "SELECT m.public_id, m.author_type{$selectVisibility}, m.message_text, m.created_at
              FROM crm_client_service_messages m
              INNER JOIN crm_client_service_requests r
                ON r.public_id = m.request_public_id AND r.organization_id = m.organization_id

@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS `module_outlook_calendar_connections` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `public_id` VARCHAR(64) NOT NULL UNIQUE,
-    `workspace_id` INT NOT NULL DEFAULT 1,
+    `workspace_id` INT NOT NULL,
     `user_id` INT NOT NULL,
     `tenant_id` VARCHAR(128) NULL,
     `outlook_account_email` VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `module_outlook_calendar_connections` (
 
 CREATE TABLE IF NOT EXISTS `module_outlook_calendar_events_map` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `workspace_id` INT NOT NULL DEFAULT 1,
+    `workspace_id` INT NOT NULL,
     `connection_id` INT NOT NULL,
     `crm_event_id` VARCHAR(64) NOT NULL,
     `outlook_event_id` VARCHAR(255) NOT NULL,

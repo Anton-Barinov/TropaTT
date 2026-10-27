@@ -1,0 +1,10 @@
+-- crm.ecommerce-gateway rollback for 001_create_core_tables.sql
+DROP TABLE IF EXISTS `ecommerce_audit_log`;
+DROP TABLE IF EXISTS `ecommerce_nonces`;
+DROP TABLE IF EXISTS `ecommerce_security_log`;
+DROP TABLE IF EXISTS `ecommerce_order_sync_log`;
+DROP TABLE IF EXISTS `ecommerce_ingest_events`;
+DROP TABLE IF EXISTS `ecommerce_idempotency`;
+DROP TABLE IF EXISTS `ecommerce_status_mappings`;
+DROP TABLE IF EXISTS `ecommerce_store_forms`;
+DROP TABLE IF EXISTS `ecommerce_stores`;

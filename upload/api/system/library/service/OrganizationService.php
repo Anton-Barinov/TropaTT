@@ -249,6 +249,12 @@ final class OrganizationService
             $this->lastMemberError = 'ORGANIZATION_MEMBER_DISABLED';
             return false;
         }
+        // MySQL reports zero affected rows when the requested role already
+        // matches the stored value. Treat this idempotent update as success;
+        // otherwise callers receive a misleading LAST_OWNER error.
+        if ($this->organizations->memberRole($publicId, (int)$target['id']) === $roleCode) {
+            return true;
+        }
         $changed = $this->organizations->updateMemberRole($publicId, $userPublicId, $roleCode, gmdate('Y-m-d H:i:s'));
         if (!$changed) {
             $this->lastMemberError = 'ORGANIZATION_MEMBER_LAST_OWNER';

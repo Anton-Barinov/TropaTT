@@ -879,6 +879,9 @@ $publicRoutes = [
     // The sidebar/login logo has to render on the (unauthenticated) login
     // screen; the file name is 128 bits of randomness, so it is unguessable.
     'branding-logo',
+    // Public intake forms are deliberately open to visitors; submissions are
+    // validated and rate-limited by the crm.public-forms API module.
+    'public-form',
 ];
 
 $isPublic = in_array($route, $publicRoutes, true)
@@ -974,6 +977,7 @@ $adminRoutePermissions = [
     'ideas' => ['idea.view'],
     'chat' => ['chat.use'],
     'module-ecommerce-gateway' => ['task.manage', 'project.manage'],
+    'module-public-forms' => ['settings.view'],
 ];
 
 if (isset($adminRoutePermissions[$route])) {

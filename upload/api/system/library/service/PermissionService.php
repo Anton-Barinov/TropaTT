@@ -49,6 +49,7 @@ final class PermissionService
             'api_client.view' => $this->t('permission/messages.perm_api_client_view'),
             'api_client.manage' => $this->t('permission/messages.perm_api_client_manage'),
             'webhook.manage' => $this->t('permission/messages.perm_webhook_manage'),
+            'corporate_mail.read' => $this->t('permission/messages.perm_corporate_mail_read', 'Read corporate mailbox conversations'),
             'feature_flag.manage' => $this->t('permission/messages.perm_feature_flag_manage'),
             'organization.manage' => $this->t('permission/messages.perm_organization_manage'),
             'ai.use' => $this->t('permission/messages.perm_ai_use'),

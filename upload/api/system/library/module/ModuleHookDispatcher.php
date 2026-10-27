@@ -37,13 +37,7 @@ final class ModuleHookDispatcher
      */
     public static function dispatch(Container $container, string $event, array $payload, ?int $organizationId = null): void
     {
-        try {
-            /** @var HookManager $hooks */
-            $hooks = $container->get('hook.manager');
-            $hooks->dispatch($event, $payload);
-        } catch (\Throwable $e) {
-            self::log($container, 'module_hook_dispatch_failed', $event, $e);
-        }
+        self::dispatchHooks($container, $event, $payload);
 
         try {
             /** @var WebhookService $webhooks */
@@ -53,6 +47,19 @@ final class ModuleHookDispatcher
             // Webhook delivery must never break the request that produced the event.
             self::log($container, 'webhook_event_dispatch_failed', $event, $e);
         }
+    }
+
+    /** Dispatch module listeners without also enqueueing generic webhooks. */
+    public static function dispatchHooks(Container $container, string $event, array $payload): void
+    {
+        try {
+            /** @var HookManager $hooks */
+            $hooks = $container->get('hook.manager');
+            $hooks->dispatch($event, $payload);
+        } catch (\Throwable $e) {
+            self::log($container, 'module_hook_dispatch_failed', $event, $e);
+        }
+
     }
 
     private static function resolveOrganizationId(Container $container): ?int

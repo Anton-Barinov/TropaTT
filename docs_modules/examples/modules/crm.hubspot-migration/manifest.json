@@ -1,19 +1,18 @@
 {
     "name": "crm.hubspot-migration",
-    "version": "1.0.5",
+    "version": "1.1.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "HubSpot Data Migration",
-    "description": "Информация о планируемом переносе данных из HubSpot. Импорт пока недоступен и не изменяет данные CRM.",
+    "description": "Импорт контактов из вставленного JSON-экспорта HubSpot с предпросмотром, пакетной обработкой, изоляцией по рабочему пространству и безопасным откатом.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integrations",
     "dependencies": [],
     "require_permissions": [
-        "settings.view",
-        "settings.edit",
-        "clients.view"
+        "client.view",
+        "client.manage"
     ],
     "service_provider": "Module\\Crm\\HubSpotMigration\\HubSpotMigrationServiceProvider",
     "migrations": "api/migrations",
@@ -25,7 +24,7 @@
             "title": "Импорт из HubSpot",
             "route": "hubspot-migration",
             "icon": "upload-cloud",
-            "permission": "settings.edit"
+            "permission": "client.manage"
         }
     ],
     "assets": {
@@ -39,16 +38,52 @@
     "mcp_tools": [
         {
             "name": "hubspot_migration_status",
-            "description": "Report whether the HubSpot migration workflow is available",
+            "description": "Show migration sessions and supported HubSpot export scope for the active workspace",
             "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationStatusTool",
             "permissions": [
-                "settings.view"
+                "client.view"
             ],
             "mode": "all",
             "workspace_required": true,
             "input_schema": {
                 "type": "object",
                 "properties": {},
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "hubspot_migration_run",
+            "description": "Run one bounded import batch or safe rollback for an existing HubSpot contacts migration session",
+            "handler": "Module\\Crm\\HubSpotMigration\\Mcp\\MigrationRunTool",
+            "permissions": [
+                "client.manage"
+            ],
+            "mode": "all",
+            "workspace_required": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "operation": {
+                        "type": "string",
+                        "enum": [
+                            "import_batch",
+                            "rollback"
+                        ]
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "pattern": "^hsm_[a-f0-9]{32}$"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 25
+                    }
+                },
+                "required": [
+                    "operation",
+                    "session_id"
+                ],
                 "additionalProperties": false
             }
         }

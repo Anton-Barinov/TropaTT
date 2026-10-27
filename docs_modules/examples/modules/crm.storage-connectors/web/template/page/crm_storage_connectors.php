@@ -46,6 +46,11 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
     </section>
     <section class="crm-card mt-3" aria-labelledby="stconMigrationTitle">
         <div class="crm-card-header"><h2 id="stconMigrationTitle" class="h5 mb-0">Перенос существующих файлов</h2></div>
-        <div class="crm-card-body"><p class="small text-muted">Файлы переносятся небольшими партиями. Исходные файлы остаются в CRM; перед началом убедитесь, что удалённое хранилище доступно и имеет достаточно места.</p><button class="btn crm-btn-secondary" id="stconMigrateBtn" type="button" disabled>Перенести следующую партию</button><div id="stconMigrationResult" class="small mt-3" role="status" aria-live="polite"></div></div>
+        <div class="crm-card-body">
+            <p class="small text-muted">Файлы переносятся небольшими партиями. Исходные файлы остаются в CRM; перед началом убедитесь, что удалённое хранилище доступно и имеет достаточно места. Если файл не перенёсся, он появится в списке ошибок: устраните причину и повторите перенос только для него.</p>
+            <button class="btn crm-btn-secondary" id="stconMigrateBtn" type="button" disabled>Перенести следующую партию</button>
+            <div id="stconMigrationResult" class="small mt-3" role="status" aria-live="polite"></div>
+            <div id="stconMigrationFailures" class="mt-3" aria-live="polite"></div>
+        </div>
     </section>
 </div></main></div></div>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+    Frontend route of the inbound CRM webhook: /tropatt/webhook/index.
+
+    The router keeps the action anonymous on purpose - the request is authenticated by
+    the HMAC signature of the raw body (see Model/InboundWebhook.php), which is the only
+    scheme the CRM can sign. The controller implements HttpPostActionInterface, so every
+    other HTTP method answers 404.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="tropatt" frontName="tropatt">
+            <module name="Tropatt_Crm"/>
+        </route>
+    </router>
+</config>

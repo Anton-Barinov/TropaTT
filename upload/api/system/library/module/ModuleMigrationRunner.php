@@ -75,19 +75,33 @@ final class ModuleMigrationRunner
     {
         $result = ['rolled_back' => [], 'errors' => []];
 
+        $steps = max(0, $steps);
+        if ($steps === 0) {
+            return $result;
+        }
+
         $applied = $this->getAppliedMigrations($moduleName);
         $toRollback = array_slice($applied, -$steps);
 
+        // Resolve every rollback file before touching the schema. Without this
+        // preflight, an uninstall could drop several tables and only then learn
+        // that an older migration has no reverse script. The module would stay
+        // installed with a partially dismantled schema.
+        $rollbackFiles = [];
         foreach (array_reverse($toRollback) as $migration) {
-            $rollbackFile = $migrationDir . '/' . str_replace('.sql', '_rollback.sql', $migration);
-            if (!is_file($rollbackFile)) {
-                $rollbackFile = $migrationDir . '/' . str_replace('up.sql', 'down.sql', $migration);
-            }
-
-            if (!is_file($rollbackFile)) {
-                $result['errors'][] = "No rollback file for: {$migration}";
+            $rollbackFile = $this->findRollbackFile($migrationDir, (string)$migration);
+            if ($rollbackFile === null) {
+                $result['errors'][] = 'No rollback file for: ' . (string)$migration;
                 continue;
             }
+            $rollbackFiles[(string)$migration] = $rollbackFile;
+        }
+        if ($result['errors'] !== []) {
+            return $result;
+        }
+
+        foreach (array_reverse($toRollback) as $migration) {
+            $rollbackFile = $rollbackFiles[(string)$migration];
 
             try {
                 $sql = file_get_contents($rollbackFile);
@@ -110,6 +124,37 @@ final class ModuleMigrationRunner
         }
 
         return $result;
+    }
+
+    private function findRollbackFile(string $migrationDir, string $migration): ?string
+    {
+        // Migration names are stored in the database. Keep lookup confined to
+        // the module's migration tree, including versioned relative paths.
+        $relative = str_replace('\\', '/', $migration);
+        if ($relative === '' || str_starts_with($relative, '/') || preg_match('#(^|/)\.\.?(/|$)#', $relative) === 1 || str_contains($relative, "\0")) {
+            return null;
+        }
+
+        $rollbackNames = [];
+        if (str_ends_with($relative, '.sql')) {
+            $rollbackNames[] = substr($relative, 0, -4) . '_rollback.sql';
+        }
+        if (str_ends_with($relative, 'up.sql')) {
+            $rollbackNames[] = substr($relative, 0, -6) . 'down.sql';
+        }
+
+        $basePath = realpath($migrationDir);
+        if ($basePath === false || !is_dir($basePath)) {
+            return null;
+        }
+        foreach (array_unique($rollbackNames) as $rollbackName) {
+            $candidate = realpath($basePath . '/' . $rollbackName);
+            if ($candidate !== false && is_file($candidate) && str_starts_with($candidate, rtrim($basePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**

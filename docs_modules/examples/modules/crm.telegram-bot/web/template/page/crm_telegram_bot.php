@@ -243,6 +243,45 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                             <div class="form-text">Публичный адрес для регистрации в Telegram API через setWebhook.</div>
                         </div>
 
+                        <div class="col-12 border rounded p-3 mt-3">
+                            <h3 class="h6 mb-1">Прокси для исходящих запросов к Telegram</h3>
+                            <p class="small text-muted mb-3">Используется для проверки бота, Polling, отправки сообщений и управления Webhook. Входящие Webhook-запросы от Telegram на CRM через этот прокси не проходят.</p>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="tgProxyType">Тип прокси</label>
+                                    <select class="form-select" id="tgProxyType" name="proxy_type">
+                                        <option value="none">Без прокси</option>
+                                        <option value="http">HTTP</option>
+                                        <option value="https">HTTPS (TLS до прокси)</option>
+                                        <option value="socks5">SOCKS5</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label" for="tgProxyHost">Хост или IP</label>
+                                    <input type="text" class="form-control font-monospace" id="tgProxyHost" name="proxy_host" placeholder="proxy.example.com">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="tgProxyPort">Порт</label>
+                                    <input type="number" class="form-control font-monospace" id="tgProxyPort" name="proxy_port" min="1" max="65535" step="1" placeholder="1080">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="tgProxyUsername">Логин прокси (необязательно)</label>
+                                    <input type="text" class="form-control" id="tgProxyUsername" name="proxy_username" autocomplete="off">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="tgProxyPassword">Пароль прокси (необязательно)</label>
+                                    <input type="password" class="form-control" id="tgProxyPassword" name="proxy_password" autocomplete="new-password">
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="tgProxyClearPassword" name="proxy_clear_password" value="1">
+                                        <label class="form-check-label small" for="tgProxyClearPassword">Удалить сохранённый пароль прокси</label>
+                                    </div>
+                                    <div class="form-text" id="tgProxyPasswordHelp">Пароль хранится зашифрованным. Используйте доверенного провайдера прокси: HTTPS защищает соединение CRM с прокси, а TLS Telegram остаётся включённым.</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12">
                             <div class="form-check form-switch mt-2">
                                 <input class="form-check-input" type="checkbox" role="switch" id="tgAutoIntake" name="auto_create_intake" checked>

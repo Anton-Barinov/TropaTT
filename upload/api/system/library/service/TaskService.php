@@ -7,6 +7,7 @@ use Api\Model\Team\TeamRepository;
 use Api\Model\Subtask\SubtaskRepository;
 use Api\Model\Task\TaskRepository;
 use Api\Model\Task\TaskKeyCounterRepository;
+use Api\Model\Task\TaskRelationRepository;
 use Api\Model\Project\ProjectRepository;
 use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\HtmlSanitizer;
@@ -31,7 +32,8 @@ final class TaskService
         private readonly ?SubtaskRepository $subtasks = null,
         private readonly ?SettingService $settings = null,
         private readonly ?\PDO $pdo = null,
-        private readonly ?AgentLeaseService $agentLeases = null
+        private readonly ?AgentLeaseService $agentLeases = null,
+        private readonly ?TaskRelationRepository $taskRelations = null
     )
     {
     }
@@ -887,15 +889,24 @@ final class TaskService
         // always confirm the row is gone (PRJ-426). Access is checked first, so this
         // never confirms the existence of a task the actor may not see.
         if ((string)($task['deleted_at'] ?? '') !== '') {
+            $deletedAt = (string)$task['deleted_at'];
+            $this->deleteSubtasksForTask($publicId, $deletedAt);
+            if ($this->taskRelations !== null) {
+                $this->taskRelations->softDeleteForTaskId((int)($task['id'] ?? 0), $deletedAt);
+            }
             return true;
         }
 
-        $deleted = $this->tasks->softDeleteByPublicId($publicId, gmdate('Y-m-d H:i:s'), $organizationId);
+        $deletedAt = gmdate('Y-m-d H:i:s');
+        $deleted = $this->tasks->softDeleteByPublicId($publicId, $deletedAt, $organizationId);
         if ($deleted) {
             // Subtasks are separate task rows linked through task_relations: without
             // this cascade they survived their parent, kept showing up in task lists
             // and could no longer be removed (delete_subtask needs a live parent).
-            $this->deleteSubtasksForTask($publicId);
+            $this->deleteSubtasksForTask($publicId, $deletedAt);
+            if ($this->taskRelations !== null) {
+                $this->taskRelations->softDeleteForTaskId((int)($task['id'] ?? 0), $deletedAt);
+            }
 
             $this->semanticIndex?->removeEntityDocument('task', $publicId);
             $this->activity?->recordFieldChanged($task, 'archived_at', null, gmdate('Y-m-d H:i:s'), $actor, ['source_type' => 'web']);
@@ -905,13 +916,12 @@ final class TaskService
     }
 
     /** Soft-delete every subtask of the task and drop its subtask relations. */
-    private function deleteSubtasksForTask(string $taskPublicId): void
+    private function deleteSubtasksForTask(string $taskPublicId, string $deletedAt): void
     {
         if ($this->subtasks === null) {
             return;
         }
 
-        $deletedAt = gmdate('Y-m-d H:i:s');
         foreach ($this->subtasks->listByTaskPublicId($taskPublicId) as $subtask) {
             $childPublicId = (string)($subtask['public_id'] ?? '');
             if ($childPublicId === '') {

@@ -372,7 +372,7 @@
     return !api || typeof api.hasPermission !== 'function' || api.hasPermission('knowledge.manage');
   }
 
-  var state = { spaces:[], activeSpace:'', activeStatus:'' };
+  var state = { spaces:[], activeSpace:'', activeStatus:'', page:1, pages:1 };
   var flatSpaces = [];
   var trashedSpaces = [];
   var queryParams = new URLSearchParams(window.location.search || '');
@@ -489,6 +489,7 @@
 
   function selectSpace(id){
     state.activeSpace = id;
+    state.page = 1;
     document.querySelectorAll('.kb-space-item').forEach(function(el){
       el.classList.toggle('active', el.getAttribute('data-space')===id);
     });
@@ -531,6 +532,8 @@
   async function loadArticles(){
     var body = document.getElementById('kbArticlesBody');
     if(!body) return;
+    state.articleRequest = (state.articleRequest || 0) + 1;
+    var requestId = state.articleRequest;
     body.innerHTML = '<tr><td colspan="5" class="text-muted small text-center py-4">' + esc(_t('knowledge.loading', 'Загрузка...')) + '</td></tr>';
 
     var baseParams = {};
@@ -541,18 +544,23 @@
     if(tf) baseParams.page_type = tf;
     if(tg) baseParams.tag_public_id = tg;
     if(q) baseParams.q = q;
+    baseParams.limit = 20;
+    baseParams.page = state.page;
+    if(state.activeStatus) baseParams.status = state.activeStatus;
 
     try {
       var r = await req('api/v1/knowledge/search', {method:'GET', query:baseParams});
+      if(requestId !== state.articleRequest) return;
       var allItems = r.data && r.data.items || [];
-      updateTabs(allItems);
+      updateTabs(r.data && r.data.status_counts || {});
       var countEl = document.getElementById('kbSpaceCount');
-      if(countEl) countEl.textContent = allItems.length;
-      var sf = state.activeStatus || document.getElementById('kbFilterStatus').value;
-      var filtered = sf ? allItems.filter(function(p){ return p.status === sf; }) : allItems;
-      renderArticles(filtered);
-      updatePagInfo(filtered);
-    } catch(e){ body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">' + esc(_t('knowledge.error_loading', 'Ошибка загрузки')) + '</td></tr>'; }
+      var pagination = r.meta && r.meta.pagination ? r.meta.pagination : {page:state.page,pages:1,total:allItems.length,limit:20};
+      if(countEl) countEl.textContent = pagination.total;
+      renderArticles(allItems);
+      updatePagInfo(pagination);
+    } catch(e){
+      if(requestId === state.articleRequest) body.innerHTML='<tr><td colspan="5" class="text-muted small text-center py-4">' + esc(_t('knowledge.error_loading', 'Ошибка загрузки')) + '</td></tr>';
+    }
   }
 
   function renderArticles(items){
@@ -591,18 +599,31 @@
     });
   }
 
-  function updateTabs(items){
-    var counts = {published:0,draft:0,review:0,needs_update:0,archived:0};
-    items.forEach(function(p){ if(counts[p.status]!==undefined) counts[p.status]++; });
-    document.getElementById('kbTabPublished').textContent = counts.published;
-    document.getElementById('kbTabDrafts').textContent = counts.draft;
-    document.getElementById('kbTabReview').textContent = counts.review;
-    document.getElementById('kbTabOutdated').textContent = counts.needs_update;
+  function updateTabs(counts){
+    counts = counts || {};
+    document.getElementById('kbTabPublished').textContent = Number(counts.published) || 0;
+    document.getElementById('kbTabDrafts').textContent = Number(counts.draft) || 0;
+    document.getElementById('kbTabReview').textContent = Number(counts.review) || 0;
+    document.getElementById('kbTabOutdated').textContent = Number(counts.needs_update) || 0;
   }
 
-  function updatePagInfo(items){
+  function updatePagInfo(pagination){
     var el = document.getElementById('kbPagInfo');
-    if(el) el.textContent = items.length + ' ' + declension(items.length, _t('knowledge.pages_count_one', 'страница'), _t('knowledge.pages_count_few', 'страницы'), _t('knowledge.pages_count_many', 'страниц'));
+    var total = Math.max(0, Number(pagination.total) || 0);
+    var page = Math.max(1, Number(pagination.page) || 1);
+    var limit = Math.max(1, Number(pagination.limit) || 20);
+    var pages = Math.max(1, Number(pagination.pages) || 1);
+    state.pages = pages;
+    var first = total ? ((page - 1) * limit) + 1 : 0;
+    var last = Math.min(page * limit, total);
+    var visible = total ? last - first + 1 : 0;
+    if(el) el.textContent = visible + ' ' + declension(visible, _t('knowledge.pages_count_one', 'страница'), _t('knowledge.pages_count_few', 'страницы'), _t('knowledge.pages_count_many', 'страниц'));
+    var pageEl = document.getElementById('kbPagPage');
+    if(pageEl) pageEl.textContent = page + ' / ' + pages;
+    var prev = document.getElementById('kbPagPrev');
+    var next = document.getElementById('kbPagNext');
+    if(prev) prev.disabled = page <= 1;
+    if(next) next.disabled = page >= pages;
   }
 
   function declension(n, one, few, many){
@@ -663,6 +684,7 @@
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){n.classList.remove('active');});
     btn.classList.add('active');
     state.activeStatus = btn.getAttribute('data-status')||'';
+    state.page = 1;
     document.getElementById('kbFilterStatus').value = state.activeStatus;
     checkFilters();
     loadArticles();
@@ -682,22 +704,24 @@
   /* Search */
   document.getElementById('kbSearch').addEventListener('input', function(){
     clearTimeout(this._t);
-    this._t = setTimeout(function(){ checkFilters(); loadArticles(); }, 300);
+    this._t = setTimeout(function(){ state.page = 1; checkFilters(); loadArticles(); }, 300);
   });
 
   /* Filters */
   document.getElementById('kbFilterStatus').addEventListener('change', function(){
     state.activeStatus = this.value;
+    state.page = 1;
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
       n.classList.toggle('active', n.getAttribute('data-status')===state.activeStatus);
     });
     checkFilters();
     loadArticles();
   });
-  document.getElementById('kbFilterType').addEventListener('change', function(){ checkFilters(); loadArticles(); });
-  document.getElementById('kbFilterTag').addEventListener('change', function(){ checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterType').addEventListener('change', function(){ state.page = 1; checkFilters(); loadArticles(); });
+  document.getElementById('kbFilterTag').addEventListener('change', function(){ state.page = 1; checkFilters(); loadArticles(); });
   document.getElementById('kbFilterSpace').addEventListener('change', function(){
     state.activeSpace = this.value;
+    state.page = 1;
     updateSpaceHeader();
     checkFilters();
     loadArticles();
@@ -715,12 +739,24 @@
       if(clear) clear.style.display='none';
     });
     state.activeSpace='';
+    state.page=1;
     document.querySelectorAll('#kbTabs .nav-link').forEach(function(n){
       n.classList.toggle('active', n.getAttribute('data-status')==='');
     });
     state.activeStatus='';
     updateSpaceHeader();
     checkFilters();
+    loadArticles();
+  });
+
+  document.getElementById('kbPagPrev').addEventListener('click', function(){
+    if(state.page <= 1) return;
+    state.page -= 1;
+    loadArticles();
+  });
+  document.getElementById('kbPagNext').addEventListener('click', function(){
+    if(state.page >= state.pages) return;
+    state.page += 1;
     loadArticles();
   });
 

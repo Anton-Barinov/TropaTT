@@ -1,6 +1,6 @@
 {
     "name": "crm.corporate-mail",
-    "version": "1.0.5",
+    "version": "1.0.14",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -12,7 +12,8 @@
     "dependencies": [],
     "require_permissions": [
         "settings.view",
-        "settings.edit"
+        "settings.edit",
+        "corporate_mail.read"
     ],
     "config_defaults": {
         "use_env_smtp": true,
@@ -41,7 +42,7 @@
             "title": "Корпоративная почта",
             "route": "module-corporate-mail",
             "icon": "envelope",
-            "permission": "settings.edit"
+            "permission": "corporate_mail.read"
         }
     ],
     "assets": {

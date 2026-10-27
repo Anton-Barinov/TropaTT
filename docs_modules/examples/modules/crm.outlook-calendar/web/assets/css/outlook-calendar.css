@@ -1,44 +1,23 @@
-.msout-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
-  gap: 1.25rem;
-}
-.msout-hero {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  background: var(--crm-surface, #ffffff);
-  border: 1px solid var(--crm-border, #e2e8f0);
+.outlook-status-box { border-radius: var(--crm-radius, 12px); }
+.outlook-panel {
+  border: 1px solid var(--crm-border, #dce5e2);
   border-radius: var(--crm-radius, 12px);
+  background: var(--crm-surface, #fff);
+  padding: 1.1rem;
 }
-.msout-hero-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--crm-primary, #3b82f6) 12%, transparent);
-  color: var(--crm-primary, #3b82f6);
-  font-size: 1.75rem;
-  flex-shrink: 0;
+.outlook-panel code { overflow-wrap: anywhere; }
+.outlook-account-card {
+  border: 1px solid var(--crm-border, #dce5e2);
+  border-radius: 10px;
+  background: var(--crm-surface-variant, #f7faf9);
+  padding: 0.85rem 1rem;
+  overflow-wrap: anywhere;
 }
-.msout-panel {
-  min-height: 200px;
-  background: var(--crm-surface, #ffffff);
-  border: 1px solid var(--crm-border, #e2e8f0);
-  border-radius: var(--crm-radius, 12px);
-}
-.msout-status-box {
-  background: var(--crm-surface-variant, #f8fafc);
-  border: 1px solid var(--crm-border, #e2e8f0);
-}
-@media (max-width: 991px) {
-  .msout-grid {
-    grid-template-columns: 1fr;
-  }
-  .msout-hero {
-    flex-wrap: wrap;
-  }
+.outlook-sync-result { overflow-wrap: anywhere; }
+.outlook-window-note { line-height: 1.5; }
+@media (max-width: 575.98px) {
+  .outlook-panel { padding: 0.9rem; }
+  .outlook-panel .input-group { flex-wrap: wrap; }
+  .outlook-panel .input-group > .form-control { width: 100%; border-radius: var(--bs-border-radius, 0.375rem); }
+  .outlook-panel .input-group > .btn { width: 100%; margin-top: 0.45rem; border-radius: var(--bs-border-radius, 0.375rem); }
 }

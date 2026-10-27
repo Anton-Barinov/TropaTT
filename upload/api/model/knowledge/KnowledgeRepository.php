@@ -334,24 +334,74 @@ final class KnowledgeRepository
         return $space;
     }
 
+    private function lockWorkspaceMembership(?array $actor, int $organizationId): bool
+    {
+        if (!is_array($actor) || !empty($actor['is_root'])) return true;
+        $userId = $this->actorUserId($actor);
+        if ($userId < 1 || !$this->tableExists('organization_memberships')) return false;
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $stmt = $this->pdo->prepare('UPDATE organization_memberships SET organization_id = organization_id WHERE organization_id = :organization AND user_id = :user');
+            $stmt->execute(['organization' => $organizationId, 'user' => $userId]);
+            return $stmt->rowCount() > 0;
+        }
+        if ($driver === 'sqlsrv') {
+            $stmt = $this->pdo->prepare('SELECT TOP 1 user_id FROM organization_memberships WITH (UPDLOCK, HOLDLOCK) WHERE organization_id = :organization AND user_id = :user');
+        } else {
+            $stmt = $this->pdo->prepare('SELECT user_id FROM organization_memberships WHERE organization_id = :organization AND user_id = :user LIMIT 1 FOR UPDATE');
+        }
+        $stmt->execute(['organization' => $organizationId, 'user' => $userId]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        try {
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table LIMIT 1");
+                $stmt->execute(['table' => $table]);
+            } elseif ($driver === 'mysql') {
+                $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table LIMIT 1');
+                $stmt->execute(['table' => $table]);
+            } elseif ($driver === 'pgsql') {
+                $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = :table LIMIT 1');
+                $stmt->execute(['table' => $table]);
+            } elseif ($driver === 'sqlsrv') {
+                $stmt = $this->pdo->prepare('SELECT TOP 1 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = SCHEMA_NAME() AND TABLE_NAME = :table');
+                $stmt->execute(['table' => $table]);
+            } else {
+                return false;
+            }
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function columnExists(string $table, string $column): bool
     {
+        // Table/column names in this helper are internal constants, never request data.
         try {
-            $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
             if ($driver === 'sqlite') {
-                $stmt = $this->pdo->prepare("PRAGMA table_info({$table})");
-                $stmt->execute();
-                $cols = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-                foreach ($cols as $col) {
-                    if (strcasecmp((string)($col['name'] ?? ''), $column) === 0) {
-                        return true;
-                    }
+                $stmt = $this->pdo->query('PRAGMA table_info(' . $table . ')');
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $col) {
+                    if (strcasecmp((string)($col['name'] ?? ''), $column) === 0) return true;
                 }
                 return false;
             }
-            $stmt = $this->pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
-            $stmt->execute([$table, $column]);
-            return $stmt->fetch() !== false;
+            if ($driver === 'mysql') {
+                $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :column LIMIT 1');
+            } elseif ($driver === 'pgsql') {
+                $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = :table AND column_name = :column LIMIT 1');
+            } elseif ($driver === 'sqlsrv') {
+                $stmt = $this->pdo->prepare('SELECT TOP 1 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = SCHEMA_NAME() AND TABLE_NAME = :table AND COLUMN_NAME = :column');
+            } else {
+                return false;
+            }
+            $stmt->execute(['table' => $table, 'column' => $column]);
+            return $stmt->fetchColumn() !== false;
         } catch (\Throwable $e) {
             AppLog::error('[KnowledgeRepository::columnExists] DB prepare: ' . $e->getMessage());
             return false;
@@ -498,6 +548,36 @@ final class KnowledgeRepository
             . ' LIMIT 1'
         );
         $stmt->execute(['space' => $spacePublicId, 'type' => $subjectType, 'subject' => $subjectPublicId]);
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int)$id;
+    }
+
+    /**
+     * Resolve a page permission by public identifiers so API clients can
+     * revoke a grant without access to internal database IDs.
+     */
+    public function findPagePermissionIdBySubject(string $pagePublicId, string $subjectType, string $subjectPublicId): ?int
+    {
+        $subjectTable = match ($subjectType) {
+            'user' => 'users',
+            'role' => 'roles',
+            'team' => 'teams',
+            'department' => 'departments',
+            default => null,
+        };
+        if ($subjectTable === null || $pagePublicId === '' || $subjectPublicId === '') {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT perm.id FROM knowledge_page_permissions perm'
+            . ' JOIN knowledge_pages page ON page.id = perm.page_id'
+            . ' JOIN ' . $subjectTable . ' subject ON subject.id = perm.subject_id'
+            . ' WHERE page.public_id = :page AND perm.subject_type = :type AND subject.public_id = :subject'
+            . ' LIMIT 1'
+        );
+        $stmt->execute(['page' => $pagePublicId, 'type' => $subjectType, 'subject' => $subjectPublicId]);
         $id = $stmt->fetchColumn();
 
         return $id === false ? null : (int)$id;
@@ -1323,13 +1403,13 @@ final class KnowledgeRepository
         ], $actorId, $actor);
     }
 
-    public function saveDraft(string $pagePublicId, array $payload, int $userId): array
+    public function saveDraft(string $pagePublicId, array $payload, int $userId, ?array $actor = null): array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             throw new \RuntimeException('Knowledge page not found');
         }
-        $existing = $this->draft($pagePublicId, $userId);
+        $existing = $this->draft($pagePublicId, $userId, $actor);
         $html = $this->sanitizeHtml((string)($payload['content_html'] ?? $payload['content'] ?? $page['content_html'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
         if ($existing) {
@@ -1344,7 +1424,7 @@ final class KnowledgeRepository
                 'updated_at' => $now,
                 'public_id' => $existing['public_id'],
             ]);
-            return $this->draft($pagePublicId, $userId) ?? $existing;
+            return $this->draft($pagePublicId, $userId, $actor) ?? $existing;
         }
         $publicId = $this->publicId('kbd');
         $stmt = $this->pdo->prepare('INSERT INTO knowledge_drafts (public_id, page_id, user_id, title, content_html, content_text, content_json, base_row_version, autosaved_at, created_at, updated_at) VALUES (:public_id, :page_id, :user_id, :title, :content_html, :content_text, :content_json, :base_row_version, :autosaved_at, :created_at, :updated_at)');
@@ -1361,12 +1441,12 @@ final class KnowledgeRepository
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        return $this->draft($pagePublicId, $userId) ?? [];
+        return $this->draft($pagePublicId, $userId, $actor) ?? [];
     }
 
-    public function draft(string $pagePublicId, int $userId): ?array
+    public function draft(string $pagePublicId, int $userId, ?array $actor = null): ?array
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return null;
         }
@@ -1376,9 +1456,9 @@ final class KnowledgeRepository
         return is_array($draft) ? $draft : null;
     }
 
-    public function deleteDraft(string $pagePublicId, int $userId): bool
+    public function deleteDraft(string $pagePublicId, int $userId, ?array $actor = null): bool
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'edit');
         if (!$page) {
             return false;
         }
@@ -1443,6 +1523,55 @@ final class KnowledgeRepository
         }
         $filters['q'] = $query;
         return $this->pages($filters + ['limit' => 30], $actor);
+    }
+
+    /**
+     * Search one page of the knowledge list and return counts for the same
+     * filters without the selected status. The list uses those counts for its
+     * status tabs, while the filtered total drives the pager.
+     *
+     * @return array{items: array, pagination: array{page:int,pages:int,total:int,limit:int}, status_counts: array<string,int>}
+     */
+    public function searchPage(string $query, array $filters = [], ?array $actor = null): array
+    {
+        $query = trim($query);
+        if ($query !== '') {
+            $filters['q'] = $query;
+        }
+
+        $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $filters['limit'] = $limit;
+        $filters['page'] = $page;
+
+        [$where, $params] = $this->pageWhere($filters, $actor);
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$where}");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $statusFilters = $filters;
+        unset($statusFilters['status'], $statusFilters['page'], $statusFilters['limit'], $statusFilters['sort'], $statusFilters['order']);
+        [$statusWhere, $statusParams] = $this->pageWhere($statusFilters, $actor);
+        $statusStmt = $this->pdo->prepare("SELECT p.status, COUNT(*) AS total FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$statusWhere} GROUP BY p.status");
+        $statusStmt->execute($statusParams);
+        $statusCounts = ['published' => 0, 'draft' => 0, 'review' => 0, 'needs_update' => 0, 'archived' => 0];
+        foreach ($statusStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $status = (string)($row['status'] ?? '');
+            if (array_key_exists($status, $statusCounts)) {
+                $statusCounts[$status] = (int)$row['total'];
+            }
+        }
+
+        return [
+            'items' => $this->pages($filters, $actor),
+            'pagination' => [
+                'page' => $page,
+                'pages' => max(1, (int)ceil($total / $limit)),
+                'total' => $total,
+                'limit' => $limit,
+            ],
+            'status_counts' => $statusCounts,
+        ];
     }
 
     public function popular(int $limit = 10, ?array $actor = null): array
@@ -1793,9 +1922,9 @@ final class KnowledgeRepository
         return $stmt->fetchColumn() !== false;
     }
 
-    public function favoritePage(string $pagePublicId, int $userId): ?string
+    public function favoritePage(string $pagePublicId, int $userId, ?array $actor = null): ?string
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'view');
         if (!$page) return null;
         $stmt = $this->pdo->prepare('SELECT public_id FROM favorites WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
         $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
@@ -1908,9 +2037,9 @@ final class KnowledgeRepository
         return $stmt->fetchColumn() !== false;
     }
 
-    public function subscribePage(string $pagePublicId, int $userId): ?string
+    public function subscribePage(string $pagePublicId, int $userId, ?array $actor = null): ?string
     {
-        $page = $this->page($pagePublicId);
+        $page = $this->page($pagePublicId, $actor, 'view');
         if (!$page) return null;
         $stmt = $this->pdo->prepare('SELECT public_id FROM subscriptions WHERE entity_type = :entity_type AND entity_public_id = :entity_public_id AND user_id = :user_id LIMIT 1');
         $stmt->execute(['entity_type' => 'knowledge_page', 'entity_public_id' => $pagePublicId, 'user_id' => $userId]);
@@ -2403,28 +2532,40 @@ final class KnowledgeRepository
 
     public function createSpaceWithSource(array $payload, ?int $actorId, ?array $actor = null): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1 || !$this->columnExists('knowledge_spaces', 'organization_id')) {
+            throw new \RuntimeException('KNOWLEDGE_WORKSPACE_REQUIRED');
+        }
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbs');
         $title = trim((string)($payload['title'] ?? ''));
         $slug = $this->uniqueSlug('knowledge_spaces', $this->slug((string)($payload['slug'] ?? $title), 'space'), null);
         $parentId = null;
         if (!empty($payload['parent_public_id'])) {
-            // Resolve the parent with the actor's own access: a null-actor lookup
-            // hides every non-public space, so naming a private parent silently
-            // created the child at the root instead of under it.
             $parent = $this->resolveSpace((string)$payload['parent_public_id'], $actor, 'view');
-            $parentId = $parent ? (int)$parent['id'] : null;
+            if (!$parent || (int)($parent['organization_id'] ?? 0) !== $organizationId) {
+                throw new \RuntimeException('KNOWLEDGE_PARENT_SPACE_INVALID');
+            }
+            $parentId = (int)$parent['id'];
         } elseif (!empty($payload['parent_id'])) {
-            $parentId = (int)$payload['parent_id'];
+            $parentLookup = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE id = :id AND organization_id = :organization LIMIT 1');
+            $parentLookup->execute(['id' => (int)$payload['parent_id'], 'organization' => $organizationId]);
+            $parentPublicId = $parentLookup->fetchColumn();
+            $parent = $parentPublicId !== false ? $this->resolveSpace((string)$parentPublicId, $actor, 'view') : null;
+            if (!$parent || (int)($parent['organization_id'] ?? 0) !== $organizationId) {
+                throw new \RuntimeException('KNOWLEDGE_PARENT_SPACE_INVALID');
+            }
+            $parentId = (int)$parent['id'];
         }
         $hasParentCol = $this->columnExists('knowledge_spaces', 'parent_id');
         if ($hasParentCol) {
-            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, organization_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, parent_id, sort_order, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :organization_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :parent_id, :sort_order, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
         } else {
-            $stmt = $this->pdo->prepare('INSERT INTO knowledge_spaces (public_id, title, slug, description, icon, color, owner_user_id, visibility, default_access_level, sort_order, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :title, :slug, :description, :icon, :color, :owner_user_id, :visibility, :default_access_level, :sort_order, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+            throw new \RuntimeException('KNOWLEDGE_WORKSPACE_SCHEMA_REQUIRED');
         }
         $params = [
             'public_id' => $publicId,
+            'organization_id' => $organizationId,
             'title' => $title,
             'slug' => $slug,
             'description' => $this->nullableText($payload['description'] ?? null),
@@ -2471,6 +2612,10 @@ final class KnowledgeRepository
 
     public function createPageShell(array $payload, ?int $actorId, ?array $actor = null): array
     {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1 || !$this->columnExists('knowledge_pages', 'organization_id')) {
+            throw new \RuntimeException('KNOWLEDGE_WORKSPACE_REQUIRED');
+        }
         $space = !empty($payload['space_public_id'])
             ? $this->resolveSpace((string)$payload['space_public_id'], $actor, 'edit')
             : null;
@@ -2480,13 +2625,21 @@ final class KnowledgeRepository
         $parent = !empty($payload['parent_public_id'])
             ? $this->resolvePage((string)$payload['parent_public_id'], $actor, 'edit')
             : null;
+        if (!empty($payload['parent_public_id']) && (
+            !$parent
+            || (int)($parent['organization_id'] ?? 0) !== $organizationId
+            || (int)($parent['space_id'] ?? 0) !== (int)$space['id']
+        )) {
+            throw new \RuntimeException('KNOWLEDGE_PARENT_PAGE_INVALID');
+        }
         $title = trim((string)($payload['title'] ?? ''));
         $now = gmdate('Y-m-d H:i:s');
         $publicId = $this->publicId('kbp');
 
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, space_id, parent_id, title, slug, page_type, status, sort_order, path, depth, owner_user_id, last_editor_user_id, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :sort_order, :path, :depth, :owner_user_id, :last_editor_user_id, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
+        $stmt = $this->pdo->prepare('INSERT INTO knowledge_pages (public_id, organization_id, space_id, parent_id, title, slug, page_type, status, sort_order, path, depth, owner_user_id, last_editor_user_id, source_type, source_id, source_url, source_payload_json, created_at, updated_at) VALUES (:public_id, :organization_id, :space_id, :parent_id, :title, :slug, :page_type, :status, :sort_order, :path, :depth, :owner_user_id, :last_editor_user_id, :source_type, :source_id, :source_url, :source_payload_json, :created_at, :updated_at)');
         $stmt->execute([
             'public_id' => $publicId,
+            'organization_id' => $organizationId,
             'space_id' => (int)$space['id'],
             'parent_id' => $parent ? (int)$parent['id'] : null,
             'title' => $title,
@@ -2508,7 +2661,11 @@ final class KnowledgeRepository
         $page = $this->pageRaw($publicId) ?? [];
         $this->refreshPagePath((int)$page['id']);
         $this->refreshChildrenCount($parent ? (int)$parent['id'] : null);
-        return $this->pageRaw($publicId) ?? $page;
+        $authorizedPage = $this->page($publicId, $actor, 'edit');
+        if (!$authorizedPage || (int)($authorizedPage['organization_id'] ?? 0) !== $organizationId) {
+            throw new \RuntimeException('KNOWLEDGE_WORKSPACE_ACCESS_LOST');
+        }
+        return $authorizedPage;
     }
 
     public function updatePageParent(string $publicId, ?string $parentPublicId, ?array $actor = null): ?array
@@ -2531,42 +2688,49 @@ final class KnowledgeRepository
         return $this->page($publicId);
     }
 
-    public function batchPublish(string $publicId, ?int $actorId, bool $silent = false): ?array
+    public function batchPublish(string $publicId, ?int $actorId, bool $silent = false, ?array $actor = null): ?array
     {
-        $page = $this->page($publicId);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1) return null;
+        $page = $this->page($publicId, $actor, 'edit');
         if (!$page) {
             return null;
         }
         $now = gmdate('Y-m-d H:i:s');
-        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id");
+        $stmt = $this->pdo->prepare("UPDATE knowledge_pages SET status = 'published', review_status = 'approved', published_by_user_id = :actor, published_at = :published_at, reviewed_at = :reviewed_at, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id AND organization_id = :organization");
         $stmt->execute([
             'actor' => $actorId,
             'published_at' => !$silent ? $now : ((string)($page['published_at'] ?? $now)),
             'reviewed_at' => $now,
             'updated_at' => $now,
             'public_id' => $publicId,
+            'organization' => $organizationId,
         ]);
         if (!$silent) {
             $this->legacyAddVersion($publicId, $actorId, 'Imported and published');
         }
-        return $this->page($publicId);
+        return $this->page($publicId, $actor);
     }
 
-    public function findPageBySource(string $sourceType, string $sourceId): ?array
+    public function findPageBySource(string $sourceType, string $sourceId, ?array $actor = null): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_pages WHERE source_type = :source_type AND source_id = :source_id AND deleted_at IS NULL LIMIT 1');
-        $stmt->execute(['source_type' => $sourceType, 'source_id' => $sourceId]);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1 || !$this->columnExists('knowledge_pages', 'organization_id')) return null;
+        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_pages WHERE organization_id = :organization AND source_type = :source_type AND source_id = :source_id AND deleted_at IS NULL LIMIT 1');
+        $stmt->execute(['organization' => $organizationId, 'source_type' => $sourceType, 'source_id' => $sourceId]);
         $publicId = $stmt->fetchColumn();
         if ($publicId === false) {
             return null;
         }
-        return $this->page((string)$publicId);
+        return $this->page((string)$publicId, $actor);
     }
 
-    public function findSpaceBySource(string $sourceType, string $sourceId): ?array
+    public function findSpaceBySource(string $sourceType, string $sourceId, ?array $actor = null): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE source_type = :source_type AND source_id = :source_id LIMIT 1');
-        $stmt->execute(['source_type' => $sourceType, 'source_id' => $sourceId]);
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1 || !$this->columnExists('knowledge_spaces', 'organization_id')) return null;
+        $stmt = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE organization_id = :organization AND source_type = :source_type AND source_id = :source_id LIMIT 1');
+        $stmt->execute(['organization' => $organizationId, 'source_type' => $sourceType, 'source_id' => $sourceId]);
         $publicId = $stmt->fetchColumn();
         if ($publicId === false) {
             return null;
@@ -2574,7 +2738,8 @@ final class KnowledgeRepository
         // Source sync is internal (migration services): read the row without the
         // actor ACL, otherwise a private space is reported as not yet imported and
         // a re-run creates a duplicate.
-        return $this->spaceRaw((string)$publicId);
+        $space = $this->spaceRaw((string)$publicId);
+        return is_array($space) && (int)($space['organization_id'] ?? 0) === $organizationId ? $space : null;
     }
 
     // ── Page Properties ──
@@ -2633,60 +2798,191 @@ final class KnowledgeRepository
 
     // ── Comments with source metadata ──
 
-    public function addCommentWithSource(string $pagePublicId, string $body, int $userId, array $source = [], ?string $parentPublicId = null): ?array
+    public function addCommentWithSource(string $pagePublicId, string $body, int $userId, array $source = [], ?string $parentPublicId = null, ?array $actor = null): ?array
     {
-        $page = $this->pageIdentity($pagePublicId);
-        if (!$page) {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId < 1 || !$this->columnExists('knowledge_comments', 'organization_id')) {
             return null;
         }
-        $parentId = null;
-        if ($parentPublicId !== null) {
-            $pStmt = $this->pdo->prepare('SELECT id FROM knowledge_comments WHERE public_id = :public_id AND page_id = :page_id LIMIT 1');
-            $pStmt->execute(['public_id' => $parentPublicId, 'page_id' => (int)$page['id']]);
-            $parentId = $pStmt->fetchColumn() ?: null;
+        foreach (['source_type', 'source_id', 'source_author_name', 'source_created_at', 'anchor_text', 'anchor_path', 'is_inline'] as $column) {
+            if (!$this->columnExists('knowledge_comments', $column)) {
+                throw new \RuntimeException('KNOWLEDGE_COMMENT_SOURCE_SCHEMA_REQUIRED');
+            }
         }
-        $publicId = $this->publicId('kbc');
-        $now = gmdate('Y-m-d H:i:s');
-        $bodyClean = $this->sanitizeHtml($body);
-        $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (public_id, page_id, parent_id, user_id, body, source_type, source_id, source_author_name, source_created_at, anchor_text, anchor_path, is_inline, created_at, updated_at) VALUES (:public_id, :page_id, :parent_id, :user_id, :body, :source_type, :source_id, :source_author_name, :source_created_at, :anchor_text, :anchor_path, :is_inline, :created_at, :updated_at)');
-        $stmt->execute([
-            'public_id' => $publicId,
-            'page_id' => (int)$page['id'],
-            'parent_id' => $parentId,
-            'user_id' => $userId,
-            'body' => $bodyClean,
-            'source_type' => $this->nullableShort($source['source_type'] ?? null, 64),
-            'source_id' => $this->nullableShort($source['source_id'] ?? null, 255),
-            'source_author_name' => $this->nullableShort($source['source_author_name'] ?? null, 255),
-            'source_created_at' => $source['source_created_at'] ?? null,
-            'anchor_text' => $this->nullableShort($source['anchor_text'] ?? null, 500),
-            'anchor_path' => $this->nullableShort($source['anchor_path'] ?? null, 500),
-            'is_inline' => !empty($source['is_inline']) ? 1 : 0,
-            'created_at' => (string)($source['source_created_at'] ?? $now),
-            'updated_at' => $now,
-        ]);
-        $this->pdo->prepare('UPDATE knowledge_pages SET comments_count = comments_count + 1 WHERE id = :id')->execute(['id' => (int)$page['id']]);
-        $row = $this->comment($publicId);
-        $row['user_public_id'] = null;
-        $row['user_name'] = null;
-        return $row;
+        $sourceType = $this->nullableShort($source['source_type'] ?? null, 64);
+        $sourceId = $this->nullableShort($source['source_id'] ?? null, 255);
+        $idempotent = $sourceType !== null && $sourceType !== '' && $sourceId !== null && $sourceId !== '';
+        $savepoint = 'knowledge_comment_source_write';
+        $ownsTransaction = !$this->pdo->inTransaction();
+        $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $page = null;
+        if ($ownsTransaction) {
+            $this->pdo->beginTransaction();
+        } elseif ($driver === 'sqlsrv') {
+            $this->pdo->exec('SAVE TRANSACTION ' . $savepoint);
+        } else {
+            $this->pdo->exec('SAVEPOINT ' . $savepoint);
+        }
+
+        try {
+            // Recheck and hold workspace membership after opening the
+            // transaction/savepoint. The row lock serializes a concurrent
+            // membership revoke with this write; SQLite's no-op UPDATE obtains
+            // its database write lock before the authorization read.
+            if (!$this->lockWorkspaceMembership($actor, $organizationId)) {
+                if ($ownsTransaction && $this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                } elseif (!$ownsTransaction && $driver !== 'sqlsrv') {
+                    $this->pdo->exec('ROLLBACK TO SAVEPOINT ' . $savepoint);
+                    $this->pdo->exec('RELEASE SAVEPOINT ' . $savepoint);
+                } elseif (!$ownsTransaction) {
+                    $this->pdo->exec('ROLLBACK TRANSACTION ' . $savepoint);
+                }
+                return null;
+            }
+            $page = $this->page($pagePublicId, $actor, 'edit');
+            if (!$page || (int)($page['organization_id'] ?? 0) !== $organizationId) {
+                if ($ownsTransaction && $this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                } elseif (!$ownsTransaction && $driver !== 'sqlsrv') {
+                    $this->pdo->exec('ROLLBACK TO SAVEPOINT ' . $savepoint);
+                    $this->pdo->exec('RELEASE SAVEPOINT ' . $savepoint);
+                } elseif (!$ownsTransaction) {
+                    $this->pdo->exec('ROLLBACK TRANSACTION ' . $savepoint);
+                }
+                return null;
+            }
+            if ($idempotent) {
+                $existing = $this->pdo->prepare('SELECT comment_id FROM knowledge_comment_sources WHERE organization_id = :organization AND page_id = :page_id AND source_type = :source_type AND source_id = :source_id LIMIT 1');
+                $existing->execute(['organization' => $organizationId, 'page_id' => (int)$page['id'], 'source_type' => $sourceType, 'source_id' => $sourceId]);
+                $existingId = $existing->fetchColumn();
+                if ($existingId !== false) {
+                    $existingComment = $this->pdo->prepare('SELECT public_id FROM knowledge_comments WHERE id = :id AND organization_id = :organization AND page_id = :page_id LIMIT 1');
+                    $existingComment->execute(['id' => (int)$existingId, 'organization' => $organizationId, 'page_id' => (int)$page['id']]);
+                    $existingPublicId = $existingComment->fetchColumn();
+                    if ($existingPublicId !== false) {
+                        if ($ownsTransaction) {
+                            $this->pdo->commit();
+                        } elseif ($driver !== 'sqlsrv') {
+                            $this->pdo->exec('RELEASE SAVEPOINT ' . $savepoint);
+                        }
+                        $row = $this->comment((string)$existingPublicId);
+                        if (is_array($row)) {
+                            $row['user_public_id'] = null;
+                            $row['user_name'] = null;
+                        }
+                        return $row;
+                    }
+                    // Deletion of an imported comment must not leave a stale
+                    // derived identity that blocks restoring it on a later sync.
+                    $this->pdo->prepare('DELETE FROM knowledge_comment_sources WHERE organization_id = :organization AND page_id = :page_id AND source_type = :source_type AND source_id = :source_id')->execute(['organization' => $organizationId, 'page_id' => (int)$page['id'], 'source_type' => $sourceType, 'source_id' => $sourceId]);
+                }
+            }
+            $parentId = null;
+            if ($parentPublicId !== null) {
+                $pStmt = $this->pdo->prepare('SELECT id FROM knowledge_comments WHERE public_id = :public_id AND page_id = :page_id AND organization_id = :organization LIMIT 1');
+                $pStmt->execute(['public_id' => $parentPublicId, 'page_id' => (int)$page['id'], 'organization' => $organizationId]);
+                $parentId = $pStmt->fetchColumn() ?: null;
+            }
+            $publicId = $this->publicId('kbc');
+            $now = gmdate('Y-m-d H:i:s');
+            $bodyClean = $this->sanitizeHtml($body);
+            $stmt = $this->pdo->prepare('INSERT INTO knowledge_comments (organization_id, public_id, page_id, parent_id, user_id, body, source_type, source_id, source_author_name, source_created_at, anchor_text, anchor_path, is_inline, created_at, updated_at) VALUES (:organization, :public_id, :page_id, :parent_id, :user_id, :body, :source_type, :source_id, :source_author_name, :source_created_at, :anchor_text, :anchor_path, :is_inline, :created_at, :updated_at)');
+            $stmt->execute([
+                'organization' => $organizationId,
+                'public_id' => $publicId,
+                'page_id' => (int)$page['id'],
+                'parent_id' => $parentId,
+                'user_id' => $userId,
+                'body' => $bodyClean,
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+                'source_author_name' => $this->nullableShort($source['source_author_name'] ?? null, 255),
+                'source_created_at' => $source['source_created_at'] ?? null,
+                'anchor_text' => $this->nullableShort($source['anchor_text'] ?? null, 500),
+                'anchor_path' => $this->nullableShort($source['anchor_path'] ?? null, 500),
+                'is_inline' => !empty($source['is_inline']) ? 1 : 0,
+                'created_at' => (string)($source['source_created_at'] ?? $now),
+                'updated_at' => $now,
+            ]);
+            $commentId = (int)$this->pdo->lastInsertId();
+            if ($idempotent) {
+                $this->pdo->prepare('INSERT INTO knowledge_comment_sources (organization_id, page_id, source_type, source_id, comment_id, created_at) VALUES (:organization, :page_id, :source_type, :source_id, :comment_id, :created_at)')->execute([
+                    'organization' => $organizationId,
+                    'page_id' => (int)$page['id'],
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceId,
+                    'comment_id' => $commentId,
+                    'created_at' => $now,
+                ]);
+            }
+            $this->pdo->prepare('UPDATE knowledge_pages SET comments_count = comments_count + 1 WHERE id = :id AND organization_id = :organization')->execute(['id' => (int)$page['id'], 'organization' => $organizationId]);
+            if ($ownsTransaction) {
+                $this->pdo->commit();
+            } elseif ($driver !== 'sqlsrv') {
+                $this->pdo->exec('RELEASE SAVEPOINT ' . $savepoint);
+            }
+            $row = $this->comment($publicId);
+            if (is_array($row)) {
+                $row['user_public_id'] = null;
+                $row['user_name'] = null;
+            }
+            return $row;
+        } catch (\Throwable $e) {
+            if ($ownsTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            } elseif (!$ownsTransaction && $driver === 'sqlsrv') {
+                $this->pdo->exec('ROLLBACK TRANSACTION ' . $savepoint);
+            } elseif (!$ownsTransaction) {
+                $this->pdo->exec('ROLLBACK TO SAVEPOINT ' . $savepoint);
+                $this->pdo->exec('RELEASE SAVEPOINT ' . $savepoint);
+            }
+            // Another worker may have committed the same source identity first.
+            if ($idempotent && is_array($page)) {
+                $existing = $this->pdo->prepare('SELECT c.public_id FROM knowledge_comment_sources s JOIN knowledge_comments c ON c.id = s.comment_id AND c.organization_id = s.organization_id AND c.page_id = s.page_id WHERE s.organization_id = :organization AND s.page_id = :page_id AND s.source_type = :source_type AND s.source_id = :source_id LIMIT 1');
+                $existing->execute(['organization' => $organizationId, 'page_id' => (int)$page['id'], 'source_type' => $sourceType, 'source_id' => $sourceId]);
+                $existingPublicId = $existing->fetchColumn();
+                if ($existingPublicId !== false) {
+                    $row = $this->comment((string)$existingPublicId);
+                    if (is_array($row)) {
+                        $row['user_public_id'] = null;
+                        $row['user_name'] = null;
+                        return $row;
+                    }
+                }
+            }
+            throw $e;
+        }
     }
 
-    public function reindexPage(int $pageId): void
+    public function reindexPage(int $pageId, ?int $organizationId = null): void
     {
-        $stmt = $this->pdo->prepare('SELECT p.id, p.space_id, p.title, p.content_text, p.status, p.page_type, p.updated_at FROM knowledge_pages p WHERE p.id = :id LIMIT 1');
-        $stmt->execute(['id' => $pageId]);
+        if ($pageId < 1 || ($organizationId !== null && $organizationId < 1)) return;
+        $scope = $organizationId !== null ? ' AND p.organization_id = :organization' : '';
+        $stmt = $this->pdo->prepare('SELECT p.id, p.organization_id, p.space_id, p.title, p.content_text, p.status, p.page_type, p.updated_at FROM knowledge_pages p WHERE p.id = :id' . $scope . ' LIMIT 1');
+        $params = ['id' => $pageId];
+        if ($organizationId !== null) $params['organization'] = $organizationId;
+        $stmt->execute($params);
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($page)) {
             return;
         }
         // Gather tags
-        $tagStmt = $this->pdo->prepare("SELECT t.title FROM entity_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entity_type = 'knowledge_page' AND et.entity_public_id = (SELECT public_id FROM knowledge_pages WHERE id = :id)");
-        $tagStmt->execute(['id' => $pageId]);
+        $tagStmt = $this->pdo->prepare("SELECT t.title FROM entity_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entity_type = 'knowledge_page' AND et.entity_public_id = (SELECT p.public_id FROM knowledge_pages p WHERE p.id = :id" . $scope . ")");
+        $tagStmt->execute($params);
         $tags = $tagStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
         $tagsText = implode(' ', $tags);
-        $stmt = $this->pdo->prepare('REPLACE INTO knowledge_search_index (page_id, space_id, title, content_text, tags_text, entity_text, status, page_type, updated_at) VALUES (:page_id, :space_id, :title, :content_text, :tags_text, :entity_text, :status, :page_type, :updated_at)');
-        $stmt->execute([
+        if ((int)($page['organization_id'] ?? 0) < 1 || ($organizationId !== null && (int)$page['organization_id'] !== $organizationId)) return;
+        $hasOrganizationColumn = $this->columnExists('knowledge_search_index', 'organization_id');
+        if (!$hasOrganizationColumn && $organizationId !== null) return;
+        $columns = $hasOrganizationColumn
+            ? 'page_id, organization_id, space_id, title, content_text, tags_text, entity_text, status, page_type, updated_at'
+            : 'page_id, space_id, title, content_text, tags_text, entity_text, status, page_type, updated_at';
+        $values = $hasOrganizationColumn
+            ? ':page_id, :organization_id, :space_id, :title, :content_text, :tags_text, :entity_text, :status, :page_type, :updated_at'
+            : ':page_id, :space_id, :title, :content_text, :tags_text, :entity_text, :status, :page_type, :updated_at';
+        $stmt = $this->pdo->prepare('REPLACE INTO knowledge_search_index (' . $columns . ') VALUES (' . $values . ')');
+        $params = [
             'page_id' => (int)$page['id'],
             'space_id' => (int)$page['space_id'],
             'title' => (string)$page['title'],
@@ -2696,7 +2992,9 @@ final class KnowledgeRepository
             'status' => (string)$page['status'],
             'page_type' => (string)$page['page_type'],
             'updated_at' => (string)$page['updated_at'],
-        ]);
+        ];
+        if ($hasOrganizationColumn) $params['organization_id'] = (int)$page['organization_id'];
+        $stmt->execute($params);
     }
 
     public function removePageFromSearchIndex(int $pageId): void

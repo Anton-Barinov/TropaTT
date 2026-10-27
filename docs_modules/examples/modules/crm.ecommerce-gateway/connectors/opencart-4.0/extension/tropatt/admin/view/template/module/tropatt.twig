@@ -1,0 +1,201 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <button type="button" id="button-test" class="btn btn-info"><i class="fa-solid fa-rotate"></i> {{ button_test_connection }}</button>
+        <button type="button" id="button-save" class="btn btn-primary" data-bs-toggle="tooltip" title="{{ button_save }}"><i class="fa-solid fa-floppy-disk"></i></button>
+        <a href="{{ cancel }}" class="btn btn-light" data-bs-toggle="tooltip" title="{{ button_cancel }}"><i class="fa-solid fa-reply"></i></a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if error_warning %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> {{ error_warning }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    <div id="alert-connection"></div>
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-pen"></i> {{ text_edit }}</div>
+      <div class="card-body">
+        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+          <ul class="nav nav-tabs">
+            <li class="nav-item"><a href="#tab-general" class="nav-link active" data-bs-toggle="tab"><i class="fa-solid fa-gear"></i> {{ tab_general }}</a></li>
+            <li class="nav-item"><a href="#tab-status" class="nav-link" data-bs-toggle="tab"><i class="fa-solid fa-right-left"></i> {{ tab_status_mapping }}</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane active" id="tab-general">
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label" for="input-status">{{ entry_status }}</label>
+                <div class="col-sm-10">
+                  <select name="module_tropatt_status" id="input-status" class="form-select">
+                    {% if module_tropatt_status %}
+                    <option value="1" selected="selected">{{ text_enabled }}</option>
+                    <option value="0">{{ text_disabled }}</option>
+                    {% else %}
+                    <option value="1">{{ text_enabled }}</option>
+                    <option value="0" selected="selected">{{ text_disabled }}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label" for="input-gateway-url"><span data-bs-toggle="tooltip" title="{{ help_gateway_url }}">{{ entry_gateway_url }}</span></label>
+                <div class="col-sm-10">
+                  <input type="text" name="module_tropatt_gateway_url" value="{{ module_tropatt_gateway_url }}" placeholder="https://crm.example.com/api/index.php?route=/_module/crm.ecommerce-gateway/v1" id="input-gateway-url" class="form-control" />
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label" for="input-store-key"><span data-bs-toggle="tooltip" title="{{ help_store_key }}">{{ entry_store_key }}</span></label>
+                <div class="col-sm-10">
+                  <input type="text" name="module_tropatt_store_key" value="{{ module_tropatt_store_key }}" placeholder="stk_..." id="input-store-key" class="form-control" />
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label" for="input-store-secret"><span data-bs-toggle="tooltip" title="{{ help_store_secret }}">{{ entry_store_secret }}</span></label>
+                <div class="col-sm-10">
+                  <input type="password" name="module_tropatt_store_secret" value="{{ module_tropatt_store_secret }}" placeholder="Secret Key" id="input-store-secret" class="form-control" />
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label">{{ entry_webhook_url }}</label>
+                <div class="col-sm-10">
+                  <div class="input-group">
+                    <input type="text" readonly="readonly" value="{{ webhook_url_computed }}" id="input-webhook-url" class="form-control" />
+                    <button class="btn btn-light" type="button" id="button-copy-webhook" data-bs-toggle="tooltip" title="{{ button_copy }}"><i class="fa-regular fa-copy"></i></button>
+                  </div>
+                  <div class="form-text">{{ help_webhook_url }}</div>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label">{{ entry_send_quick_order }}</label>
+                <div class="col-sm-10">
+                  <div class="form-check form-check-inline">
+                    <input type="radio" name="module_tropatt_send_quick_order" value="1" id="input-quick-order-1" class="form-check-input" {% if module_tropatt_send_quick_order %}checked="checked"{% endif %} />
+                    <label class="form-check-label" for="input-quick-order-1">{{ text_yes }}</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input type="radio" name="module_tropatt_send_quick_order" value="0" id="input-quick-order-0" class="form-check-input" {% if not module_tropatt_send_quick_order %}checked="checked"{% endif %} />
+                    <label class="form-check-label" for="input-quick-order-0">{{ text_no }}</label>
+                  </div>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <label class="col-sm-2 col-form-label">{{ entry_debug }}</label>
+                <div class="col-sm-10">
+                  <div class="form-check form-check-inline">
+                    <input type="radio" name="module_tropatt_debug" value="1" id="input-debug-1" class="form-check-input" {% if module_tropatt_debug %}checked="checked"{% endif %} />
+                    <label class="form-check-label" for="input-debug-1">{{ text_yes }}</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input type="radio" name="module_tropatt_debug" value="0" id="input-debug-0" class="form-check-input" {% if not module_tropatt_debug %}checked="checked"{% endif %} />
+                    <label class="form-check-label" for="input-debug-0">{{ text_no }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane" id="tab-status">
+              <p class="text-muted">{{ text_mapping_help }}</p>
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th>{{ text_mapping_status_column }}</th>
+                      <th>{{ text_mapping_stage_column }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for status in order_statuses %}
+                    <tr>
+                      <td><strong>{{ status.name }}</strong> (ID: {{ status.order_status_id }})</td>
+                      <td>
+                        <input type="text" name="module_tropatt_status_mapping[{{ status.order_status_id }}]" value="{{ module_tropatt_status_mapping[status.order_status_id] ?? '' }}" placeholder="stage_code" class="form-control form-control-sm" />
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+// OpenCart 4 ships Bootstrap 5 (no jQuery plugins), so the panel talks to the
+// controller with plain fetch() and uses Bootstrap 5 attributes/components.
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.getElementById('form-module');
+  var saveButton = document.getElementById('button-save');
+  var testButton = document.getElementById('button-test');
+  var copyButton = document.getElementById('button-copy-webhook');
+  var alertBox = document.getElementById('alert-connection');
+
+  function showAlert(type, message) {
+    var icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+    alertBox.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible">' +
+      '<i class="fa-solid ' + icon + '"></i> ' + message +
+      ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+  }
+
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      saveButton.disabled = true;
+      fetch('{{ save_url }}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      }).then(function (response) {
+        return response.json();
+      }).then(function (json) {
+        showAlert(json.success ? 'success' : 'danger', json.message || '');
+      }).catch(function () {
+        showAlert('danger', 'AJAX Error');
+      }).finally(function () {
+        saveButton.disabled = false;
+      });
+    });
+  }
+
+  if (testButton) {
+    testButton.addEventListener('click', function () {
+      testButton.disabled = true;
+      var body = new FormData();
+      body.append('gateway_url', document.getElementById('input-gateway-url').value);
+      body.append('store_key', document.getElementById('input-store-key').value);
+      body.append('store_secret', document.getElementById('input-store-secret').value);
+      fetch('{{ test_connection_url }}', {
+        method: 'POST',
+        body: body,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      }).then(function (response) {
+        return response.json();
+      }).then(function (json) {
+        showAlert(json.success ? 'success' : 'danger', json.message || '');
+      }).catch(function () {
+        showAlert('danger', 'AJAX Error');
+      }).finally(function () {
+        testButton.disabled = false;
+      });
+    });
+  }
+
+  if (copyButton) {
+    copyButton.addEventListener('click', function () {
+      navigator.clipboard.writeText(document.getElementById('input-webhook-url').value);
+      showAlert('success', '{{ text_copied }}');
+    });
+  }
+});
+</script>
+{{ footer }}

@@ -363,7 +363,16 @@ final class ModuleController
         $manifest = $pm->getManifest($name);
         if ($manifest !== null && $manifest->migrations !== null) {
             $migrationDir = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->migrations;
-            $mm->rollbackAll($name, $migrationDir);
+            $rollback = $mm->rollbackAll($name, $migrationDir);
+            if (($rollback['errors'] ?? []) !== []) {
+                AppLog::error('[ModuleController::uninstall] migration rollback failed for ' . $name . ': ' . implode('; ', $rollback['errors']));
+                return JsonResponse::error(
+                    'MODULE_MIGRATION_ROLLBACK_FAILED',
+                    $this->t('module/messages.rollback_failed', 'Module migrations could not be fully rolled back; the module remains installed'),
+                    409,
+                    ['migrations' => $rollback['errors']]
+                );
+            }
         }
 
         $mc->unregister($name);
@@ -780,6 +789,9 @@ final class ModuleController
 
         try {
             $mc = $this->container->get('module.config');
+            if ($mc->getRegistry((string)$name) === null) {
+                return JsonResponse::error('NOT_INSTALLED', $this->t('module/messages.not_installed'), 400);
+            }
             $mc->setMultiple($name, $config);
 
             if ($name === 'crm.telegram-bot' && $this->container->has('db.pdo')) {

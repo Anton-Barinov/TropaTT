@@ -12,13 +12,17 @@ final class TestWebhookTool implements ModuleMcpToolInterface
     public function execute(array $arguments, array $context): array
     {
         $recipePubId = (string)($arguments['recipe_public_id'] ?? '');
+        $orgId = (int)($context['organization_id'] ?? $context['user']['organization_id'] ?? 0);
+        if ($orgId < 1 || $recipePubId === '') {
+            throw new \RuntimeException('Active workspace and recipe are required.');
+        }
         $db = DatabaseConnectionPool::getConnection();
         $service = new AutomationHubService($db);
 
-        return $service->dispatch($recipePubId, 'mcp.ping', [
+        return $service->dispatch($orgId, $recipePubId, 'mcp.ping', [
             'ping' => 'pong',
             'triggered_by' => 'MCP',
             'time' => time(),
-        ]);
+        ], isset($arguments['correlation_id']) ? (string)$arguments['correlation_id'] : null);
     }
 }

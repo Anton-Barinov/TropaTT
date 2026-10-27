@@ -1,0 +1,80 @@
+name: PHP lint
+
+# Standalone CI for the `tropatt-magento` connector repository.
+# Magento 2.4 runs on PHP 7.4/8.1+, so the syntax check covers that range.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint module sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find app -name '*.php' -type f | sort)
+          test ${#files[@]} -gt 0
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done
+
+  manifest:
+    name: Validate module XML
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the XML configuration and the contracts
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          for path in ('app/code/Tropatt/Crm/etc/module.xml', 'app/code/Tropatt/Crm/etc/di.xml',
+                       'app/code/Tropatt/Crm/etc/frontend/routes.xml', 'app/code/Tropatt/Crm/etc/communication.xml',
+                       'app/code/Tropatt/Crm/etc/queue_consumer.xml', 'app/code/Tropatt/Crm/etc/queue_topology.xml',
+                       'app/code/Tropatt/Crm/etc/adminhtml/system.xml', 'app/code/Tropatt/Crm/etc/config.xml'):
+              ET.parse(path)
+          print('module XML files are well-formed')
+          PY
+          grep -q "Tropatt_Crm" app/code/Tropatt/Crm/etc/module.xml
+          grep -q "OrderRepositoryInterface" app/code/Tropatt/Crm/etc/di.xml
+          grep -q "tropatt.order.sync" app/code/Tropatt/Crm/etc/communication.xml
+          grep -q "SourceItemsSaveInterface" app/code/Tropatt/Crm/Model/StockSync.php
+          grep -q "EchoGuard" app/code/Tropatt/Crm/Model/Webhook.php
+          # The webhook receiver is a POST-only frontend controller. It must never go back
+          # to the webapi service contract: that route cannot see the signature headers or
+          # the raw body the CRM signs, so every delivery failed with an InputException.
+          test ! -e app/code/Tropatt/Crm/etc/webapi.xml
+          test ! -e app/code/Tropatt/Crm/Api/WebhookInterface.php
+          grep -q 'frontName="tropatt"' app/code/Tropatt/Crm/etc/frontend/routes.xml
+          grep -q "HttpPostActionInterface" app/code/Tropatt/Crm/Controller/Webhook/Index.php
+          grep -q "getContent" app/code/Tropatt/Crm/Controller/Webhook/Index.php
+          grep -q "X-TropaTT-Signature" app/code/Tropatt/Crm/Model/InboundWebhook.php
+          echo "module manifest is complete"

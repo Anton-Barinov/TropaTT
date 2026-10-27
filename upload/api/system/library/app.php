@@ -28,6 +28,7 @@ use Api\System\Library\Module\ModuleFeatureFlags;
 
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Http\RawJsonResponse;
+use Api\System\Library\Http\RawTextResponse;
 use Api\System\Library\Http\Request;
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Logger\JsonLogger;
@@ -159,7 +160,7 @@ final class App
         $this->container = new Container();
     }
 
-    public function run(): JsonResponse|RawJsonResponse
+    public function run(): JsonResponse|RawJsonResponse|RawTextResponse
     {
         $this->bootstrapConfig();
         $this->guardKeys();
@@ -276,6 +277,26 @@ final class App
                 }
             }
 
+            if ($routePath === '/api/v1/mcp' && !$request->mcpOriginIsAllowed()) {
+                $protocolHeader = trim((string)$request->header('MCP-Protocol-Version', ''));
+                $mcpResponseVersion = in_array($protocolHeader, [
+                    Request::MCP_MODERN_PROTOCOL_VERSION,
+                    '2025-11-25',
+                    Request::MCP_PROTOCOL_VERSION,
+                ], true) ? $protocolHeader : Request::MCP_PROTOCOL_VERSION;
+                $response = new RawJsonResponse([
+                    'jsonrpc' => '2.0',
+                    'id' => null,
+                    'error' => [
+                        'code' => -32003,
+                        'message' => 'Cross-origin MCP requests are not allowed for this installation.',
+                    ],
+                ], 403, ['MCP-Protocol-Version' => $mcpResponseVersion]);
+                $statusCode = 403;
+                $resultCode = 'MCP_ORIGIN_REJECTED';
+                return $response;
+            }
+
             if (($matched['auth'] ?? true) === true) {
                 $auth = $this->authenticate();
                 if (!$auth) {
@@ -300,7 +321,9 @@ final class App
                                 ],
                             ],
                         ], 401, [
-                            'MCP-Protocol-Version' => '2025-06-18',
+                            'MCP-Protocol-Version' => in_array(trim((string)$request->header('MCP-Protocol-Version', '')), ['2026-07-28', '2025-11-25'], true)
+                                ? trim((string)$request->header('MCP-Protocol-Version'))
+                                : '2025-06-18',
                         ]);
                         $statusCode = 401;
                         $resultCode = 'MCP_UNAUTHORIZED';
@@ -663,6 +686,12 @@ final class App
                         ?? 'MCP_JSON_RPC');
                 }
 
+                return $result;
+            }
+
+            if ($result instanceof RawTextResponse) {
+                $statusCode = $result->status();
+                $resultCode = 'RAW_TEXT_RESPONSE';
                 return $result;
             }
 
@@ -1339,7 +1368,8 @@ final class App
             $c->get('repository.subtask'),
             $c->has('service.setting') ? $c->get('service.setting') : null,
             $c->get('db.pdo'),
-            new \Api\System\Library\Service\AgentLeaseService($c->get('db.pdo'))
+            new \Api\System\Library\Service\AgentLeaseService($c->get('db.pdo')),
+            $c->get('repository.task_relation')
         ));
         $this->container->factory('service.task_bulk', fn(Container $c) => new TaskBulkService(
             $c->get('service.task'),
@@ -1539,7 +1569,8 @@ final class App
             $c->get('service.ai_semantic_index'),
             $c->get('service.task_activity'),
             $c->get('service.external_user'),
-            $c->get('repository.comment')
+            $c->get('repository.comment'),
+            $c->get('db.pdo')
         ));
         $this->container->factory('service.user', fn(Container $c) => new UserService(
             $c->get('repository.user_management'),
@@ -1696,7 +1727,8 @@ final class App
             $c->get('logger'),
             $c->get('service.notification'),
             $c->get('repository.user'),
-            $c->get('module.domain_event')
+            $c->get('module.domain_event'),
+            $c->get('db.pdo')
         ));
         $this->container->factory('service.business_calendar', fn(Container $c) => new BusinessCalendarService(
             $c->get('repository.business_calendar'),
@@ -1708,7 +1740,8 @@ final class App
             $c->get('repository.project'),
             $c->get('repository.reminder'),
             $c->get('repository.calendar_event'),
-            $c->get('db')
+            $c->get('db'),
+            $c->get('service.calendar')
         ));
         $this->container->factory('service.worklog', fn(Container $c) => new WorklogService(
             $c->get('repository.worklog'),

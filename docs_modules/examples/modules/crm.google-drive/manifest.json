@@ -1,11 +1,11 @@
 {
     "name": "crm.google-drive",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Интеграция с Google Диском",
-    "description": "Синхронизация файлов задач и сделок с Google Drive, создание структуры папок по проектам и клиентам, генерация webViewLink и экспорт Google Docs/Sheets в CRM",
+    "description": "Подключение Google Drive через OAuth refresh token, проверка аккаунта и ручная приватная передача доступных файлов CRM.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -40,7 +40,7 @@
     "mcp_tools": [
         {
             "name": "google_drive_status",
-            "description": "Get current connection status and quota usage for Google Drive",
+            "description": "Check Google Drive configuration for the active workspace without revealing OAuth secrets.",
             "handler": "Module\\Crm\\GoogleDrive\\Mcp\\DriveStatusTool",
             "permissions": [
                 "settings.view"
@@ -55,9 +55,10 @@
         },
         {
             "name": "google_drive_attach_file",
-            "description": "Upload a CRM file to project Google Drive folder or link an existing Google Doc/Sheet and get webViewLink",
+            "description": "Upload an authorized, non-quarantined CRM file to the active workspace Google Drive account. The file remains private.",
             "handler": "Module\\Crm\\GoogleDrive\\Mcp\\AttachFileTool",
             "permissions": [
+                "files.view",
                 "files.create"
             ],
             "mode": "all",
@@ -67,25 +68,7 @@
                 "properties": {
                     "file_public_id": {
                         "type": "string",
-                        "description": "Public ID of the CRM file"
-                    },
-                    "project_public_id": {
-                        "type": "string",
-                        "description": "Public ID of the CRM project"
-                    },
-                    "client_public_id": {
-                        "type": "string",
-                        "description": "Public ID of the client"
-                    },
-                    "share_role": {
-                        "type": "string",
-                        "enum": [
-                            "reader",
-                            "commenter",
-                            "writer"
-                        ],
-                        "default": "reader",
-                        "description": "Permission role for shared link"
+                        "description": "Public ID of the CRM file to upload"
                     }
                 },
                 "required": [

@@ -4,14 +4,38 @@ declare(strict_types=1);
 require_once __DIR__ . '/system/library/http/Request.php';
 
 $earlyRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-if (Api\System\Library\Http\Request::isMcpTransport(
+$earlyMcpRequest = Api\System\Library\Http\Request::isMcpTransport(
     (string)($_SERVER['REQUEST_METHOD'] ?? 'GET'),
     $earlyRequestPath,
     $_GET
-) && Api\System\Library\Http\Request::mcpContentLengthExceedsLimit($_SERVER)) {
+);
+if ($earlyMcpRequest && !Api\System\Library\Http\Request::isMcpOriginAllowed($_SERVER)) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    $mcpOriginResponseVersion = trim((string)($_SERVER['HTTP_MCP_PROTOCOL_VERSION'] ?? ''));
+    if (!in_array($mcpOriginResponseVersion, [
+        Api\System\Library\Http\Request::MCP_MODERN_PROTOCOL_VERSION,
+        '2025-11-25',
+        Api\System\Library\Http\Request::MCP_PROTOCOL_VERSION,
+    ], true)) {
+        $mcpOriginResponseVersion = Api\System\Library\Http\Request::MCP_PROTOCOL_VERSION;
+    }
+    header('MCP-Protocol-Version: ' . $mcpOriginResponseVersion);
+    echo json_encode([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'error' => ['code' => -32003, 'message' => 'Cross-origin MCP requests are not allowed for this installation.'],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($earlyMcpRequest && Api\System\Library\Http\Request::mcpContentLengthExceedsLimit($_SERVER)) {
     http_response_code(413);
     header('Content-Type: application/json; charset=utf-8');
-    header('MCP-Protocol-Version: ' . Api\System\Library\Http\Request::MCP_PROTOCOL_VERSION);
+    $mcpResponseVersion = trim((string)($_SERVER['HTTP_MCP_PROTOCOL_VERSION'] ?? '')) === Api\System\Library\Http\Request::MCP_MODERN_PROTOCOL_VERSION
+        ? Api\System\Library\Http\Request::MCP_MODERN_PROTOCOL_VERSION
+        : Api\System\Library\Http\Request::MCP_PROTOCOL_VERSION;
+    header('MCP-Protocol-Version: ' . $mcpResponseVersion);
     echo json_encode([
         'jsonrpc' => '2.0',
         'id' => null,

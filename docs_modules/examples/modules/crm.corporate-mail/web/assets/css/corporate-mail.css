@@ -34,6 +34,38 @@
   background: var(--crm-surface-variant, #f8fafc);
   border: 1px solid var(--crm-border, #e2e8f0);
 }
+.cmail-inbox-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.7fr);
+  border-top: 1px solid var(--crm-border, #e2e8f0);
+}
+.cmail-thread-list {
+  max-height: 34rem;
+  overflow: auto;
+  border-right: 1px solid var(--crm-border, #e2e8f0);
+}
+.cmail-thread-item {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--crm-border, #e2e8f0);
+}
+.cmail-thread-item:hover, .cmail-thread-item.active { background: var(--crm-surface-variant, #f8fafc); }
+.cmail-thread-subject, .cmail-thread-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmail-thread-subject { font-weight: 600; }
+.cmail-thread-meta { margin-top: 0.2rem; color: var(--crm-text-muted, #64748b); font-size: 0.78rem; }
+.cmail-thread-content { min-width: 0; }
+.cmail-message-list { max-height: 34rem; overflow: auto; padding: 1rem; }
+.cmail-message { margin-bottom: 0.85rem; padding: 0.9rem; border: 1px solid var(--crm-border, #e2e8f0); border-radius: 0.75rem; }
+.cmail-message.outbound { background: var(--crm-surface-variant, #f8fafc); }
+.cmail-message header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.cmail-message h3 { margin: 0.55rem 0; font-size: 0.95rem; }
+.cmail-message pre { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font: inherit; }
+.cmail-reply-form { padding: 1rem; border-top: 1px solid var(--crm-border, #e2e8f0); }
 @media (max-width: 991px) {
   .cmail-grid {
     grid-template-columns: 1fr;
@@ -41,4 +73,7 @@
   .cmail-hero {
     flex-wrap: wrap;
   }
+  .cmail-inbox-layout { grid-template-columns: 1fr; }
+  .cmail-thread-list { max-height: 16rem; border-right: 0; border-bottom: 1px solid var(--crm-border, #e2e8f0); }
+  .cmail-message-list { max-height: 26rem; padding: 0.75rem; }
 }

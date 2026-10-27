@@ -42,3 +42,39 @@
     flex-wrap: wrap;
   }
 }
+
+.pform-dialog {
+  width: min(760px, calc(100vw - 2rem));
+  max-height: min(90vh, 900px);
+  padding: 0;
+  color: var(--crm-text, #18221f);
+  background: var(--crm-surface, #fff);
+  border: 1px solid var(--crm-border, #dce7e3);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgb(14 35 30 / 22%);
+}
+.pform-dialog::backdrop { background: rgb(14 28 25 / 48%); backdrop-filter: blur(2px); }
+.pform-editor-form { max-height: inherit; overflow-y: auto; padding: clamp(1rem, 3vw, 1.5rem); }
+.pform-dialog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
+.pform-dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.5rem; }
+.pform-fields { display: grid; gap: .75rem; }
+.pform-field-row { display: grid; grid-template-columns: minmax(110px, .8fr) minmax(150px, 1.2fr) minmax(130px, .8fr) auto auto; align-items: end; gap: .75rem; padding: .75rem; border: 1px solid var(--crm-border, #dce7e3); border-radius: 12px; }
+.pform-required-field { display: flex; align-items: center; gap: .4rem; padding-bottom: .6rem; white-space: nowrap; }
+.pform-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+.pform-answer-list { display: grid; grid-template-columns: minmax(100px, .35fr) minmax(180px, 1fr); gap: .25rem .75rem; }
+.pform-answer-list dt { color: var(--crm-text-muted, #66746f); font-weight: 600; overflow-wrap: anywhere; }
+.pform-answer-list dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pform-public-page { display: grid; place-items: start center; padding-top: clamp(2rem, 8vh, 6rem); }
+.pform-public-page .pform-public-card { margin-inline: auto; }
+.pform-public-card { width: min(100%, 680px); }
+.pform-public-brand { color: inherit; text-decoration: none; font-weight: 700; }
+.pform-public-fields { margin-top: 1.5rem; }
+.pform-honeypot { position: absolute; inset-inline-start: -10000px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 767px) {
+  .pform-field-row { grid-template-columns: 1fr 1fr; }
+  .pform-field-row > div:nth-child(2) { grid-column: 1 / -1; }
+  .pform-field-row > button { justify-self: end; }
+  .pform-dialog-actions { position: sticky; bottom: 0; padding-top: .75rem; background: var(--crm-surface, #fff); }
+  .pform-answer-list { grid-template-columns: 1fr; gap: .1rem; }
+  .pform-answer-list dd { margin-bottom: .5rem; }
+}

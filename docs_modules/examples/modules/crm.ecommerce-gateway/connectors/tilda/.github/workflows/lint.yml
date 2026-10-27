@@ -1,0 +1,43 @@
+name: PHP lint
+
+# Standalone CI for the `tropatt-tilda` connector repository.
+# The connector is plain PHP (no framework), so it is linted on the range the
+# shared-hosting target supports.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint connector sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -name '*.php' -not -path './vendor/*' -type f | sort)
+          test ${#files[@]} -gt 0
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done

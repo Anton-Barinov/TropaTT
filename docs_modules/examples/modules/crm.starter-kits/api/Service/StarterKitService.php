@@ -82,7 +82,7 @@ final class StarterKitService
     /**
      * Preview diff and detect conflicts for a target organization workspace.
      *
-     * @return array{kit_id: string, version: string, title: string, will_create: array<string, array>, conflicts: array<string, array>, is_already_applied: bool}
+     * @return array{kit_id: string, version: string, title: string, will_create: array<string, array>, conflicts: array<string, array>, is_already_applied: bool, requirements: array<int, array<string, mixed>>}
      */
     public function preview(string $kitId, int $organizationId, string $locale = 'ru-ru'): array
     {
@@ -110,6 +110,16 @@ final class StarterKitService
             'task_templates' => [],
             'knowledge_spaces' => [],
         ];
+        $missingProjectStatuses = $this->missingProjectTemplateStatuses($kit, $organizationId);
+        $requirements = [];
+        if ($missingProjectStatuses !== []) {
+            $requirements[] = [
+                'component' => 'project_templates',
+                'depends_on' => 'statuses',
+                'missing_status_codes' => $missingProjectStatuses,
+                'message' => 'Сначала добавьте статусы, на которые ссылаются шаблоны проектов.',
+            ];
+        }
 
         // 1. Statuses check
         $existingStatuses = $this->fetchExistingCodes('statuses', 'code', $organizationId);
@@ -136,10 +146,9 @@ final class StarterKitService
         }
 
         // 3. Project templates check
-        $existingProjTpl = $this->fetchExistingTitles('project_templates', $organizationId);
         foreach ($kit['project_templates'] ?? [] as $pt) {
             $title = $this->resolveLocaleText($pt['titles'] ?? [], $locale, (string)$pt['code']);
-            if (in_array(mb_strtolower($title), $existingProjTpl, true)) {
+            if ($this->templateAlreadyExists('project_templates', $organizationId, (string)$kit['id'], (string)$pt['code'], $pt['titles'] ?? [], $title)) {
                 $conflicts['project_templates'][] = ['title' => $title, 'reason' => 'Template with identical title exists.'];
             } else {
                 $willCreate['project_templates'][] = ['title' => $title, 'tasks_count' => count($pt['tasks'] ?? [])];
@@ -147,10 +156,9 @@ final class StarterKitService
         }
 
         // 4. Task templates check
-        $existingTaskTpl = $this->fetchExistingTitles('task_templates', $organizationId);
         foreach ($kit['task_templates'] ?? [] as $tt) {
             $title = $this->resolveLocaleText($tt['titles'] ?? [], $locale, (string)$tt['code']);
-            if (in_array(mb_strtolower($title), $existingTaskTpl, true)) {
+            if ($this->templateAlreadyExists('task_templates', $organizationId, (string)$kit['id'], (string)$tt['code'], $tt['titles'] ?? [], $title)) {
                 $conflicts['task_templates'][] = ['title' => $title, 'reason' => 'Task template with identical title exists.'];
             } else {
                 $willCreate['task_templates'][] = ['title' => $title, 'checklist_count' => count($tt['checklist'] ?? [])];
@@ -177,6 +185,7 @@ final class StarterKitService
             'will_create' => $willCreate,
             'conflicts' => $conflicts,
             'is_already_applied' => $alreadyApplied,
+            'requirements' => $requirements,
         ];
     }
 
@@ -205,6 +214,12 @@ final class StarterKitService
             throw new RuntimeException('Only a root administrator can create global roles.');
         }
         $preview = $this->preview($kitId, $organizationId, $locale);
+        if (in_array('project_templates', $components, true)
+            && !in_array('statuses', $components, true)
+            && !empty($preview['requirements'])
+        ) {
+            throw new InvalidArgumentException('Выберите также компонент «Статусы»: шаблоны проектов ссылаются на отсутствующие статусы.');
+        }
         $kit = $this->getKit($kitId);
         if ($kit === null) {
             throw new RuntimeException("Starter kit '{$kitId}' not found.");
@@ -307,16 +322,16 @@ final class StarterKitService
 
             // 3. Apply Project Templates
             if (in_array('project_templates', $components, true)) {
-                $existing = $this->fetchExistingTitles('project_templates', $organizationId);
                 foreach ($kit['project_templates'] ?? [] as $pt) {
                     $title = $this->resolveLocaleText($pt['titles'] ?? [], $locale, (string)$pt['code']);
-                    if (in_array(mb_strtolower($title), $existing, true)) {
+                    if ($this->templateAlreadyExists('project_templates', $organizationId, (string)$kit['id'], (string)$pt['code'], $pt['titles'] ?? [], $title)) {
                         $conflictsSkipped++;
                         continue;
                     }
                     $pubId = 'ptp_' . bin2hex(random_bytes(10));
                     $payload = json_encode([
                         'source_kit' => $kit['id'],
+                        'source_template_code' => (string)$pt['code'],
                         'tasks' => $pt['tasks'] ?? [],
                         'description' => $pt['description'] ?? '',
                     ], JSON_UNESCAPED_UNICODE);
@@ -341,16 +356,16 @@ final class StarterKitService
 
             // 4. Apply Task Templates
             if (in_array('task_templates', $components, true)) {
-                $existing = $this->fetchExistingTitles('task_templates', $organizationId);
                 foreach ($kit['task_templates'] ?? [] as $tt) {
                     $title = $this->resolveLocaleText($tt['titles'] ?? [], $locale, (string)$tt['code']);
-                    if (in_array(mb_strtolower($title), $existing, true)) {
+                    if ($this->templateAlreadyExists('task_templates', $organizationId, (string)$kit['id'], (string)$tt['code'], $tt['titles'] ?? [], $title)) {
                         $conflictsSkipped++;
                         continue;
                     }
                     $pubId = 'ttp_' . bin2hex(random_bytes(10));
                     $payload = json_encode([
                         'source_kit' => $kit['id'],
+                        'source_template_code' => (string)$tt['code'],
                         'checklist' => $tt['checklist'] ?? [],
                     ], JSON_UNESCAPED_UNICODE);
 
@@ -648,5 +663,103 @@ final class StarterKitService
         $stmt->execute([':org_id' => $orgId]);
         $rows = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
         return array_map(static fn($t) => mb_strtolower(trim((string)$t)), $rows);
+    }
+
+    /**
+     * Identify templates by stable kit/component code across locales, while
+     * still recognizing user-created templates that collide by visible title.
+     *
+     * @param array<string, string> $localizedTitles
+     */
+    private function templateAlreadyExists(
+        string $table,
+        int $organizationId,
+        string $kitId,
+        string $templateCode,
+        array $localizedTitles,
+        string $currentTitle
+    ): bool {
+        if (!in_array($table, ['project_templates', 'task_templates'], true)) {
+            throw new InvalidArgumentException('Unsupported starter template table.');
+        }
+        $stmt = $this->db->prepare(
+            'SELECT title, payload FROM ' . $table . '
+             WHERE organization_id = :organization_id OR organization_id IS NULL'
+        );
+        $stmt->execute([':organization_id' => $organizationId]);
+        $titleSet = array_fill_keys($this->normalizedTitleVariants($localizedTitles, $currentTitle), true);
+        $currentNormalized = mb_strtolower(trim($currentTitle));
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $rowTitle = mb_strtolower(trim((string)($row['title'] ?? '')));
+            if ($rowTitle === $currentNormalized) {
+                return true;
+            }
+            $payload = json_decode((string)($row['payload'] ?? ''), true);
+            if (!is_array($payload) || (string)($payload['source_kit'] ?? '') !== $kitId) {
+                continue;
+            }
+            $sourceCode = trim((string)($payload['source_template_code'] ?? ''));
+            if ($sourceCode !== '' && hash_equals($templateCode, $sourceCode)) {
+                return true;
+            }
+            // Older Starter Kits payloads stored source_kit but not a stable
+            // template code. Match only this kit's known translated titles.
+            if ($sourceCode === '' && isset($titleSet[$rowTitle])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param array<string, string> $localizedTitles
+     * @return array<int, string>
+     */
+    private function normalizedTitleVariants(array $localizedTitles, string $fallback): array
+    {
+        $titles = [$fallback];
+        foreach ($localizedTitles as $title) {
+            if (is_string($title) && trim($title) !== '') {
+                $titles[] = $title;
+            }
+        }
+        return array_values(array_unique(array_map(
+            static fn(string $title): string => mb_strtolower(trim($title)),
+            $titles
+        )));
+    }
+
+    /**
+     * Project templates may create tasks with status codes. Prevent applying
+     * those templates before every referenced task status exists and is active
+     * in this workspace.
+     *
+     * @param array<string, mixed> $kit
+     * @return array<int, string>
+     */
+    private function missingProjectTemplateStatuses(array $kit, int $organizationId): array
+    {
+        $required = [];
+        foreach ($kit['project_templates'] ?? [] as $template) {
+            foreach ($template['tasks'] ?? [] as $task) {
+                $code = trim((string)($task['status_code'] ?? ''));
+                if ($code !== '') {
+                    $required[$code] = true;
+                }
+            }
+        }
+        if ($required === []) {
+            return [];
+        }
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT code FROM statuses
+             WHERE scope = 'task' AND is_active = 1
+               AND (organization_id = :organization_id OR organization_id IS NULL)"
+        );
+        $stmt->execute([':organization_id' => $organizationId]);
+        $existing = array_fill_keys(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []), true);
+        $missing = array_values(array_diff(array_keys($required), array_keys($existing)));
+        sort($missing);
+        return $missing;
     }
 }

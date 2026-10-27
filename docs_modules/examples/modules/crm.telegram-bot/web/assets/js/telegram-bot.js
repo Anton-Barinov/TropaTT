@@ -16,9 +16,21 @@
       });
     }
     const finalOptions = Object.assign({}, options, { query });
+    if (currentOrgPublicId) {
+      finalOptions.headers = Object.assign({}, options.headers || {}, {
+        'X-Organization-Public-Id': currentOrgPublicId,
+      });
+    }
 
+    const method = String(options.method || 'GET').toUpperCase();
+    const timeoutMs = Number.isFinite(Number(finalOptions.timeoutMs))
+      ? Math.max(1000, Number(finalOptions.timeoutMs))
+      : (method === 'GET' || method === 'HEAD' ? 20000 : 30000);
     if (window.CRM?.api?.request) {
-      return window.CRM.api.request(cleanPath, finalOptions).then(envelope => {
+      // The core API client aborts the underlying fetch at timeoutMs. A
+      // Promise.race timeout would only hide the spinner while allowing a late
+      // write to complete in the background, which makes retries ambiguous.
+      const request = window.CRM.api.request(cleanPath, { ...finalOptions, timeoutMs }).then(envelope => {
         if (envelope && typeof envelope === 'object') {
           if (envelope.success === false) {
             throw new Error(envelope.message || envelope.code || 'Ошибка запроса к API');
@@ -27,9 +39,11 @@
         }
         return envelope;
       });
+      return method === 'GET' || method === 'HEAD'
+        ? settleReadRequest(request, timeoutMs, cleanPath)
+        : request;
     }
 
-    const method = String(options.method || 'GET').toUpperCase();
     const headers = { Accept: 'application/json', ...(options.headers || {}) };
     if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) && window.CRM?.api?.getCsrfToken) {
       headers['X-CSRF-Token'] = window.CRM.api.getCsrfToken();
@@ -48,11 +62,14 @@
     });
     const url = '/api/index.php?' + searchParams.toString();
 
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
     return fetch(url, {
       ...options,
       method,
       credentials: 'same-origin',
       headers,
+      signal: controller?.signal,
       body: hasBody ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
     }).then(async response => {
       const data = await response.json().catch(() => ({}));
@@ -60,6 +77,29 @@
         throw new Error(data.message || data.code || 'Ошибка запроса к API');
       }
       return data.data !== undefined ? data.data : data;
+    }).catch(err => {
+      if (err?.name === 'AbortError') {
+        throw new Error(`Сервер не ответил за ${Math.round(timeoutMs / 1000)} секунд (${cleanPath}). Повторите запрос.`);
+      }
+      throw err;
+    }).finally(() => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    });
+  };
+
+  // Bound read requests even while the shared API client is still hydrating
+  // the cookie session. Its fetch timeout starts only after that preflight.
+  // A late GET is harmless, while a stalled promise must not leave every panel
+  // in its initial spinner state indefinitely. Mutations are never raced here.
+  const settleReadRequest = (promise, timeoutMs, route) => {
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = window.setTimeout(() => {
+        reject(new Error(`Сервер не ответил за ${Math.round(timeoutMs / 1000)} секунд (${route}). Повторите запрос.`));
+      }, timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer !== null) window.clearTimeout(timer);
     });
   };
 
@@ -68,9 +108,12 @@
 
   let currentBotUsername = '';
   let currentOrgId = 1;
+  let currentOrgPublicId = '';
+  let organizationsList = [];
   let currentActiveDialogId = null;
   let activeDialogData = null;
   let projectsList = [];
+  let workspaceRequestGeneration = 0;
 
   const showAlert = (message, type = 'success') => {
     const el = $('tgAlertContainer');
@@ -91,6 +134,15 @@
     }, 6000);
   };
 
+  const getProxySettings = () => ({
+    proxy_type: $('tgProxyType')?.value || 'none',
+    proxy_host: $('tgProxyHost')?.value || '',
+    proxy_port: $('tgProxyPort')?.value || '',
+    proxy_username: $('tgProxyUsername')?.value || '',
+    proxy_password: $('tgProxyPassword')?.value || '',
+    proxy_clear_password: !!$('tgProxyClearPassword')?.checked,
+  });
+
   // Compute standard webhook URL for current host
   const getComputedWebhookUrl = (orgId = 1) => {
     const origin = window.location.origin;
@@ -101,11 +153,19 @@
   const loadWorkspaces = async () => {
     const sel = $('tgWorkspaceSelect');
     if (!sel) return;
+    const requestGeneration = workspaceRequestGeneration;
 
     try {
       const data = await api('_module/crm.telegram-bot/organizations');
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
       const activeOrg = data && (data.active_org_ref || data.active_organization_id) ? parseInt(data.active_org_ref || data.active_organization_id, 10) : currentOrgId;
+      organizationsList = items;
+      const activeOrgItem = items.find(org => String(org.org_ref || org.id || '') === String(activeOrg));
+      currentOrgPublicId = String(data?.active_organization_public_id || activeOrgItem?.organization_public_id || activeOrgItem?.public_id || '').trim();
+      if (!currentOrgPublicId) {
+        throw new Error('Сервер не вернул публичный идентификатор активного рабочего пространства.');
+      }
 
       if (items.length > 0) {
         sel.innerHTML = items.map(org => {
@@ -118,18 +178,32 @@
         if ($('tgWorkspaceBadge')) {
           $('tgWorkspaceBadge').textContent = `Орг #${currentOrgId}`;
         }
+      } else {
+        sel.innerHTML = '<option value="">Нет доступных рабочих пространств</option>';
+        sel.value = '';
+        sel.disabled = true;
+        currentOrgPublicId = '';
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.warn('[TelegramBot] Failed to load organizations list:', err);
+      organizationsList = [];
+      currentOrgPublicId = '';
+      sel.innerHTML = `<option value="${esc(currentOrgId)}">Не удалось загрузить список рабочих пространств</option>`;
+      sel.value = String(currentOrgId);
+      sel.disabled = false;
+      sel.title = err.message || 'Не удалось загрузить рабочие пространства';
     }
   };
 
   // Load Status and config
   const loadStatus = async () => {
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/status', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       // 1. Status Banner
       const banner = $('tgStatusBanner');
@@ -189,6 +263,15 @@
       if ($('tgWelcomeMessage') && data.welcome_message) {
         $('tgWelcomeMessage').value = data.welcome_message;
       }
+      if ($('tgProxyType')) $('tgProxyType').value = data.proxy_type || 'none';
+      if ($('tgProxyHost')) $('tgProxyHost').value = data.proxy_host || '';
+      if ($('tgProxyPort')) $('tgProxyPort').value = data.proxy_port || '';
+      if ($('tgProxyUsername')) $('tgProxyUsername').value = data.proxy_username || '';
+      if ($('tgProxyPassword')) {
+        $('tgProxyPassword').value = '';
+        $('tgProxyPassword').placeholder = data.proxy_password_set ? 'Пароль сохранён; пустое поле сохранит его' : 'Пароль прокси';
+      }
+      if ($('tgProxyClearPassword')) $('tgProxyClearPassword').checked = false;
 
       // 4. Env Import Button
       const envBtn = $('tgImportEnvBtn');
@@ -202,6 +285,7 @@
         openBotLink.href = `https://t.me/${encodeURIComponent(currentBotUsername.replace('@', ''))}`;
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load status:', err);
       const banner = $('tgStatusBanner');
       if (banner) {
@@ -216,10 +300,12 @@
 
   // Load Projects for task creation modal
   const loadProjects = async () => {
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/projects', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       projectsList = (data && data.items) || [];
       const sel = $('tgTaskProjectSelect');
       if (sel) {
@@ -230,7 +316,11 @@
         sel.innerHTML = opts;
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.warn('[TelegramBot] Failed to load projects:', err);
+      projectsList = [];
+      const sel = $('tgTaskProjectSelect');
+      if (sel) sel.innerHTML = '<option value="0">Не удалось загрузить проекты</option>';
     }
   };
 
@@ -241,6 +331,7 @@
 
     const statusFilter = $('tgDialogStatusFilter')?.value || 'all';
     const searchVal = $('tgDialogSearch')?.value || '';
+    const requestGeneration = workspaceRequestGeneration;
 
     try {
       const data = await api('_module/crm.telegram-bot/dialogs', {
@@ -251,6 +342,7 @@
           limit: 50,
         },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       const items = (data && data.items) || [];
       const countBadge = $('tgDialogsCountBadge');
@@ -329,6 +421,7 @@
         }
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load dialogs:', err);
       listEl.innerHTML = `<div class="text-danger text-center py-3">Ошибка загрузки: ${esc(err.message)}</div>`;
     }
@@ -336,6 +429,7 @@
 
   // Select Dialog and render chat messages
   const selectDialog = async (dialogId) => {
+    const requestGeneration = workspaceRequestGeneration;
     currentActiveDialogId = dialogId;
 
     // Update active highlight in left list
@@ -362,6 +456,7 @@
       const data = await api(`_module/crm.telegram-bot/dialogs/${encodeURIComponent(dialogId)}`, {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       activeDialogData = data;
       const d = data.dialog || {};
@@ -461,6 +556,7 @@
       // Auto-scroll to bottom of thread
       thread.scrollTop = thread.scrollHeight;
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load dialog messages:', err);
       thread.innerHTML = `<div class="text-danger text-center py-4">Ошибка загрузки переписки: ${esc(err.message)}</div>`;
     }
@@ -589,10 +685,12 @@
     const tbody = $('tgBindingsBody');
     if (!tbody) return;
 
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/bindings', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
 
       if (items.length === 0) {
@@ -651,6 +749,7 @@
         });
       });
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load bindings:', err);
       tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">Ошибка загрузки списка: ${esc(err.message)}</td></tr>`;
     }
@@ -661,10 +760,12 @@
     const tbody = $('tgLogsBody');
     if (!tbody) return;
 
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/recent-updates', {
         query: { limit: 15, organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
 
       if (items.length === 0) {
@@ -680,6 +781,9 @@
 
       let html = '';
       items.forEach(log => {
+        const replyStatus = log.reply_status
+          ? `<div class="small mt-1 ${log.reply_status === 'uncertain' ? 'text-warning' : (log.reply_status === 'failed' ? 'text-danger' : 'text-muted')}">Ответ: ${esc(log.reply_status)}${log.reply_status === 'uncertain' ? ' — проверьте Telegram перед повтором' : ''}</div>`
+          : '';
         let actionBadge = `<span class="badge bg-secondary">${esc(log.action_type)}</span>`;
         if (log.action_type === 'intake_created') {
           actionBadge = '<span class="badge bg-primary"><i class="fa-solid fa-inbox me-1"></i> Заявка в Intake</span>';
@@ -693,7 +797,7 @@
           <tr>
             <td><code>#${esc(log.update_id)}</code></td>
             <td><code>${esc(log.chat_id || '—')}</code></td>
-            <td>${actionBadge}</td>
+            <td>${actionBadge}${replyStatus}</td>
             <td class="text-truncate" style="max-width: 320px;">${esc(log.message_preview || '—')}</td>
             <td class="small text-muted">${esc(log.created_at || '—')}</td>
           </tr>
@@ -701,18 +805,46 @@
       });
       tbody.innerHTML = html;
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load logs:', err);
       tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-3">Ошибка загрузки журнала: ${esc(err.message)}</td></tr>`;
     }
   };
 
+  // Clear workspace-bound values immediately on a switch so data from the
+  // previous workspace is not shown while new requests are pending.
+  const resetWorkspaceView = () => {
+    currentBotUsername = '';
+    currentActiveDialogId = null;
+    activeDialogData = null;
+    projectsList = [];
+    const status = $('tgStatusBanner');
+    if (status) status.innerHTML = '<div class="text-muted py-3" role="status">Загрузка настроек рабочего пространства…</div>';
+    ['kpiBotName', 'kpiMode', 'kpiBindings', 'kpiUpdates'].forEach(id => { if ($(id)) $(id).textContent = '—'; });
+    ['tgBotToken', 'tgBotUsername', 'tgSecretToken', 'tgWelcomeMessage', 'tgProxyHost', 'tgProxyPort', 'tgProxyUsername', 'tgProxyPassword'].forEach(id => { if ($(id)) $(id).value = ''; });
+    if ($('tgAutoIntake')) $('tgAutoIntake').checked = false;
+    if ($('tgProxyType')) $('tgProxyType').value = 'none';
+    if ($('tgProxyClearPassword')) $('tgProxyClearPassword').checked = false;
+    if ($('tgWebhookUrl')) $('tgWebhookUrl').value = getComputedWebhookUrl(currentOrgId);
+    if ($('tgDialogsList')) $('tgDialogsList').innerHTML = '<div class="text-muted text-center py-4" role="status">Загрузка диалогов…</div>';
+    if ($('tgBindingsBody')) $('tgBindingsBody').innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Загрузка привязок…</td></tr>';
+    if ($('tgLogsBody')) $('tgLogsBody').innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Загрузка журнала…</td></tr>';
+    if ($('tgTaskProjectSelect')) $('tgTaskProjectSelect').innerHTML = '<option value="0">Загрузка проектов…</option>';
+    if ($('tgNoDialogSelected')) $('tgNoDialogSelected').style.removeProperty('display');
+    if ($('tgActiveDialogView')) $('tgActiveDialogView').style.setProperty('display', 'none', 'important');
+    if ($('tgMessagesThread')) $('tgMessagesThread').textContent = '';
+  };
+
   // Refresh all sections
-  const refreshAll = () => {
-    loadStatus();
-    loadDialogs();
-    loadBindings();
-    loadLogs();
-    loadProjects();
+  const refreshAll = async () => {
+    await loadWorkspaces();
+    await Promise.allSettled([
+      loadStatus(),
+      loadDialogs(),
+      loadBindings(),
+      loadLogs(),
+      loadProjects(),
+    ]);
   };
 
   // Initialize event listeners
@@ -721,7 +853,17 @@
 
     // Workspace change handler
     $('tgWorkspaceSelect')?.addEventListener('change', (e) => {
-      currentOrgId = parseInt(e.target.value, 10) || 1;
+      const selected = organizationsList.find(org => String(org.org_ref || org.id || '') === String(e.target.value));
+      const selectedPublicId = String(selected?.organization_public_id || selected?.public_id || '').trim();
+      const selectedOrgId = parseInt(String(selected?.org_ref || selected?.id || ''), 10);
+      if (!selected || !selectedPublicId || !Number.isInteger(selectedOrgId) || selectedOrgId <= 0) {
+        showAlert('Не удалось определить доступное рабочее пространство. Обновите страницу и попробуйте снова.', 'danger');
+        return;
+      }
+      currentOrgId = selectedOrgId;
+      currentOrgPublicId = selectedPublicId;
+      workspaceRequestGeneration++;
+      resetWorkspaceView();
       if ($('tgWorkspaceBadge')) {
         $('tgWorkspaceBadge').textContent = `Орг #${currentOrgId}`;
       }
@@ -886,6 +1028,7 @@
         webhook_url: $('tgWebhookUrl')?.value || '',
         auto_create_intake: !!$('tgAutoIntake')?.checked,
         welcome_message: $('tgWelcomeMessage')?.value || '',
+        proxy: getProxySettings(),
       };
 
       try {
@@ -919,7 +1062,7 @@
       try {
         const res = await api('_module/crm.telegram-bot/test-connection', {
           method: 'POST',
-          body: { bot_token: botToken, organization_id: currentOrgId },
+          body: { bot_token: botToken, organization_id: currentOrgId, proxy: getProxySettings() },
         });
 
         const bot = res.bot || {};
@@ -1070,12 +1213,16 @@
           body: { limit: 20, organization_id: currentOrgId },
         });
         const count = res.processed_count ?? 0;
-        if (statusEl) statusEl.textContent = `Успешно: ${count} обновлений обработано.`;
+        if (res.retry_pending) {
+          if (statusEl) statusEl.textContent = `Опрос остановлен на обновлении ${res.failed_update_id || 'с некорректным ID'}; оно останется в очереди для повтора.`;
+        } else if (statusEl) {
+          statusEl.textContent = `Успешно: ${count} обновлений обработано.`;
+        }
         if (resultEl) {
           resultEl.style.display = 'block';
           resultEl.textContent = JSON.stringify(res, null, 2);
         }
-        showAlert(`Опрос завершён: обработано новых обновлений: ${count}`, 'success');
+        showAlert(res.retry_pending ? 'Опрос остановлен на ошибочном обновлении; повторите его позже.' : `Опрос завершён: обработано новых обновлений: ${count}`, res.retry_pending ? 'warning' : 'success');
         loadStatus();
         loadDialogs();
         loadLogs();
@@ -1129,8 +1276,7 @@
 
     // Refresh buttons
     $('tgRefreshBtn')?.addEventListener('click', () => {
-      refreshAll();
-      showAlert('Данные обновлены', 'info');
+      refreshAll().then(() => showAlert('Запросы обновления завершены. Проверьте сообщения об ошибках в разделах.', 'info'));
     });
 
     $('tgRefreshLogsBtn')?.addEventListener('click', () => {
@@ -1138,7 +1284,8 @@
     });
 
     // Initial load sequence
-    await loadWorkspaces();
+    // refreshAll owns workspace loading. Do not issue the same request twice
+    // during first paint; a slow endpoint otherwise delays every initial panel.
     refreshAll();
   };
 

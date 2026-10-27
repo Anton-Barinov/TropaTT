@@ -1,3 +1,40 @@
+.crm-storage-connectors .crm-form-group {
+  margin-bottom: 1rem;
+}
+
+.crm-storage-connectors .crm-form-label {
+  display: block;
+  margin-bottom: .4rem;
+  color: var(--crm-text, #1f2937);
+  font-weight: 600;
+}
+
+.crm-storage-connectors .crm-form-input,
+.crm-storage-connectors .crm-form-select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: .625rem .75rem;
+  border: 1px solid var(--crm-border, #d1d5db);
+  border-radius: var(--crm-radius-sm, 8px);
+  background: var(--crm-surface, #fff);
+  color: var(--crm-text, #1f2937);
+  font: inherit;
+}
+
+.crm-storage-connectors .crm-form-input:focus,
+.crm-storage-connectors .crm-form-select:focus {
+  border-color: var(--crm-primary, #0f8f74);
+  outline: 3px solid color-mix(in srgb, var(--crm-primary, #0f8f74) 18%, transparent);
+  outline-offset: 1px;
+}
+
+.crm-storage-connectors .form-text {
+  margin-top: .35rem;
+  color: var(--crm-muted, #667085);
+  font-size: .875rem;
+}
+
 .stcon-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);

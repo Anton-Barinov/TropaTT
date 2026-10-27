@@ -1,6 +1,6 @@
 {
     "name": "crm.mercadopago",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -66,18 +66,26 @@
                     "external_reference": {
                         "type": "string",
                         "description": "Internal reference (e.g. order or project public ID)"
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9._:-]+$",
+                        "description": "Generate once per intended checkout and reuse unchanged for every retry"
                     }
                 },
                 "required": [
                     "title",
-                    "amount"
+                    "amount",
+                    "idempotency_key"
                 ],
                 "additionalProperties": false
             }
         },
         {
             "name": "mercadopago_check_payment_status",
-            "description": "Check and reconcile payment status by external reference or payment ID",
+            "description": "Verify a Mercado Pago payment status against the workspace payment reference",
             "handler": "Module\\Crm\\MercadoPago\\Mcp\\CheckPaymentStatusTool",
             "permissions": [
                 "finance.view"
@@ -90,6 +98,10 @@
                     "payment_public_id": {
                         "type": "string",
                         "description": "Internal payment transaction ID"
+                    },
+                    "provider_payment_id": {
+                        "type": "string",
+                        "description": "Optional numeric Mercado Pago payment ID received from the checkout/webhook; verified against this transaction before saving"
                     }
                 },
                 "required": [

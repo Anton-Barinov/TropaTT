@@ -1886,6 +1886,10 @@ function createDatabaseTables(PDO $pdo, string $driver): array
             owner_user_id INTEGER,
             project_id INTEGER NULL,
             task_id INTEGER NULL,
+            source_type VARCHAR(64) NULL,
+            source_owner_user_id INTEGER NULL,
+            source_external_id VARCHAR(255) NULL,
+            organization_id INTEGER NULL,
             created_at {$dt},
             updated_at {$dt}
         )",

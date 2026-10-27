@@ -1,0 +1,97 @@
+name: Lint
+
+# Standalone CI for the `tropatt-opencart-1.5` connector repository.
+# OpenCart 1.5 stores usually run PHP 5.3-5.6; the syntax check is repeated over the
+# range that GitHub runners can still install, and the sources avoid every post-5.3 construct.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.4', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint connector sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find upload -name '*.php' -type f | sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No PHP files found" >&2
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            echo "php -l ${file}"
+            php -l "${file}"
+          done
+
+  xml:
+    name: Validate vqmod/tropatt.xml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the vQmod manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse('vqmod/xml/tropatt.xml')
+          root = tree.getroot()
+
+          assert root.tag == 'modification', root.tag
+          for tag in ('id', 'version', 'vqmver', 'author'):
+              node = root.find(tag)
+              assert node is not None and (node.text or '').strip(), f'missing <{tag}>'
+
+          files = root.findall('file')
+          assert files, 'no <file> operations declared'
+          searches = []
+          adds = []
+          for file_node in files:
+              path = file_node.get('name') or ''
+              assert path.endswith('catalog/model/checkout/order.php'), path
+              for operation in file_node.findall('operation'):
+                  search = operation.find('search')
+                  add = operation.find('add')
+                  assert search is not None and (search.text or '').strip(), 'empty <search>'
+                  assert add is not None and (add.text or '').strip(), 'empty <add>'
+                  searches.append((search.text or '').strip())
+                  adds.append(add.text or '')
+
+          # OpenCart 1.5.6.4 catalog/model/checkout/order.php declares exactly these
+          # status-writing methods; addOrderHistory() is a 2.x admin method and never
+          # matched, so the modification was silently not applied.
+          joined = ' '.join(searches)
+          assert 'public function confirm($order_id, $order_status_id' in joined, joined
+          assert 'public function update($order_id, $order_status_id' in joined, joined
+          assert 'addOrderHistory' not in joined, joined
+          assert 'handleOrderStatusChange' in ' '.join(adds), 'the injected call must go through the echo guard'
+
+          print('vqmod/tropatt.xml is well-formed and complete')
+          PY

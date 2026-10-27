@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS `module_hubspot_migration_sessions` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `public_id` VARCHAR(64) NOT NULL UNIQUE,
-    `workspace_id` INT NOT NULL DEFAULT 1,
+    `workspace_id` INT NOT NULL,
     `status` VARCHAR(32) NOT NULL DEFAULT 'draft',
     `mode` VARCHAR(32) NOT NULL DEFAULT 'dry_run',
     `total_records` INT NOT NULL DEFAULT 0,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `module_hubspot_migration_staging` (
 
 CREATE TABLE IF NOT EXISTS `module_hubspot_migration_id_map` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `workspace_id` INT NOT NULL DEFAULT 1,
+    `workspace_id` INT NOT NULL,
     `object_type` VARCHAR(32) NOT NULL,
     `hubspot_id` VARCHAR(128) NOT NULL,
     `crm_entity_type` VARCHAR(32) NOT NULL,

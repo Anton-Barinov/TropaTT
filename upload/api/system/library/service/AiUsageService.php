@@ -39,8 +39,28 @@ final class AiUsageService
      */
     public function usageList(array $filters, array $actor = []): array
     {
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
         $organizationId = $this->organizationId($actor);
-        if ($organizationId !== null) {
+        if (!$actorIsRoot) {
+            // Tenant and user scope must come from authenticated actor context,
+            // never from caller-supplied filters. Legacy users without a
+            // resolved organization can see only their own usage rows.
+            unset($filters['organization_id']);
+            $actorId = (int)($actor['id'] ?? 0);
+            if ($organizationId === null && $actorId <= 0) {
+                $page = max(1, (int)($filters['page'] ?? 1));
+                $limit = min(200, max(1, (int)($filters['limit'] ?? 50)));
+                return [
+                    'items' => [],
+                    'meta' => ['pagination' => ['page' => $page, 'limit' => $limit, 'total' => 0, 'pages' => 0]],
+                ];
+            }
+            if ($organizationId === null) {
+                $filters['user_id'] = $actorId;
+            } else {
+                $filters['organization_id'] = $organizationId;
+            }
+        } elseif ($organizationId !== null) {
             $filters['organization_id'] = $organizationId;
         }
         [$items, $total, $page, $limit] = $this->runtime->listUsageLogs($filters);

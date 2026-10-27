@@ -7,12 +7,13 @@ use Api\System\Library\Security\UrlSafetyValidator;
 use Module\Crm\StorageConnectors\Service\Adapter\NextcloudWebdavAdapter;
 use Module\Crm\StorageConnectors\Service\Adapter\S3CompatibleStorageAdapter;
 use Module\Crm\StorageConnectors\Service\Adapter\StorageAdapterInterface;
+use Closure;
 use PDO;
 use RuntimeException;
 
 /**
  * Storage manager orchestrating workspace storage configuration, adapter instantiation,
- * host preflight checks, file mapping and transparent upload/download.
+ * host preflight checks, workspace file mappings and manual file migration.
  */
 final class StorageManagerService implements FileMigrationStorageManagerInterface
 {
@@ -21,11 +22,13 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
 
     private PDO $db;
     private UrlSafetyValidator $urlSafety;
+    private ?Closure $adapterFactory;
 
-    public function __construct(PDO $db)
+    public function __construct(PDO $db, ?callable $adapterFactory = null)
     {
         $this->db = $db;
         $this->urlSafety = new UrlSafetyValidator();
+        $this->adapterFactory = $adapterFactory === null ? null : Closure::fromCallable($adapterFactory);
     }
 
     /**
@@ -88,6 +91,7 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
      */
     public function getConfig(int $organizationId): ?array
     {
+        if ($organizationId <= 0) return null;
         $stmt = $this->db->prepare(
             "SELECT public_id, organization_id, provider_type, endpoint_url, bucket_or_path, region, is_active, sync_policy, created_at, updated_at
              FROM crm_storage_configs
@@ -112,13 +116,23 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
         string $bucketOrPath,
         array $credentials,
         string $region = 'us-east-1',
-        string $syncPolicy = 'new_files'
+        string $syncPolicy = 'manual'
     ): string {
+        if ($organizationId <= 0) throw new RuntimeException('An authorized workspace is required.');
+        $endpointUrl = trim($endpointUrl);
+        if (strlen($endpointUrl) > 512 || strlen($bucketOrPath) > 255 || strlen($region) > 64) throw new RuntimeException('Storage configuration exceeds its field limits.');
         $this->assertSafeEndpoint($endpointUrl);
         $this->assertProviderCredentials($providerType, $credentials);
+        if ($providerType === 's3') {
+            $endpointPath = (string)(parse_url($endpointUrl, PHP_URL_PATH) ?: '');
+            if (!in_array($endpointPath, ['', '/'], true)) throw new RuntimeException('S3 endpoints must be configured as an HTTPS origin without a path prefix.');
+        }
         $bucketOrPath = $this->normalizeRemotePath($bucketOrPath);
         if ($providerType === 's3' && !preg_match('/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/', $bucketOrPath)) {
             throw new RuntimeException('S3 bucket name is invalid.');
+        }
+        if (!in_array($syncPolicy, ['manual'], true)) {
+            throw new RuntimeException('Only manual migration is supported by this module version.');
         }
         $now = date('Y-m-d H:i:s');
         $credJson = json_encode($credentials, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -143,6 +157,7 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
                 ':now' => $now,
                 ':pub_id' => $pubId,
             ]);
+            $this->deactivateOtherProviders($organizationId, $providerType, $now);
             return (string)$pubId;
         }
 
@@ -163,6 +178,8 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
             ':now' => $now,
         ]);
 
+        $this->deactivateOtherProviders($organizationId, $providerType, $now);
+
         return $pubId;
     }
 
@@ -171,6 +188,14 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
      */
     public function getAdapter(int $organizationId): ?StorageAdapterInterface
     {
+        $config = $this->getActiveConfigRow($organizationId);
+        return $config === null ? null : $this->createAdapterFromConfigRow($organizationId, $config);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function getActiveConfigRow(int $organizationId): ?array
+    {
+        if ($organizationId <= 0) return null;
         $stmt = $this->db->prepare(
             "SELECT provider_type, endpoint_url, bucket_or_path, region, auth_credentials_encrypted
              FROM crm_storage_configs
@@ -179,9 +204,18 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
         );
         $stmt->execute([':org_id' => $organizationId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
 
-        if (!$row) {
-            return null;
+    /** @param array<string, mixed> $row */
+    private function createAdapterFromConfigRow(int $organizationId, array $row): ?StorageAdapterInterface
+    {
+        if ($this->adapterFactory !== null) {
+            $adapter = ($this->adapterFactory)($organizationId);
+            if ($adapter !== null && !$adapter instanceof StorageAdapterInterface) {
+                throw new RuntimeException('Storage adapter factory returned an unsupported adapter.');
+            }
+            return $adapter;
         }
 
         $this->assertSafeEndpoint((string)$row['endpoint_url']);
@@ -255,17 +289,40 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
             throw new RuntimeException('File exceeds the 20 MB remote-storage limit.');
         }
 
-        $adapter = $this->getAdapter($organizationId);
-        if ($adapter === null) {
+        $config = $this->getActiveConfigRow($organizationId);
+        $adapter = $config === null ? null : $this->createAdapterFromConfigRow($organizationId, $config);
+        if ($config === null || $adapter === null) {
             throw new RuntimeException('No active remote storage configured for workspace.');
         }
 
         $now = date('Y-m-d H:i:s');
         $sha256 = hash('sha256', $content);
         $sizeBytes = strlen($content);
-        $yearMonth = date('Y/m');
         $safeFilename = $this->normalizeFilename($filename);
-        $remoteKey = "org_{$organizationId}/{$yearMonth}/{$filePublicId}_{$safeFilename}";
+        // Content-addressed keys prevent concurrent retries that read different
+        // snapshots of a changing source file from overwriting each other's data.
+        // The checksum is part of the object identity; a failed DB race can leave
+        // an unreferenced object, but can never corrupt the canonical mapping.
+        $remoteKey = "org_{$organizationId}/files/{$filePublicId}/{$sha256}/{$safeFilename}";
+
+        $existingStmt = $this->db->prepare(
+            "SELECT provider_type, remote_object_key, file_size_bytes, sha256_checksum, sync_status
+             FROM crm_storage_file_mappings
+             WHERE organization_id = :org_id AND file_public_id = :file_id
+             LIMIT 1"
+        );
+        $existingStmt->execute([':org_id' => $organizationId, ':file_id' => $filePublicId]);
+        $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
+        if (is_array($existing) && (string)$existing['sync_status'] === 'synced'
+            && (string)$existing['provider_type'] === (string)$config['provider_type']
+        ) {
+            if (!hash_equals((string)$existing['sha256_checksum'], $sha256)
+                || (int)$existing['file_size_bytes'] !== $sizeBytes
+            ) {
+                throw new RuntimeException('A different remote object is already mapped to this file. Reconcile the mapping before retrying.');
+            }
+            return ['ok' => true, 'remote_key' => (string)$existing['remote_object_key'], 'sha256' => $sha256];
+        }
 
         $uploadResult = $adapter->putObject($remoteKey, $content);
         if (!$uploadResult['ok']) {
@@ -274,20 +331,61 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
 
         // Save mapping
         $mapPubId = 'sfm_' . bin2hex(random_bytes(10));
-        $stmt = $this->db->prepare(
-            "INSERT INTO crm_storage_file_mappings (public_id, organization_id, file_public_id, provider_type, remote_object_key, file_size_bytes, sha256_checksum, sync_status, created_at, updated_at)
-             VALUES (:pub_id, :org_id, :file_id, :type, :key, :size, :sha, 'synced', :now, :now)"
-        );
-        $stmt->execute([
-            ':pub_id' => $mapPubId,
-            ':org_id' => $organizationId,
-            ':file_id' => $filePublicId,
-            ':type' => $uploadResult['provider_type'] ?? 'remote',
-            ':key' => $remoteKey,
-            ':size' => $sizeBytes,
-            ':sha' => $sha256,
-            ':now' => $now,
-        ]);
+        try {
+            if (is_array($existing)) {
+                $stmt = $this->db->prepare(
+                    "UPDATE crm_storage_file_mappings
+                     SET provider_type = :type, remote_object_key = :key, file_size_bytes = :size,
+                         sha256_checksum = :sha, sync_status = 'synced', last_error = NULL, updated_at = :now
+                     WHERE organization_id = :org_id AND file_public_id = :file_id"
+                );
+                $stmt->execute([
+                    ':type' => (string)$config['provider_type'],
+                    ':key' => $remoteKey,
+                    ':size' => $sizeBytes,
+                    ':sha' => $sha256,
+                    ':now' => $now,
+                    ':org_id' => $organizationId,
+                    ':file_id' => $filePublicId,
+                ]);
+            } else {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO crm_storage_file_mappings (public_id, organization_id, file_public_id, provider_type, remote_object_key, file_size_bytes, sha256_checksum, sync_status, created_at, updated_at)
+                     VALUES (:pub_id, :org_id, :file_id, :type, :key, :size, :sha, 'synced', :now, :now)"
+                );
+                $stmt->execute([
+                    ':pub_id' => $mapPubId,
+                    ':org_id' => $organizationId,
+                    ':file_id' => $filePublicId,
+                    ':type' => (string)$config['provider_type'],
+                    ':key' => $remoteKey,
+                    ':size' => $sizeBytes,
+                    ':sha' => $sha256,
+                    ':now' => $now,
+                ]);
+            }
+        } catch (\PDOException $exception) {
+            // The unique tenant/file key is the final concurrency guard. A
+            // competing identical PUT is safe; an unexpected uniqueness or
+            // database error remains a hard failure.
+            $raceStmt = $this->db->prepare(
+                "SELECT provider_type, remote_object_key, file_size_bytes, sha256_checksum, sync_status
+                 FROM crm_storage_file_mappings
+                 WHERE organization_id = :org_id AND file_public_id = :file_id
+                 LIMIT 1"
+            );
+            $raceStmt->execute([':org_id' => $organizationId, ':file_id' => $filePublicId]);
+            $raced = $raceStmt->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($raced)
+                || !hash_equals((string)$raced['sha256_checksum'], $sha256)
+                || (int)$raced['file_size_bytes'] !== $sizeBytes
+                || (string)$raced['provider_type'] !== (string)$config['provider_type']
+                || (string)$raced['remote_object_key'] !== $remoteKey
+                || (string)$raced['sync_status'] !== 'synced'
+            ) {
+                throw $exception;
+            }
+        }
 
         return [
             'ok' => true,
@@ -322,17 +420,30 @@ final class StorageManagerService implements FileMigrationStorageManagerInterfac
         }
     }
 
+    private function deactivateOtherProviders(int $organizationId, string $providerType, string $now): void
+    {
+        // The UI and migration runner expose exactly one active target per
+        // workspace. Keep other provider credentials stored, but never leave
+        // two active backends for a LIMIT 1 adapter lookup.
+        $stmt = $this->db->prepare('UPDATE crm_storage_configs SET is_active=0,updated_at=:now WHERE organization_id=:org_id AND provider_type<>:provider_type');
+        $stmt->execute([':now' => $now, ':org_id' => $organizationId, ':provider_type' => $providerType]);
+    }
+
     private function assertProviderCredentials(string $providerType, array $credentials): void
     {
         if ($providerType === 's3') {
-            if (trim((string)($credentials['access_key'] ?? '')) === '' || trim((string)($credentials['secret_key'] ?? '')) === '') {
+            $accessKey = is_string($credentials['access_key'] ?? null) ? $credentials['access_key'] : '';
+            $secretKey = is_string($credentials['secret_key'] ?? null) ? $credentials['secret_key'] : '';
+            if (trim($accessKey) === '' || trim($secretKey) === '' || strlen($accessKey) > 512 || strlen($secretKey) > 2048 || preg_match('/[\x00-\x1F\x7F]/', $accessKey . $secretKey)) {
                 throw new RuntimeException('S3 access key and secret key are required.');
             }
             return;
         }
 
         if ($providerType === 'nextcloud_webdav') {
-            if (trim((string)($credentials['username'] ?? '')) === '' || (string)($credentials['password'] ?? '') === '') {
+            $username = is_string($credentials['username'] ?? null) ? $credentials['username'] : '';
+            $password = is_string($credentials['password'] ?? null) ? $credentials['password'] : '';
+            if (trim($username) === '' || trim($password) === '' || strlen($username) > 512 || strlen($password) > 2048 || str_contains($username, ':') || preg_match('/[\x00-\x1F\x7F]/', $username . $password)) {
                 throw new RuntimeException('WebDAV username and app password are required.');
             }
             return;

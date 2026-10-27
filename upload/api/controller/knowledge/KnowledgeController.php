@@ -655,7 +655,8 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $draft = $this->repo()->draft((string)$params['public_id'], $this->actorUserId());
+        $actor = $this->actor();
+        $draft = $this->repo()->draft((string)$params['public_id'], $this->actorUserId(), $actor);
         return $this->success('KNOWLEDGE_DRAFT', $this->t('knowledge/messages.draft', 'Draft loaded'), [
             'draft' => $draft,
         ]);
@@ -668,7 +669,8 @@ final class KnowledgeController extends BaseController
         }
         $auth = $this->user();
         try {
-            $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId());
+            $actor = $this->actor();
+            $draft = $this->repo()->saveDraft((string)$params['public_id'], $this->request()->allInput(), $this->actorUserId(), $actor);
         } catch (\RuntimeException $e) {
             AppLog::error('[KnowledgeController::saveDraft] ' . $e->getMessage());
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found'), 404);
@@ -684,16 +686,18 @@ final class KnowledgeController extends BaseController
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
         $auth = $this->user();
-        $this->repo()->deleteDraft((string)$params['public_id'], $this->actorUserId());
+        $this->repo()->deleteDraft((string)$params['public_id'], $this->actorUserId(), $this->actor());
         return $this->success('KNOWLEDGE_DRAFT_DELETED', $this->t('knowledge/messages.draft_deleted', 'Draft deleted'));
     }
 
     public function search(): JsonResponse
     {
         $query = (string)$this->request()->input('q', '');
+        $result = $this->repo()->searchPage($query, $this->request()->allInput(), $this->actor());
         return $this->success('KNOWLEDGE_SEARCH', $this->t('knowledge/messages.search', 'Knowledge search completed'), [
-            'items' => $this->repo()->search($query, $this->request()->allInput(), $this->actor()),
-        ]);
+            'items' => $result['items'],
+            'status_counts' => $result['status_counts'],
+        ], 200, ['pagination' => $result['pagination']]);
     }
 
     public function recent(): JsonResponse
@@ -985,7 +989,7 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
-        $publicId = $this->repo()->favoritePage((string)$params['public_id'], $this->actorUserId());
+        $publicId = $this->repo()->favoritePage((string)$params['public_id'], $this->actorUserId(), $this->actor());
         if ($publicId === null) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
@@ -1008,7 +1012,7 @@ final class KnowledgeController extends BaseController
         if (!$this->requirePageAccess((string)$params['public_id'], 'view')) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }
-        $publicId = $this->repo()->subscribePage((string)$params['public_id'], $this->actorUserId());
+        $publicId = $this->repo()->subscribePage((string)$params['public_id'], $this->actorUserId(), $this->actor());
         if ($publicId === null) {
             return $this->error('KNOWLEDGE_PAGE_NOT_FOUND', $this->t('knowledge/messages.page_not_found', 'Knowledge page not found'), 404);
         }

@@ -7,10 +7,16 @@ final class Request
 {
     public const MCP_MAX_RAW_BODY_BYTES = 28 * 1024 * 1024;
     public const MCP_PROTOCOL_VERSION = '2025-06-18';
+    public const MCP_MODERN_PROTOCOL_VERSION = '2026-07-28';
     private const MCP_MAX_JSON_STRUCTURAL_TOKENS = 10000;
     private const MCP_MAX_JSON_NESTING = 64;
     private const PUBLIC_FORM_MAX_RAW_BODY_BYTES = 32769;
     private const WHATSAPP_WEBHOOK_MAX_RAW_BODY_BYTES = 262145;
+    private const PAYSTACK_WEBHOOK_MAX_RAW_BODY_BYTES = 262145;
+    private const TELEGRAM_WEBHOOK_MAX_RAW_BODY_BYTES = 1048577;
+    private const ECOMMERCE_INGEST_MAX_RAW_BODY_BYTES = 1048577;
+    private const DRAWIO_MAX_RAW_BODY_BYTES = 2000001;
+    private const HUBSPOT_MAX_RAW_BODY_BYTES = 600000;
 
     /** @var array<string,mixed> */
     private array $jsonBody = [];
@@ -60,6 +66,12 @@ final class Request
         $isMcp = self::isMcpTransport($method, $path, $_GET);
         $rawBodyLimit = self::rawBodyLimit($method, $path, $_GET);
         $bodyTooLarge = $isMcp && self::mcpContentLengthExceedsLimit($_SERVER);
+        if (!$bodyTooLarge && $rawBodyLimit !== null) {
+            // Reject a declared oversized body before opening php://input. If
+            // length is absent or untrusted, the bounded read below still caps
+            // memory use for chunked/unknown-length requests.
+            $bodyTooLarge = self::contentLengthExceedsLimit($_SERVER, $rawBodyLimit - 1);
+        }
         $rawBodyStream = $bodyTooLarge ? false : fopen('php://input', 'rb');
         $rawBody = '';
         if (is_resource($rawBodyStream)) {
@@ -68,7 +80,10 @@ final class Request
                 : (stream_get_contents($rawBodyStream, $rawBodyLimit) ?: '');
             fclose($rawBodyStream);
         }
-        if ($isMcp && strlen($rawBody) > self::MCP_MAX_RAW_BODY_BYTES) {
+        if ($rawBodyLimit !== null && strlen($rawBody) >= $rawBodyLimit) {
+            $bodyTooLarge = true;
+            $rawBody = '';
+        } elseif ($isMcp && strlen($rawBody) > self::MCP_MAX_RAW_BODY_BYTES) {
             $bodyTooLarge = true;
             $rawBody = '';
         }
@@ -116,14 +131,101 @@ final class Request
         return strtoupper($method) === 'POST' && self::resolveRoutePath($path, $query) === '/api/v1/mcp';
     }
 
+    /**
+     * MCP's Origin check must run before auth and request-size short-circuits,
+     * so it is shared by the front controller and MCP handler. Requests from
+     * non-browser clients may omit Origin; when present, it must be same-origin.
+     */
+    public static function isMcpOriginAllowed(array $server, array $headers = []): bool
+    {
+        $origin = '';
+        foreach ($headers as $name => $value) {
+            if (strtolower((string)$name) === 'origin') {
+                $origin = trim(is_array($value) ? (string)($value[0] ?? '') : (string)$value);
+                break;
+            }
+        }
+        if ($origin === '') {
+            $origin = trim((string)($server['HTTP_ORIGIN'] ?? ''));
+        }
+        if ($origin === '') {
+            return true;
+        }
+
+        try {
+            $originParts = parse_url($origin);
+            $requestHost = trim((string)($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+            $requestParts = $requestHost !== '' ? parse_url('//' . $requestHost) : false;
+        } catch (\Throwable) {
+            return false;
+        }
+        if (!is_array($originParts) || !is_array($requestParts)) {
+            return false;
+        }
+
+        $originScheme = strtolower((string)($originParts['scheme'] ?? ''));
+        $originHost = strtolower((string)($originParts['host'] ?? ''));
+        $requestHostName = strtolower((string)($requestParts['host'] ?? ''));
+        $https = strtolower((string)($server['HTTPS'] ?? ''));
+        $requestScheme = ($https !== '' && $https !== 'off' && $https !== '0') ? 'https' : 'http';
+
+        $forwardedProto = '';
+        foreach ($headers as $name => $value) {
+            if (strtolower((string)$name) === 'x-forwarded-proto') {
+                $forwardedProto = strtolower(trim(is_array($value) ? (string)($value[0] ?? '') : (string)$value));
+                break;
+            }
+        }
+        if ($forwardedProto === '') {
+            $forwardedProto = strtolower(trim((string)($server['HTTP_X_FORWARDED_PROTO'] ?? '')));
+        }
+        if (in_array($forwardedProto, ['http', 'https'], true)) {
+            $requestScheme = $forwardedProto;
+        } elseif (in_array(strtolower((string)($server['REQUEST_SCHEME'] ?? '')), ['http', 'https'], true)) {
+            $requestScheme = strtolower((string)$server['REQUEST_SCHEME']);
+        }
+
+        $originPort = (int)($originParts['port'] ?? ($originScheme === 'https' ? 443 : 80));
+        $requestPort = (int)($requestParts['port'] ?? ($requestScheme === 'https' ? 443 : 80));
+        $hasOriginTail = isset($originParts['user']) || isset($originParts['pass'])
+            || isset($originParts['query']) || isset($originParts['fragment'])
+            || isset($originParts['path']);
+
+        return in_array($originScheme, ['http', 'https'], true)
+            && $originHost !== ''
+            && $requestHostName !== ''
+            && !$hasOriginTail
+            && $originPort >= 1 && $originPort <= 65535
+            && $requestPort >= 1 && $requestPort <= 65535
+            && $originScheme === $requestScheme
+            && $originPort === $requestPort
+            && strcasecmp($originHost, $requestHostName) === 0;
+    }
+
+    public function mcpOriginIsAllowed(): bool
+    {
+        return self::isMcpOriginAllowed($this->server, $this->headers);
+    }
+
     public static function mcpContentLengthExceedsLimit(array $server): bool
     {
+        return self::contentLengthExceedsLimit($server, self::MCP_MAX_RAW_BODY_BYTES);
+    }
+
+    public static function contentLengthExceedsLimit(array $server, int $maxBytes): bool
+    {
+        if ($maxBytes < 0) {
+            return true;
+        }
         $length = trim((string)($server['CONTENT_LENGTH'] ?? $server['HTTP_CONTENT_LENGTH'] ?? ''));
         if ($length === '' || !ctype_digit($length)) {
             return false;
         }
         $length = ltrim($length, '0');
-        $limit = (string)self::MCP_MAX_RAW_BODY_BYTES;
+        if ($length === '') {
+            $length = '0';
+        }
+        $limit = (string)$maxBytes;
         return strlen($length) > strlen($limit) || (strlen($length) === strlen($limit) && strcmp($length, $limit) > 0);
     }
 
@@ -169,11 +271,24 @@ final class Request
     {
         $normalizedPath = self::resolveRoutePath($path, $query);
 
-        if (strtoupper($method) !== 'POST') {
+        $method = strtoupper($method);
+        $drawioRoute = preg_match('#^/(?:api/v1/)?_module/crm\.drawio/diagrams(?:/[A-Za-z0-9_-]{1,64})?$#D', $normalizedPath) === 1;
+        if ($drawioRoute && in_array($method, ['POST', 'PATCH'], true)) {
+            return self::DRAWIO_MAX_RAW_BODY_BYTES;
+        }
+        if ($method !== 'POST') {
             return null;
         }
         if ($normalizedPath === '/api/v1/mcp') {
             return self::MCP_MAX_RAW_BODY_BYTES + 1;
+        }
+
+        if (preg_match('#^/(?:api/v1/)?_module/crm\.telegram-bot/webhook/[1-9][0-9]{0,9}$#D', $normalizedPath) === 1) {
+            return self::TELEGRAM_WEBHOOK_MAX_RAW_BODY_BYTES;
+        }
+
+        if (preg_match('#^/api/v1/_module/crm\.hubspot-migration/(?:sessions|sessions/contacts|sessions/[A-Za-z0-9_-]{1,64}/(?:import|retry-errors|discard-pending|rollback))$#D', $normalizedPath) === 1) {
+            return self::HUBSPOT_MAX_RAW_BODY_BYTES + 1;
         }
 
         if (preg_match('#^/api/v1/_module/crm\.public-forms/forms/[A-Za-z0-9_-]{1,64}/submit$#D', $normalizedPath) === 1) {
@@ -182,6 +297,14 @@ final class Request
 
         if (preg_match('#^/api/v1/_module/crm\.whatsapp-business/webhook/[A-Za-z0-9_-]{1,128}$#D', $normalizedPath) === 1) {
             return self::WHATSAPP_WEBHOOK_MAX_RAW_BODY_BYTES;
+        }
+
+        if (preg_match('#^/api/v1/_module/crm\.paystack-africa/webhook/[A-Fa-f0-9]{32}$#D', $normalizedPath) === 1) {
+            return self::PAYSTACK_WEBHOOK_MAX_RAW_BODY_BYTES;
+        }
+
+        if (preg_match('#^/(?:api/v1/)?_module/crm\.ecommerce-gateway/v1/(?:orders|quick-orders|callbacks|feedback|forms|stock)$#D', $normalizedPath) === 1) {
+            return self::ECOMMERCE_INGEST_MAX_RAW_BODY_BYTES;
         }
 
         return null;

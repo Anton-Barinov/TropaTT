@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<addon scheme="3.0">
+    <id>tropatt</id>
+    <version>1.0.3</version>
+    <priority>1000</priority>
+    <position>100</position>
+    <status>active</status>
+    <default_language>en</default_language>
+    <auto_install>MULTIVENDOR,ULTIMATE</auto_install>
+    <name>TropaTT CRM — e-commerce gateway</name>
+    <description>Two-way synchronisation of orders, customers and statuses between CS-Cart (including Multi-Vendor) and the TropaTT self-hosted CRM.</description>
+    <author>Anton Barinov</author>
+    <url>https://tropatt.com</url>
+    <license>AGPL-3.0</license>
+
+    <settings edition_type="MULTIVENDOR,ULTIMATE">
+        <sections>
+            <section id="general">
+                <items>
+                    <item id="enabled">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <item id="gateway_url">
+                        <type>input</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="store_key">
+                        <type>input</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="store_secret">
+                        <type>password</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="webhook_secret">
+                        <type>input</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="default_stage">
+                        <type>input</type>
+                        <default_value>new</default_value>
+                    </item>
+                    <item id="split_by_vendor">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <item id="debug">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                </items>
+            </section>
+            <section id="statuses">
+                <items>
+                    <item id="status_mapping">
+                        <type>textarea</type>
+                        <default_value>O=new
+P=in_progress
+C=done
+F=canceled</default_value>
+                    </item>
+                </items>
+            </section>
+        </sections>
+    </settings>
+</addon>

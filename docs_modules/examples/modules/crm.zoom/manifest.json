@@ -1,11 +1,11 @@
 {
     "name": "crm.zoom",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
-    "title": "Интеграция с Zoom (Встречи, Звонки, Записи, Транскрипция)",
-    "description": "Комплексная интеграция TropaTT CRM с платформой Zoom: планирование встреч из задач, сделок и календаря CRM с автогенерацией защищенных Zoom Meetings (join_url / start_url), синхронизация облачных записей (Cloud Recordings), AI-транскриптов и учет присутствия участников прямо в карточке клиента и проекта.",
+    "title": "Zoom Meetings — видеовстречи",
+    "description": "Подключение Zoom Server-to-Server OAuth для создания встреч из CRM и добавления их в календарь. Записи и транскрипты пока не поддерживаются.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -23,7 +23,7 @@
     "menu_items": [
         {
             "id": "zoom",
-            "title": "Zoom Встречи",
+            "title": "Zoom Meetings",
             "route": "zoom",
             "icon": "video",
             "permission": "calendar.view"
@@ -40,7 +40,7 @@
     "mcp_tools": [
         {
             "name": "zoom_status",
-            "description": "Проверить статус интеграции с Zoom API (OAuth Server-to-Server, квоты и вебхуки)",
+            "description": "Показать состояние настроек Zoom в активном рабочем пространстве. Секреты не возвращаются.",
             "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomStatusTool",
             "permissions": [
                 "calendar.view"
@@ -55,7 +55,7 @@
         },
         {
             "name": "zoom_create_meeting",
-            "description": "Создать встречу в Zoom с автоматической привязкой к календарю, задаче или сделке CRM",
+            "description": "Создать Zoom-встречу и соответствующее событие календаря CRM. Требует подключённый Zoom Server-to-Server app и стабильный ключ идемпотентности для безопасных повторов.",
             "handler": "Module\\Crm\\Zoom\\Mcp\\ZoomCreateMeetingTool",
             "permissions": [
                 "calendar.edit"
@@ -71,36 +71,31 @@
                     },
                     "start_time": {
                         "type": "string",
-                        "description": "Время начала встречи (ISO 8601 или Y-m-d H:i:s)"
+                        "description": "Будущее время начала в ISO 8601 с часовым поясом"
                     },
                     "duration": {
                         "type": "integer",
-                        "description": "Длительность встречи в минутах (по умолчанию 40)"
+                        "minimum": 15,
+                        "maximum": 480,
+                        "description": "Длительность встречи в минутах; от 15 до 480"
                     },
                     "agenda": {
                         "type": "string",
                         "description": "Повестка или описание встречи"
                     },
-                    "crm_project_public_id": {
+                    "timezone": {
                         "type": "string",
-                        "description": "ID связанного проекта CRM"
+                        "description": "Часовой пояс IANA, например Europe/Moscow"
                     },
-                    "crm_task_public_id": {
+                    "idempotency_key": {
                         "type": "string",
-                        "description": "ID связанной задачи CRM"
-                    },
-                    "crm_client_public_id": {
-                        "type": "string",
-                        "description": "ID связанного клиента/лида"
-                    },
-                    "password": {
-                        "type": "string",
-                        "description": "Пароль для подключения (опционально, генерируется автоматически)"
+                        "description": "Стабильный ключ 16–128 символов для повторного вызова той же операции без создания дубля"
                     }
                 },
                 "required": [
                     "topic",
-                    "start_time"
+                    "start_time",
+                    "idempotency_key"
                 ],
                 "additionalProperties": false
             }

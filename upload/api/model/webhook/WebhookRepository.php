@@ -144,9 +144,59 @@ final class WebhookRepository
             ->insert($payload);
     }
 
+    public function deliveryExistsForSourceEvent(int $webhookId, string $sourceEventId): bool
+    {
+        if ($webhookId < 1 || $sourceEventId === '') {
+            return false;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('webhook_deliveries')
+            ->where('webhook_id', '=', $webhookId)
+            ->where('source_event_id', '=', $sourceEventId)
+            ->first() !== null;
+    }
+
     public function claimNextRunnableDelivery(string $now): ?array
     {
-        $row = (new QueryBuilder($this->pdo))
+        $candidate = (new QueryBuilder($this->pdo))
+            ->from('webhook_deliveries')
+            ->select(['id'])
+            ->where('status', '=', 'queued')
+            ->where('dead_letter', '=', 0)
+            ->whereRaw('(next_run_at IS NULL OR next_run_at <= ?)', [$now])
+            ->whereRaw('(locked_at IS NULL OR locked_at <= ?)', [gmdate('Y-m-d H:i:s', time() - 900)])
+            ->orderBy('created_at', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->limit(1)
+            ->first();
+
+        if (!$candidate) {
+            return null;
+        }
+
+        // Claim with a compare-and-set predicate. The old select-then-update
+        // only rechecked status, so two shared-host cron workers could both
+        // overwrite locked_at and send the same delivery concurrently.
+        $claim = $this->pdo->prepare(
+            "UPDATE webhook_deliveries
+             SET locked_at = :locked_at, updated_at = :updated_at
+             WHERE id = :id AND status = 'queued' AND dead_letter = 0
+               AND (next_run_at IS NULL OR next_run_at <= :due_now)
+               AND (locked_at IS NULL OR locked_at <= :expired_at)"
+        );
+        $claim->execute([
+            'locked_at' => $now,
+            'updated_at' => $now,
+            'id' => (int)$candidate['id'],
+            'due_now' => $now,
+            'expired_at' => gmdate('Y-m-d H:i:s', time() - 900),
+        ]);
+        if ($claim->rowCount() !== 1) {
+            return null;
+        }
+
+        return (new QueryBuilder($this->pdo))
             ->from('webhook_deliveries d')
             ->join('webhook_subscriptions w', 'w.id', '=', 'd.webhook_id')
             ->select([
@@ -156,29 +206,8 @@ final class WebhookRepository
                 'w.secret_hash',
                 'w.is_active',
             ])
-            ->where('d.status', '=', 'queued')
-            ->where('d.dead_letter', '=', 0)
-            ->whereRaw('(d.next_run_at IS NULL OR d.next_run_at <= ?)', [$now])
-            ->whereRaw('(d.locked_at IS NULL OR d.locked_at <= ?)', [gmdate('Y-m-d H:i:s', time() - 900)])
-            ->orderBy('d.created_at', 'ASC')
-            ->orderBy('d.id', 'ASC')
-            ->limit(1)
+            ->where('d.id', '=', (int)$candidate['id'])
             ->first();
-
-        if (!$row) {
-            return null;
-        }
-
-        $locked = (new QueryBuilder($this->pdo))
-            ->from('webhook_deliveries')
-            ->where('id', '=', (int)$row['id'])
-            ->where('status', '=', 'queued')
-            ->update([
-                'locked_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-        return $locked > 0 ? $row : null;
     }
 
     public function updateDeliveryByPublicId(string $publicId, array $set): bool

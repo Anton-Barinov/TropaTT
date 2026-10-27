@@ -30,12 +30,14 @@ class ZoomServiceProvider extends AbstractModuleServiceProvider
         // Register webhooks & listeners
     }
 
-    public function getService(int $workspaceId = 1): ZoomService
+    public function getService(int $workspaceId = 0): ZoomService
     {
+        if (!$this->db instanceof \PDO) {
+            throw new \RuntimeException('Zoom storage is unavailable.');
+        }
         return new ZoomService(
             $this->db,
-            $workspaceId,
-            $this->config['access_token'] ?? null
+            $workspaceId
         );
     }
 }

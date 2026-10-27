@@ -1,0 +1,7 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: shop.tropatt\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "TropaTT CRM"
+msgstr "TropaTT CRM — шлюз интернет-магазина"

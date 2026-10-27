@@ -6,6 +6,35 @@
   }
 
   const MODULE_ROUTE = '_module/crm.corporate-mail';
+  let activeMailbox = null;
+  let activeMailboxEmail = '';
+  let activeThread = '';
+  let activeMessages = [];
+  let activeSendKey = '';
+  const pendingStorageKey = 'tropatt.corporate-mail.pending-send.v1';
+  let pendingStorageHealthy = true;
+  const loadPendingSends = () => {
+    try {
+      const raw = window.sessionStorage.getItem(pendingStorageKey);
+      const stored = JSON.parse(raw || '{}');
+      if (!stored || typeof stored !== 'object' || Array.isArray(stored)) { pendingStorageHealthy = false; return new Map(); }
+      const entries = Object.entries(stored);
+      return new Map(entries.filter(([slot, payload]) =>
+        typeof slot === 'string' && slot.length <= 260 && payload &&
+        typeof payload.idempotency_key === 'string' && /^[a-f0-9]{48}$/.test(payload.idempotency_key)
+      ).map(([slot, payload]) => [slot, { idempotency_key: payload.idempotency_key, persisted: true }]).slice(-20));
+    } catch (_) { pendingStorageHealthy = false; return new Map(); }
+  };
+  const pendingSends = loadPendingSends();
+  const persistPendingSends = () => {
+    try {
+      const safeEntries = Array.from(pendingSends, ([slot, payload]) => [slot, { idempotency_key: payload.idempotency_key }]);
+      window.sessionStorage.setItem(pendingStorageKey, JSON.stringify(Object.fromEntries(safeEntries)));
+      return true;
+    }
+    catch (_) { pendingStorageHealthy = false; return false; }
+  };
+  const clearPendingSend = (slot) => { pendingSends.delete(slot); persistPendingSends(); };
 
   const apiRequest = (path, options = {}) => {
     if (window.CRM && window.CRM.api && typeof window.CRM.api.request === 'function') {
@@ -30,7 +59,9 @@
     }).then(async res => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) {
-        throw new Error(data.message || data.code || 'Ошибка запроса к серверу');
+        const error = new Error(data.message || data.code || 'Ошибка запроса к серверу');
+        error.code = data.code || '';
+        throw error;
       }
       return data.data || data;
     });
@@ -77,17 +108,17 @@
     const importBtn = document.getElementById('cmailImportEnvBtn');
     if (!banner) return;
 
-    if (status.status === 'connected') {
+    if (status.status === 'configured') {
       banner.innerHTML = `
-        <div class="alert alert-success d-flex align-items-center justify-content-between p-3" role="status">
+        <div class="alert alert-warning d-flex align-items-center justify-content-between p-3" role="status">
           <div class="d-flex align-items-center">
-            <i class="fa-solid fa-circle-check fs-4 text-success me-3" aria-hidden="true"></i>
+            <i class="fa-solid fa-triangle-exclamation fs-4 text-warning me-3" aria-hidden="true"></i>
             <div>
-              <strong class="fs-6">Подключён · Активен</strong>
-              <div class="small">Активных ящиков: <strong>${status.active_mailboxes_count}</strong>. Почтовый сервис принимает и отправляет письма в штатном режиме.</div>
+              <strong class="fs-6">Почтовые ящики настроены</strong>
+              <div class="small">Настроено ящиков: <strong>${status.active_mailboxes_count}</strong>. Доступны проверка TLS, bounded-синхронизация IMAP и отправка через SMTP; ошибки авторизации показываются после проверки.</div>
             </div>
           </div>
-          ${status.last_synced_at ? `<span class="badge bg-success-subtle text-success border border-success-subtle">Посл. проверка: ${esc(status.last_synced_at)}</span>` : ''}
+          ${status.last_synced_at ? `<span class="badge bg-secondary-subtle text-secondary border">Последний статус: ${esc(status.last_synced_at)}</span>` : ''}
         </div>
       `;
     } else if (status.status === 'env_ready') {
@@ -113,7 +144,7 @@
             <i class="fa-solid fa-triangle-exclamation fs-4 text-warning me-3" aria-hidden="true"></i>
             <div>
               <strong class="fs-6">Установлен · требуется настройка</strong>
-              <div class="small">Почтовые ящики пока не добавлены. Добавьте первый корпоративный ящик для приёма и отправки писем команды.</div>
+              <div class="small">Почтовые ящики пока не добавлены. Можно сохранить настройки; приём и отправка писем станут доступны после завершения интеграции.</div>
             </div>
           </div>
           <button class="btn btn-sm crm-btn-primary" id="cmailBannerAddBtn">
@@ -216,9 +247,11 @@
                   <button type="button" class="btn crm-btn-secondary cmail-btn-test" data-id="${esc(m.public_id)}" title="Проверить соединение">
                     <i class="fa-solid fa-plug" aria-hidden="true"></i>
                   </button>
-                  <button type="button" class="btn crm-btn-secondary cmail-btn-sync" data-id="${esc(m.public_id)}" title="Синхронизировать сейчас">
+                  <button type="button" class="btn crm-btn-secondary cmail-btn-inbox" data-id="${esc(m.public_id)}" data-email="${esc(m.email_address)}" data-name="${esc(m.display_name || m.email_address)}" title="Открыть переписки" aria-label="Открыть переписки ящика ${esc(m.display_name || m.email_address)}">Входящие</button>
+                  <button type="button" class="btn crm-btn-secondary cmail-btn-sync" data-id="${esc(m.public_id)}" title="Синхронизировать следующую ограниченную партию" aria-label="Синхронизировать следующую партию">
                     <i class="fa-solid fa-rotate" aria-hidden="true"></i>
                   </button>
+                  <button type="button" class="btn crm-btn-secondary cmail-btn-failures" data-id="${esc(m.public_id)}" title="Показать проблемные письма (${esc(m.sync_failure_count || 0)})" aria-label="Показать проблемные письма">UID ${esc(m.sync_failure_count || 0)}</button>
                   <button type="button" class="btn crm-btn-secondary cmail-btn-edit" data-id="${esc(m.public_id)}" title="Редактировать">
                     <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
                   </button>
@@ -235,8 +268,14 @@
         tbody.querySelectorAll('.cmail-btn-test').forEach(btn => {
           btn.addEventListener('click', () => testMailbox(btn.getAttribute('data-id'), btn));
         });
+        tbody.querySelectorAll('.cmail-btn-inbox').forEach(btn => {
+          btn.addEventListener('click', () => openInbox(btn.getAttribute('data-id'), btn.getAttribute('data-email'), btn.getAttribute('data-name')));
+        });
         tbody.querySelectorAll('.cmail-btn-sync').forEach(btn => {
           btn.addEventListener('click', () => syncMailbox(btn.getAttribute('data-id'), btn));
+        });
+        tbody.querySelectorAll('.cmail-btn-failures').forEach(btn => {
+          btn.addEventListener('click', () => loadSyncFailures(btn.getAttribute('data-id')));
         });
         tbody.querySelectorAll('.cmail-btn-edit').forEach(btn => {
           btn.addEventListener('click', () => openEditModal(btn.getAttribute('data-id')));
@@ -254,6 +293,93 @@
           </tr>
         `;
       });
+  };
+
+  const openInbox = (mailboxId, mailboxEmail, mailboxName) => {
+    activeMailbox = mailboxId;
+    activeMailboxEmail = mailboxEmail || '';
+    activeThread = '';
+    activeMessages = [];
+    activeSendKey = '';
+    const panel = document.getElementById('cmailInboxPanel');
+    if (panel) panel.hidden = false;
+    const label = document.getElementById('cmailInboxMailboxLabel');
+    if (label) label.textContent = `${mailboxName || mailboxEmail || mailboxId} · ${mailboxEmail || ''}`;
+    document.getElementById('cmailReplyForm')?.setAttribute('hidden', '');
+    document.getElementById('cmailMessageList').innerHTML = '<p class="text-muted p-3 mb-0">Выберите переписку, чтобы открыть письма.</p>';
+    loadThreads();
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const loadThreads = () => {
+    const list = document.getElementById('cmailThreadList');
+    if (!list || !activeMailbox) return;
+    list.innerHTML = '<p class="text-muted p-3 mb-0">Загружаем переписки…</p>';
+    apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(activeMailbox)}/threads?limit=100`)
+      .then(data => {
+        const threads = Array.isArray(data.items) ? data.items : [];
+        if (!threads.length) {
+          list.innerHTML = '<p class="text-muted p-3 mb-0">В этом ящике пока нет писем. Выполните синхронизацию.</p>';
+          return;
+        }
+        list.innerHTML = threads.map(thread => `
+          <button type="button" class="cmail-thread-item${thread.thread_id === activeThread ? ' active' : ''}" data-thread="${esc(thread.thread_id)}">
+            <span class="cmail-thread-subject">${esc(thread.subject || '(без темы)')}</span>
+            <span class="cmail-thread-meta">${esc(thread.sender_name || thread.sender_email)} · ${esc(thread.sent_at)} · ${esc(thread.message_count)} пис.</span>
+          </button>`).join('');
+        list.querySelectorAll('.cmail-thread-item').forEach(button => button.addEventListener('click', () => openThread(button.getAttribute('data-thread'))));
+      })
+      .catch(error => { list.innerHTML = `<p class="text-danger p-3 mb-0">Не удалось загрузить переписки: ${esc(error.message)}</p>`; });
+  };
+
+  const openThread = (threadId) => {
+    if (!threadId || !activeMailbox) return;
+    activeThread = threadId;
+    const pendingSend = pendingSends.get(`${activeMailbox}:${activeThread}`) || null;
+    activeSendKey = pendingSend?.idempotency_key || '';
+    const list = document.getElementById('cmailMessageList');
+    const replyForm = document.getElementById('cmailReplyForm');
+    if (replyForm) replyForm.hidden = true;
+    document.getElementById('cmailReplySubject').disabled = !!activeSendKey;
+    document.getElementById('cmailReplyBody').disabled = !!activeSendKey;
+    document.getElementById('cmailReplySend').disabled = !!activeSendKey;
+    document.getElementById('cmailReplyCheckStatus').hidden = !activeSendKey;
+    if (list) list.innerHTML = '<p class="text-muted p-3 mb-0">Загружаем письма…</p>';
+    apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(activeMailbox)}/messages?thread_id=${encodeURIComponent(threadId)}&limit=100`)
+      .then(data => {
+        activeMessages = Array.isArray(data.items) ? data.items : [];
+        if (!activeMessages.length) {
+          list.innerHTML = '<p class="text-muted p-3 mb-0">Переписка не найдена или больше недоступна.</p>';
+          return;
+        }
+        list.innerHTML = activeMessages.map(message => `
+          <article class="cmail-message ${message.direction === 'outbound' ? 'outbound' : 'inbound'}">
+            <header><strong>${esc(message.sender_name || message.sender_email)}</strong><span>${esc(message.sent_at)}</span></header>
+            <div class="small text-muted">Кому: ${esc(message.recipient_email)}</div>
+            <h3>${esc(message.subject || '(без темы)')}</h3>
+            <pre>${esc(message.body_text || '')}</pre>
+          </article>`).join('');
+        const latest = activeMessages[activeMessages.length - 1];
+        const candidates = String(latest.direction === 'inbound' ? latest.sender_email : latest.recipient_email || '').split(/[,;\s]+/).filter(Boolean);
+        const recipient = candidates.find(email => email.toLowerCase() !== activeMailboxEmail.toLowerCase()) || '';
+        const subject = String(latest.subject || '').trim();
+        document.getElementById('cmailReplyRecipient').textContent = pendingSend ? 'Для этой переписки сохранён незавершённый запрос. Проверьте статус перед повтором.' : (recipient ? `Ответ будет отправлен: ${recipient}` : 'Не удалось определить адрес для ответа.');
+        document.getElementById('cmailReplySubject').value = pendingSend?.subject || (/^re\s*:/i.test(subject) ? subject : `Re: ${subject}`.trim());
+        document.getElementById('cmailReplyBody').value = pendingSend?.body || '';
+        if (pendingSend?.persisted) document.getElementById('cmailReplyBody').placeholder = 'После подтверждённого статуса «не отправлено» введите исходный текст без изменений.';
+        else document.getElementById('cmailReplyBody').placeholder = 'Введите текст ответа…';
+        document.getElementById('cmailReplySubject').disabled = !!pendingSend;
+        document.getElementById('cmailReplyBody').disabled = !!pendingSend;
+        document.getElementById('cmailReplyForm').dataset.recipient = recipient;
+        document.getElementById('cmailReplyForm').dataset.replyTo = latest.message_id_header || '';
+        if (pendingSend?.persisted) document.getElementById('cmailReplySubject').disabled = true;
+        document.getElementById('cmailReplyForm').hidden = !recipient || !latest.message_id_header;
+        document.getElementById('cmailReplySend').disabled = !!pendingSend || !recipient || !latest.message_id_header;
+        document.getElementById('cmailReplyStatus').textContent = pendingSend ? 'Для этой переписки есть незавершённая отправка. Сначала проверьте её статус.' : '';
+        document.getElementById('cmailReplyCheckStatus').hidden = !pendingSend;
+        list?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      })
+      .catch(error => { list.innerHTML = `<p class="text-danger p-3 mb-0">Не удалось загрузить переписку: ${esc(error.message)}</p>`; });
   };
 
   const openAddModal = () => {
@@ -341,7 +467,7 @@
 
     apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(pubId)}/sync`, { method: 'POST' })
       .then(res => {
-        showAlert(res.message || 'Синхронизация завершена успешно', 'success');
+        showAlert(res.message || 'Синхронизация завершена успешно', Number(res.failed_count || 0) > 0 ? 'warning' : 'success');
         loadMailboxes();
         loadStatus();
       })
@@ -353,6 +479,30 @@
         btn.innerHTML = origHtml;
       });
   };
+
+  const loadSyncFailures = (pubId) => {
+    const panel = document.getElementById('cmailFailuresPanel');
+    const tbody = document.getElementById('cmailFailuresBody');
+    if (!panel || !tbody) return;
+    panel.hidden = false;
+    panel.dataset.mailbox = pubId;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center">Загрузка проблемных UID…</td></tr>';
+    apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(pubId)}/sync-failures`)
+      .then(res => {
+        const rows = res.items || [];
+        if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center">Проблемных писем нет.</td></tr>'; return; }
+        tbody.innerHTML = rows.map(item => `<tr><td>${esc(item.uid)}</td><td>${esc(item.uidvalidity)}</td><td>${esc(item.error_code)}</td><td>${esc(item.attempts)}</td><td>${esc(item.updated_at)}</td><td><button class="btn btn-sm crm-btn-secondary cmail-btn-retry-uid" type="button" data-uid="${esc(item.uid)}" data-validity="${esc(item.uidvalidity)}">Повторить</button></td></tr>`).join('');
+        tbody.querySelectorAll('.cmail-btn-retry-uid').forEach(btn => btn.addEventListener('click', () => {
+          btn.disabled = true;
+          apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(pubId)}/sync-failures/retry`, { method: 'POST', body: { uid: Number(btn.dataset.uid), uidvalidity: Number(btn.dataset.validity) } })
+            .then(result => { showAlert(result.message || 'UID обработан.', 'success'); loadSyncFailures(pubId); loadMailboxes(); })
+            .catch(err => showAlert(err.message || 'Повтор UID не выполнен.', 'danger'))
+            .finally(() => { btn.disabled = false; });
+        }));
+      })
+      .catch(err => { tbody.innerHTML = `<tr><td colspan="6" class="text-danger">Не удалось загрузить список: ${esc(err.message)}</td></tr>`; });
+  };
+  document.getElementById('cmailFailuresClose')?.addEventListener('click', () => { document.getElementById('cmailFailuresPanel').hidden = true; });
 
   const deleteMailbox = (pubId, btn) => {
     if (!confirm('Вы действительно хотите удалить этот почтовый ящик?')) {
@@ -484,11 +634,110 @@
   });
 
   // Top toolbar buttons
+  document.getElementById('cmailInboxRefresh')?.addEventListener('click', loadThreads);
+  document.getElementById('cmailInboxClose')?.addEventListener('click', () => {
+    const panel = document.getElementById('cmailInboxPanel');
+    if (panel) panel.hidden = true;
+  });
+  document.getElementById('cmailReplyForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const sendButton = document.getElementById('cmailReplySend');
+    const status = document.getElementById('cmailReplyStatus');
+    const recipient = form.dataset.recipient || '';
+    const replyTo = form.dataset.replyTo || '';
+    const body = document.getElementById('cmailReplyBody').value;
+    if (!activeMailbox || !recipient || !replyTo || !body.trim()) return;
+    const slot = `${activeMailbox}:${activeThread}`;
+    let requestPayload = pendingSends.get(slot);
+    if (!requestPayload || requestPayload.persisted) {
+      const bytes = new Uint8Array(24);
+      window.crypto.getRandomValues(bytes);
+      activeSendKey = requestPayload?.idempotency_key || Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      requestPayload = {
+        to: [recipient],
+        subject: document.getElementById('cmailReplySubject').value,
+        body,
+        in_reply_to: replyTo,
+        idempotency_key: activeSendKey
+      };
+      pendingSends.set(slot, requestPayload);
+      if (!pendingStorageHealthy || !persistPendingSends()) {
+        status.textContent = 'Браузер не смог безопасно сохранить ключ повторной отправки. Письмо не отправлено; проверьте хранилище браузера и повторите попытку.';
+        sendButton.disabled = false;
+        return;
+      }
+    } else {
+      activeSendKey = requestPayload.idempotency_key;
+    }
+    sendButton.disabled = true;
+    document.getElementById('cmailReplyCheckStatus').hidden = true;
+    status.textContent = 'Отправляем письмо…';
+    try {
+      const result = await apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(activeMailbox)}/send`, {
+        method: 'POST',
+        body: requestPayload
+      });
+      status.textContent = result.message || 'Письмо отправлено.';
+      clearPendingSend(slot);
+      activeSendKey = '';
+      await loadThreads();
+      openThread(activeThread);
+    } catch (error) {
+      status.textContent = `${error.message} Проверьте статус перед повторной отправкой.`;
+      document.getElementById('cmailReplySubject').disabled = true;
+      document.getElementById('cmailReplyBody').disabled = true;
+      document.getElementById('cmailReplyCheckStatus').hidden = false;
+    } finally {
+      if (!activeSendKey) sendButton.disabled = false;
+    }
+  });
+  document.getElementById('cmailReplyCheckStatus')?.addEventListener('click', async () => {
+    if (!activeMailbox || !activeSendKey) return;
+    const status = document.getElementById('cmailReplyStatus');
+    const check = document.getElementById('cmailReplyCheckStatus');
+    check.disabled = true;
+    try {
+      const result = await apiRequest(`${MODULE_ROUTE}/mailboxes/${encodeURIComponent(activeMailbox)}/send-status?idempotency_key=${encodeURIComponent(activeSendKey)}`);
+      status.textContent = `Статус доставки: ${result.status || 'неизвестен'}.`;
+      if (result.status === 'sent') {
+        clearPendingSend(`${activeMailbox}:${activeThread}`);
+        activeSendKey = '';
+        document.getElementById('cmailReplySend').disabled = true;
+        check.hidden = true;
+        await loadThreads();
+        openThread(activeThread);
+      } else if (result.status === 'failed') {
+        clearPendingSend(`${activeMailbox}:${activeThread}`);
+        activeSendKey = '';
+        document.getElementById('cmailReplySubject').disabled = false;
+        document.getElementById('cmailReplyBody').disabled = false;
+        document.getElementById('cmailReplySend').disabled = false;
+        status.textContent = 'Сервер подтвердил, что письмо не отправлено. Исправьте или заново введите ответ и отправьте его как новую попытку.';
+        check.hidden = true;
+      }
+    } catch (error) {
+      if (error.code === 'NOT_FOUND') {
+        clearPendingSend(`${activeMailbox}:${activeThread}`);
+        activeSendKey = '';
+        document.getElementById('cmailReplySubject').disabled = false;
+        document.getElementById('cmailReplyBody').disabled = false;
+        document.getElementById('cmailReplySend').disabled = false;
+        check.hidden = true;
+        status.textContent = 'Попытка отправки не найдена: можно проверить адрес и создать новый ответ.';
+      } else {
+        status.textContent = `Статус пока не получен: ${error.message}. Не отправляйте это письмо с новым ключом.`;
+      }
+    } finally {
+      check.disabled = false;
+    }
+  });
   document.getElementById('cmailAddMailboxBtn')?.addEventListener('click', openAddModal);
   document.getElementById('cmailImportEnvBtn')?.addEventListener('click', importEnv);
   document.getElementById('cmailRefreshBtn')?.addEventListener('click', () => {
     loadStatus();
     loadMailboxes();
+    if (activeMailbox) loadThreads();
   });
 
   // Initial load

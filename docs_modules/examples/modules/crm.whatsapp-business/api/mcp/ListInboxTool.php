@@ -10,7 +10,10 @@ final class ListInboxTool
 {
     public function handle(array $arguments, array $context): array
     {
-        $orgId = (int)($context['user']['organization_id'] ?? 1);
+        $orgId = (int)($context['organization_id'] ?? $context['user']['organization_id'] ?? 0);
+        if ($orgId <= 0) {
+            throw new \RuntimeException('An active workspace is required to list WhatsApp conversations.');
+        }
         $db = DatabaseConnectionPool::getConnection();
         $service = new WhatsAppBusinessService($db);
         $items = $service->listConversations($orgId);

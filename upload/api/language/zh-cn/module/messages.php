@@ -27,6 +27,7 @@ return [
     'activate_failed' => '模块启用失败',
     'deactivate_failed' => '模块停用失败',
     'uninstall_failed' => '模块卸载失败',
+    'rollback_failed' => '无法完整回滚模块迁移。模块仍保留为已安装状态',
     'update_failed' => '模块配置更新失败，详情请查看服务器日志',
     'clear_failed' => '模块错误清除失败，详情请查看服务器日志',
     'purged' => '模块已从磁盘完全删除',

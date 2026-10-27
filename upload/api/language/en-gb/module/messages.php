@@ -27,6 +27,7 @@ return [
     'activate_failed' => 'Failed to activate the module',
     'deactivate_failed' => 'Failed to deactivate the module',
     'uninstall_failed' => 'Failed to uninstall the module',
+    'rollback_failed' => 'Module migrations could not be fully rolled back. The module remains installed',
     'update_failed' => 'Module update failed. See the server log for details.',
     'clear_failed' => 'Could not clear the module errors. See the server log for details.',
     'bulk_completed' => 'Bulk action completed',

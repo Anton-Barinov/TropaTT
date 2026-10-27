@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Interceptors: every order save publishes a queue message instead of calling the CRM inline. -->
+    <type name="Magento\Sales\Api\OrderRepositoryInterface">
+        <plugin name="tropatt_order_save" type="Tropatt\Crm\Plugin\OrderPlugin"/>
+    </type>
+
+    <type name="Tropatt\Crm\Model\Queue\Consumer">
+        <arguments>
+            <argument name="client" xsi:type="object">Tropatt\Crm\Model\Http\Client</argument>
+        </arguments>
+    </type>
+</config>

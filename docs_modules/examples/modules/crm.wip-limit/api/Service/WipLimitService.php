@@ -38,7 +38,7 @@ final class WipLimitService
 
     private function isWorkspaceReady(): bool
     {
-        return true;
+        return $this->organizationId > 0;
     }
 
     public function organizationId(): int
@@ -92,7 +92,7 @@ final class WipLimitService
 
     public function getUserLimit(int $userId): int
     {
-        if ($userId <= 0) {
+        if ($userId <= 0 || !$this->isWorkspaceReady()) {
             return $this->getDefaultLimit();
         }
 
@@ -114,7 +114,7 @@ final class WipLimitService
 
     public function getUserWipCount(int $userId): int
     {
-        if ($userId <= 0) {
+        if ($userId <= 0 || !$this->isWorkspaceReady()) {
             return 0;
         }
 
@@ -408,6 +408,9 @@ final class WipLimitService
      */
     public function enforce(array $context): void
     {
+        if (!$this->isWorkspaceReady()) {
+            return;
+        }
         $newStatus = (string)($context['new_status'] ?? $context['status_code'] ?? '');
         $assigneeId = (int)($context['assignee_id'] ?? $context['new_assignee_id'] ?? 0);
 
@@ -437,7 +440,7 @@ final class WipLimitService
      */
     public function getProjectWipCount(int $projectId): int
     {
-        if ($projectId <= 0) {
+        if ($projectId <= 0 || !$this->isWorkspaceReady()) {
             return 0;
         }
 
@@ -470,7 +473,7 @@ final class WipLimitService
      */
     public function getTeamWipCount(int $teamId): int
     {
-        if ($teamId <= 0) {
+        if ($teamId <= 0 || !$this->isWorkspaceReady()) {
             return 0;
         }
 
@@ -503,7 +506,7 @@ final class WipLimitService
      */
     public function getScopeLimit(string $scopeType, int $scopeId): int
     {
-        if ($scopeId <= 0 || !$this->isValidScopeType($scopeType)) {
+        if (!$this->isWorkspaceReady() || $scopeId <= 0 || !$this->isValidScopeType($scopeType)) {
             return $this->getDefaultScopeLimit($scopeType);
         }
 
@@ -579,7 +582,7 @@ final class WipLimitService
      */
     public function resolveScopeId(string $scopeType, string $scopePublicId): ?int
     {
-        if ($scopePublicId === '' || !$this->isValidScopeType($scopeType)) {
+        if (!$this->isWorkspaceReady() || $scopePublicId === '' || !$this->isValidScopeType($scopeType)) {
             return null;
         }
 
@@ -777,10 +780,6 @@ final class WipLimitService
             return false;
         }
 
-        if ($this->organizationId <= 0) {
-            return true;
-        }
-
         try {
             $stmt = $this->pdo->prepare('SELECT 1 FROM organization_memberships WHERE organization_id = ? AND user_id = ? LIMIT 1');
             $stmt->execute([$this->organizationId, $userId]);
@@ -799,13 +798,8 @@ final class WipLimitService
 
         $table = $scopeType === self::SCOPE_TEAM ? 'teams' : 'projects';
         try {
-            if ($this->organizationId > 0) {
-                $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE id = ? AND organization_id = ? LIMIT 1");
-                $stmt->execute([$scopeId, $this->organizationId]);
-            } else {
-                $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE id = ? LIMIT 1");
-                $stmt->execute([$scopeId]);
-            }
+            $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE id = ? AND organization_id = ? LIMIT 1");
+            $stmt->execute([$scopeId, $this->organizationId]);
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable $e) {
             error_log('[WipLimitService::scopeExistsInWorkspace] ' . $e->getMessage());

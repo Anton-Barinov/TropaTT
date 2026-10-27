@@ -4,47 +4,41 @@ declare(strict_types=1);
 
 namespace Module\Crm\VkWorkspace\Api\Controller;
 
+use Api\Controller\Common\BaseController;
+use Api\System\Library\Http\JsonResponse;
 use Module\Crm\VkWorkspace\Service\VkWorkspaceService;
+use Throwable;
 
-class VkWorkspaceApiController
+final class VkWorkspaceApiController extends BaseController
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    private function workspaceId(): int
     {
-        $this->db = $db;
+        $actor = $this->user();
+        return (int)($actor['user']['workspace_id'] ?? $actor['user']['organization_id'] ?? 0);
     }
 
-    public function getStatus(): array
+    private function service(): VkWorkspaceService
     {
-        return [
-            'status' => 'not_configured',
-            'connected' => false,
-            'features' => [
-                'vk_calls' => true,
-                'calendar_sync' => true,
-                'vk_teams' => true
-            ]
-        ];
+        return new VkWorkspaceService($this->container->get('db.pdo'), $this->workspaceId());
     }
 
-    public function scheduleMeeting(array $input): array
+    public function getStatus(): JsonResponse
     {
-        $service = new VkWorkspaceService($this->db);
-        return $service->scheduleMeeting($input);
+        if ($this->workspaceId() <= 0) {
+            return $this->error('ACTIVE_WORKSPACE_REQUIRED', 'An active workspace is required.', 409);
+        }
+        return $this->success('VK_WORKSPACE_STATUS', 'VK WorkSpace integration status retrieved.', $this->service()->getStatus());
     }
 
-    public function listMeetings(): array
+    public function listMeetings(): JsonResponse
     {
-        $stmt = $this->db->query("
-            SELECT public_id, title, description, starts_at, ends_at, call_room_url, call_pin, status, created_at
-            FROM module_vk_workspace_meetings
-            ORDER BY starts_at DESC
-            LIMIT 50
-        ");
-
-        return [
-            'items' => $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : []
-        ];
+        if ($this->workspaceId() <= 0) {
+            return $this->error('ACTIVE_WORKSPACE_REQUIRED', 'An active workspace is required.', 409);
+        }
+        try {
+            return $this->success('VK_WORKSPACE_MEETINGS_LIST', 'Workspace meetings retrieved.', ['items' => $this->service()->listMeetings()]);
+        } catch (Throwable) {
+            return $this->error('VK_WORKSPACE_MEETINGS_UNAVAILABLE', 'VK WorkSpace meetings are unavailable.', 503);
+        }
     }
 }

@@ -23,7 +23,8 @@ final class CalendarService
         private readonly JsonLogger $logger,
         private readonly ?NotificationService $notifications = null,
         private readonly ?UserRepository $users = null,
-        private readonly ?\Api\System\Library\Module\DomainEventPublisher $domainEvents = null
+        private readonly ?\Api\System\Library\Module\DomainEventPublisher $domainEvents = null,
+        private readonly ?\PDO $pdo = null
     ) {
     }
 
@@ -111,7 +112,7 @@ final class CalendarService
         ];
     }
 
-    public function createEvent(array $input, array $actor)
+    public function createEvent(array $input, array $actor, ?array $trustedSource = null)
     {
         $projectId = null;
         if (!empty($input['project_public_id'])) {
@@ -132,6 +133,19 @@ final class CalendarService
         }
 
         $publicId = Ulid::generate('evt');
+        $sourceType = null;
+        $sourceOwnerUserId = null;
+        $sourceExternalId = null;
+        if ($trustedSource !== null) {
+            $sourceType = trim((string)($trustedSource['source_type'] ?? ''));
+            $sourceOwnerUserId = (int)($trustedSource['source_owner_user_id'] ?? 0);
+            $sourceExternalId = trim((string)($trustedSource['source_external_id'] ?? ''));
+            $allowedTrustedSources = ['public_form_booking', 'zoom', 'outlook_calendar'];
+            if (!in_array($sourceType, $allowedTrustedSources, true) || $sourceOwnerUserId < 1 || $sourceExternalId === '' || strlen($sourceExternalId) > 255 || preg_match('/[\\x00-\\x1F\\x7F]/', $sourceExternalId) === 1
+                || (in_array($sourceType, ['zoom', 'outlook_calendar'], true) && $sourceOwnerUserId !== (int)($actor['id'] ?? 0))) {
+                throw new \InvalidArgumentException('Trusted calendar source metadata is invalid.');
+            }
+        }
         $timezone = isset($input['timezone']) && is_string($input['timezone']) ? trim($input['timezone']) : null;
         $startsAt = self::normalizeToUtc((string)$input['starts_at'], $timezone);
         $endsAt = self::normalizeToUtc((string)($input['ends_at'] ?? $input['starts_at']), $timezone);
@@ -144,42 +158,103 @@ final class CalendarService
             $ownerUserId = (int)$input['owner_user_id'];
         }
 
-        $eventId = $this->events->create([
-            'public_id' => $publicId,
-            'title' => trim((string)$input['title']),
-            'description' => trim((string)($input['description'] ?? '')),
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'owner_user_id' => $ownerUserId,
-            'project_id' => $projectId,
-            'task_id' => $taskId,
-            'organization_id' => $this->organizationId($actor),
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
-        if ($attendeeUserIds !== []) {
-            $this->events->syncAttendees($eventId, $attendeeUserIds);
+        if (!$this->pdo instanceof \PDO) {
+            throw new \RuntimeException('Calendar event creation requires an available transaction boundary.');
         }
 
-        $this->logger->audit([
-            'action' => 'calendar_event_created',
-            'actor_public_id' => $actor['public_id'] ?? null,
-            'entity_type' => 'calendar_event',
-            'entity_public_id' => $publicId,
-        ]);
-
-        $createdEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $this->organizationId($actor));
-        if (is_array($createdEvent)) {
-            $this->publishEvent(ModuleEvents::CALENDAR_EVENT_CREATED, $this->calendarEventPayload($createdEvent, $publicId), $actor);
-            $targetUserIds = $this->calendarEventStakeholderIds($createdEvent, (int)($actor['id'] ?? 0));
-            if ($targetUserIds !== []) {
-                $this->notifications?->notifyCalendarEventAssigned($createdEvent, $targetUserIds, $actor);
+        $ownsTransaction = !$this->pdo->inTransaction();
+        $sourceEventId = $publicId;
+        $organizationId = $this->organizationId($actor);
+        if ($ownsTransaction) {
+            $this->pdo->beginTransaction();
+        }
+        $useStrictOutbox = $organizationId !== null && $organizationId > 0 && $this->domainEvents !== null;
+        try {
+            $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
+            $conflictUserIds = array_values(array_unique(array_filter(array_merge(
+                [$ownerUserId],
+                $attendeeUserIds,
+                $sourceOwnerUserId !== null ? [$sourceOwnerUserId] : []
+            ), static fn(int $id): bool => $id > 0)));
+            $eventId = $this->events->create([
+                'public_id' => $publicId,
+                'title' => trim((string)$input['title']),
+                'description' => trim((string)($input['description'] ?? '')),
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'owner_user_id' => $ownerUserId,
+                'project_id' => $projectId,
+                'task_id' => $taskId,
+                'organization_id' => $organizationId,
+                'source_type' => $sourceType,
+                'source_owner_user_id' => $sourceOwnerUserId,
+                'source_external_id' => $sourceExternalId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $conflictUserIds);
+            if ((int)$eventId < 1) {
+                if ($ownsTransaction && $this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                return 'BOOKING_CONFLICT';
             }
+
+            if ($attendeeUserIds !== []) {
+                $this->events->syncAttendees($eventId, $attendeeUserIds);
+            }
+
+            $createdEvent = $this->events->findByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $organizationId);
+            if (!is_array($createdEvent)) {
+                throw new \RuntimeException('Calendar event could not be read back within its transaction.');
+            }
+            if ($useStrictOutbox) {
+                $hookPayload = $this->domainEvents->enqueueTransactional(
+                    ModuleEvents::CALENDAR_EVENT_CREATED,
+                    $this->calendarEventPayload($createdEvent, $publicId),
+                    $actor,
+                    $organizationId,
+                    $sourceEventId
+                );
+            }
+            if ($ownsTransaction) {
+                $this->pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownsTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        if ($ownsTransaction) {
+            $this->dispatchCreatedAfterCommit($createdEvent, $actor);
         }
 
         return $createdEvent;
+    }
+
+    /** Dispatch effects deferred by a caller-owned calendar transaction. */
+    public function dispatchCreatedAfterCommit(array $createdEvent, array $actor): void
+    {
+        if ($this->pdo instanceof \PDO && $this->pdo->inTransaction()) {
+            throw new \RuntimeException('Calendar post-commit effects cannot run before the outer transaction commits.');
+        }
+        $publicId = trim((string)($createdEvent['public_id'] ?? ''));
+        if ($publicId === '') {
+            throw new \InvalidArgumentException('Created calendar event is missing its public ID.');
+        }
+        $organizationId = $this->organizationId($actor);
+        $payload = $this->calendarEventPayload($createdEvent, $publicId);
+        if ($organizationId !== null && $organizationId > 0 && $this->domainEvents !== null) {
+            $eventPayload = $this->domainEvents->transactionalPayload($payload, $actor, $organizationId, $publicId);
+            $this->domainEvents->dispatchHooksAfterCommit(ModuleEvents::CALENDAR_EVENT_CREATED, $eventPayload);
+        } else {
+            $this->publishEvent(ModuleEvents::CALENDAR_EVENT_CREATED, $payload, $actor);
+        }
+        $targetUserIds = $this->calendarEventStakeholderIds($createdEvent, (int)($actor['id'] ?? 0));
+        if ($targetUserIds !== []) {
+            $this->notifications?->notifyCalendarEventAssigned($createdEvent, $targetUserIds, $actor);
+        }
     }
 
     public function getEvent(string $publicId, array $actor): ?array
@@ -231,17 +306,17 @@ final class CalendarService
             }
         }
 
-        if ($set !== []) {
-            $set['updated_at'] = gmdate('Y-m-d H:i:s');
-            $this->events->updateByPublicId($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set, $this->organizationId($actor));
-        }
-
         $attendeesTouched = array_key_exists('attendees', $input)
             || array_key_exists('attendee_user_ids', $input)
             || array_key_exists('attendee_public_ids', $input);
+        $attendeeUserIds = $attendeesTouched ? $this->resolveAttendeeUserIds($input, $actor) : null;
+        if ($set !== [] || $attendeesTouched) {
+            $set['updated_at'] = gmdate('Y-m-d H:i:s');
+            $updateResult = $this->events->updateWithBookingGuard($publicId, (int)$actor['id'], (bool)($actor['is_root'] ?? false), $set, $this->organizationId($actor), $attendeeUserIds);
+            if ($updateResult === 'booking_conflict') return 'BOOKING_CONFLICT';
+        }
         if ($attendeesTouched) {
-            $attendeeUserIds = $this->resolveAttendeeUserIds($input, $actor);
-            $this->events->syncAttendees((int)($existing['id'] ?? 0), $attendeeUserIds);
+            // Attendee synchronization is performed inside the same locked writer transaction.
         }
 
         $this->logger->audit([

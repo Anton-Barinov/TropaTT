@@ -1,0 +1,76 @@
+name: Lint
+
+# Standalone CI for the `tropatt-bitrix` connector repository.
+# The module targets Bitrix «Малый бизнес» / «Бизнес» with Sale 16+ (D7), which
+# runs on PHP 7.4-8.2, so the syntax check is repeated across that range.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint module sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -name '*.php' -not -path './vendor/*' -type f | sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No PHP files found" >&2
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done
+
+  manifest:
+    name: Validate module manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check version.php and the module class
+        run: |
+          set -euo pipefail
+          test -f install/version.php
+          test -f install/index.php
+          grep -q "class tropatt_crm extends CModule" install/index.php
+          grep -q "public \$MODULE_ID = 'tropatt.crm'" install/index.php
+          grep -q "b_tropatt_queue" install/index.php
+          grep -q "OnSaleOrderSaved" install/index.php
+          grep -q "QueueAgent::processQueue" install/index.php
+          grep -q "UrlRewriter" install/index.php
+          grep -q "OnSaleStatusOrderChange" install/index.php
+          grep -qF 'Tropatt\Crm\OrderMapper' include.php
+          grep -qF 'Tropatt\Crm\Agent\QueueAgent' include.php
+          # The gateway URL is stripped of a duplicated API path prefix by GatewayUrl;
+          # the class must stay in the autoload map or the client falls back to a 404 URL.
+          grep -qF 'Tropatt\Crm\GatewayUrl' include.php
+          test -f lib/GatewayUrl.php
+          grep -q "GatewayUrl::endpoint" lib/Client.php
+          echo "module manifest is complete"

@@ -1,0 +1,344 @@
+<?php
+/**
+ * TropaTT CRM — gateway connector for OpenCart / ocStore 1.5.x.
+ *
+ * Admin controller. OpenCart 1.5 specifics:
+ *   - the extension list is `extension/extension&type=module`, not
+ *     `marketplace/extension`;
+ *   - the session token is `token`, not `user_token`;
+ *   - there is **no `oc_event` table** (it appeared in 2.3), so the order hook
+ *     is installed by the bundled OCMOD modification `install.xml` instead of
+ *     an event row. Install/uninstall therefore only need to exist.
+ */
+class ControllerModuleTropatt extends Controller {
+    private $error = array();
+
+    public function index() {
+        $this->load->language('module/tropatt');
+        $this->document->setTitle($this->language->get('heading_title'));
+        $this->load->model('setting/setting');
+
+        if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
+            $this->model_setting_setting->editSetting('module_tropatt', $this->sanitize($this->request->post));
+
+            $this->session->data['success'] = $this->language->get('text_success');
+
+            $this->response->redirect($this->url->link('extension/module', 'token=' . $this->session->data['token'], true));
+        }
+
+        $data['heading_title'] = $this->language->get('heading_title');
+        $data['text_edit'] = $this->language->get('text_edit');
+        $data['text_enabled'] = $this->language->get('text_enabled');
+        $data['text_disabled'] = $this->language->get('text_disabled');
+        $data['text_yes'] = $this->language->get('text_yes');
+        $data['text_no'] = $this->language->get('text_no');
+        $data['text_connection_ok'] = $this->language->get('text_connection_ok');
+        $data['text_connection_fail'] = $this->language->get('text_connection_fail');
+
+        $data['tab_general'] = $this->language->get('tab_general');
+        $data['tab_status_mapping'] = $this->language->get('tab_status_mapping');
+
+        $data['entry_status'] = $this->language->get('entry_status');
+        $data['entry_gateway_url'] = $this->language->get('entry_gateway_url');
+        $data['entry_store_key'] = $this->language->get('entry_store_key');
+        $data['entry_store_secret'] = $this->language->get('entry_store_secret');
+        $data['entry_webhook_url'] = $this->language->get('entry_webhook_url');
+        $data['entry_stock_url'] = $this->language->get('entry_stock_url');
+        $data['entry_debug'] = $this->language->get('entry_debug');
+        $data['entry_paid_statuses'] = $this->language->get('entry_paid_statuses');
+        $data['entry_status_mapping'] = $this->language->get('entry_status_mapping');
+
+        $data['help_gateway_url'] = $this->language->get('help_gateway_url');
+        $data['help_store_key'] = $this->language->get('help_store_key');
+        $data['help_store_secret'] = $this->language->get('help_store_secret');
+        $data['help_webhook_url'] = $this->language->get('help_webhook_url');
+        $data['help_stock_url'] = $this->language->get('help_stock_url');
+        $data['help_debug'] = $this->language->get('help_debug');
+        $data['help_paid_statuses'] = $this->language->get('help_paid_statuses');
+        $data['help_status_mapping'] = $this->language->get('help_status_mapping');
+
+        $data['column_order_status'] = $this->language->get('column_order_status');
+        $data['column_crm_stage'] = $this->language->get('column_crm_stage');
+
+        $data['button_save'] = $this->language->get('button_save');
+        $data['button_cancel'] = $this->language->get('button_cancel');
+        $data['button_test_connection'] = $this->language->get('button_test_connection');
+        $data['button_copy'] = $this->language->get('button_copy');
+
+        $data['token'] = $this->session->data['token'];
+
+        if (isset($this->error['warning'])) {
+            $data['error_warning'] = $this->error['warning'];
+        } else {
+            $data['error_warning'] = '';
+        }
+
+        $fields = array(
+            'module_tropatt_status',
+            'module_tropatt_gateway_url',
+            'module_tropatt_store_key',
+            'module_tropatt_store_secret',
+            'module_tropatt_debug',
+            'module_tropatt_paid_statuses',
+            'module_tropatt_status_mapping',
+        );
+
+        foreach ($fields as $field) {
+            if (isset($this->request->post[$field])) {
+                $data[$field] = $this->request->post[$field];
+            } else {
+                $data[$field] = $this->config->get($field);
+            }
+        }
+
+        if (!is_array($data['module_tropatt_paid_statuses'])) {
+            $data['module_tropatt_paid_statuses'] = array();
+        }
+        if (!is_array($data['module_tropatt_status_mapping'])) {
+            $data['module_tropatt_status_mapping'] = array();
+        }
+
+        $catalog_url = '';
+        if (defined('HTTP_CATALOG')) {
+            $catalog_url = HTTP_CATALOG;
+        }
+        if ($catalog_url === '') {
+            $catalog_url = (string)$this->config->get('config_url');
+        }
+        $catalog_url = rtrim($catalog_url, '/');
+
+        $data['webhook_url_computed'] = $catalog_url . '/index.php?route=module/tropatt/webhook';
+        $data['stock_url_computed'] = $catalog_url . '/index.php?route=module/tropatt/syncStock';
+
+        $this->load->model('localisation/order_status');
+        $data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
+
+        $data['breadcrumbs'] = array();
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_home'),
+            'href' => $this->url->link('common/dashboard', 'token=' . $this->session->data['token'], true),
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_extension'),
+            'href' => $this->url->link('extension/module', 'token=' . $this->session->data['token'], true),
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('heading_title'),
+            'href' => $this->url->link('module/tropatt', 'token=' . $this->session->data['token'], true),
+        );
+
+        $data['action'] = $this->url->link('module/tropatt', 'token=' . $this->session->data['token'], true);
+        $data['cancel'] = $this->url->link('extension/module', 'token=' . $this->session->data['token'], true);
+        $data['test_connection_url'] = $this->url->link('module/tropatt/testConnection', 'token=' . $this->session->data['token'], true);
+
+        $data['header'] = $this->load->controller('common/header');
+        $data['column_left'] = $this->load->controller('common/column_left');
+        $data['footer'] = $this->load->controller('common/footer');
+
+        $this->response->setOutput($this->load->view('module/tropatt', $data));
+    }
+
+    /**
+     * Nothing to register here: OpenCart 1.5 has no `oc_event` table, so the
+     * order hook is added to `catalog/model/checkout/order.php` by the bundled
+     * OCMOD modification (upload it in Extensions → Installer and refresh
+     * Modifications). The method exists because OpenCart calls it on install.
+     *
+     * @return void
+     */
+    public function install() {
+    }
+
+    /**
+     * The OCMOD modification is removed through Extensions → Modifications.
+     *
+     * @return void
+     */
+    public function uninstall() {
+    }
+
+    /**
+     * Signed GET /ping against the gateway, used by the "Test connection"
+     * button with the values currently typed into the form.
+     *
+     * @return void
+     */
+    public function testConnection() {
+        $this->load->language('module/tropatt');
+
+        $json = array('success' => false, 'message' => '');
+
+        $gateway_url = isset($this->request->post['gateway_url']) ? trim((string)$this->request->post['gateway_url']) : (string)$this->config->get('module_tropatt_gateway_url');
+        $store_key = isset($this->request->post['store_key']) ? trim((string)$this->request->post['store_key']) : (string)$this->config->get('module_tropatt_store_key');
+        $store_secret = isset($this->request->post['store_secret']) ? (string)$this->request->post['store_secret'] : (string)$this->config->get('module_tropatt_store_secret');
+
+        if ($gateway_url === '' || $store_key === '' || $store_secret === '') {
+            $json['message'] = $this->language->get('error_fields_required');
+            $this->respondJson($json);
+            return;
+        }
+
+        // The catalog model is not loadable from the admin panel, so the ping
+        // is signed here. (Earlier revisions called the catalog model, which is
+        // why the "Test connection" button failed with a null model.)
+        $result = $this->requestGateway(
+            'GET',
+            '/_module/crm.ecommerce-gateway/v1/ping',
+            rtrim($gateway_url, '/') . '/ping',
+            '',
+            $store_key,
+            $store_secret
+        );
+
+        if (!$result['success']) {
+            $json['message'] = $result['error'];
+            $this->respondJson($json);
+            return;
+        }
+
+        if ($result['code'] === 'INGESTION_PONG') {
+            $json['success'] = true;
+            $json['message'] = $this->language->get('text_connection_ok');
+        } else {
+            $json['message'] = sprintf($this->language->get('error_unexpected_response'), (string)$result['code']);
+        }
+
+        $this->respondJson($json);
+    }
+
+    /**
+     * Keep stored settings predictable: the mapping and the paid status list
+     * are the two fields where a stale checkbox or a whitespace-padded value
+     * would silently change behaviour.
+     *
+     * @param array<string,mixed> $post
+     * @return array<string,mixed>
+     */
+    private function sanitize(array $post) {
+        foreach (array('module_tropatt_gateway_url', 'module_tropatt_store_key', 'module_tropatt_store_secret') as $key) {
+            if (isset($post[$key]) && is_scalar($post[$key])) {
+                $post[$key] = trim((string)$post[$key]);
+            }
+        }
+
+        $mapping = array();
+        if (isset($post['module_tropatt_status_mapping']) && is_array($post['module_tropatt_status_mapping'])) {
+            foreach ($post['module_tropatt_status_mapping'] as $order_status_id => $stage_code) {
+                $stage_code = trim((string)$stage_code);
+                if ($stage_code !== '') {
+                    $mapping[(int)$order_status_id] = $stage_code;
+                }
+            }
+        }
+        $post['module_tropatt_status_mapping'] = $mapping;
+
+        $paid = array();
+        if (isset($post['module_tropatt_paid_statuses']) && is_array($post['module_tropatt_paid_statuses'])) {
+            foreach ($post['module_tropatt_paid_statuses'] as $status_id) {
+                if (is_scalar($status_id)) {
+                    $paid[] = (int)$status_id;
+                }
+            }
+        }
+        $post['module_tropatt_paid_statuses'] = $paid;
+
+        foreach (array('module_tropatt_status', 'module_tropatt_debug') as $key) {
+            $post[$key] = !empty($post[$key]) ? 1 : 0;
+        }
+
+        return $post;
+    }
+
+    /**
+     * @param array<string,mixed> $json
+     * @return void
+     */
+    private function respondJson(array $json) {
+        $this->response->addHeader('Content-Type: application/json');
+        $this->response->setOutput(json_encode($json));
+    }
+
+    /**
+     * @return bool
+     */
+    /**
+     * Signed request to the TropaTT gateway, used by the admin ping test.
+     *
+     * @return array
+     */
+    private function requestGateway($method, $path, $endpoint, $raw_body, $store_key, $store_secret) {
+        $timestamp = (string)time();
+        $nonce = $this->nonce();
+
+        $signature = base64_encode(hash_hmac(
+            'sha256',
+            strtoupper($method) . "\n" . $path . "\n" . $timestamp . "\n" . $nonce . "\n" . hash('sha256', $raw_body),
+            $store_secret,
+            true
+        ));
+
+        $headers = array(
+            'Content-Type: application/json',
+            'Accept: application/json',
+            'X-Store-Key: ' . $store_key,
+            'X-TropaTT-Timestamp: ' . $timestamp,
+            'X-TropaTT-Nonce: ' . $nonce,
+            'X-TropaTT-Signature: ' . $signature,
+        );
+
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+        if (strtoupper($method) !== 'GET') {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $raw_body);
+        }
+
+        $response = curl_exec($ch);
+        $http_code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return array('success' => false, 'code' => null, 'error' => $error, 'http_code' => 0);
+        }
+
+        $decoded = json_decode($response, true);
+        $code = (is_array($decoded) && isset($decoded['code'])) ? (string)$decoded['code'] : null;
+
+        if ($http_code >= 200 && $http_code < 300) {
+            return array('success' => true, 'code' => $code, 'error' => null, 'http_code' => $http_code);
+        }
+
+        return array('success' => false, 'code' => $code, 'error' => 'HTTP ' . $http_code . ': ' . (string)$response, 'http_code' => $http_code);
+    }
+
+    /**
+     * Nonce for the signature (PHP 5.3 has neither random_bytes nor a CSPRNG API).
+     *
+     * @return string
+     */
+    private function nonce() {
+        if (function_exists('random_bytes')) {
+            return bin2hex(random_bytes(16));
+        }
+
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            return bin2hex(openssl_random_pseudo_bytes(16));
+        }
+
+        return md5(uniqid((string)mt_rand(), true));
+    }
+
+    protected function validate() {
+        if (!$this->user->hasPermission('modify', 'module/tropatt')) {
+            $this->error['warning'] = $this->language->get('error_permission');
+        }
+
+        return !$this->error;
+    }
+}

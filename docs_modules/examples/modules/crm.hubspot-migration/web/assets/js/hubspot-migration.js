@@ -1,44 +1,43 @@
 (() => {
   'use strict';
-  const api = (path, options = {}) => {
-    if (window.CRM?.api?.request) return window.CRM.api.request(path, options).then(envelope => envelope.data || envelope);
-    const method = String(options.method || 'GET').toUpperCase();
-    const headers = { Accept: 'application/json', ...(options.headers || {}) };
-    if (['POST','PATCH','PUT','DELETE'].includes(method) && window.CRM?.api?.getCsrfToken) headers['X-CSRF-Token'] = window.CRM.api.getCsrfToken();
-    const hasBody = options.body !== undefined && options.body !== null;
-    if (hasBody && typeof options.body !== 'string' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-    return fetch(path, {...options, method, credentials:'same-origin', headers, body: hasBody ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined}).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok || data.success === false) throw new Error(data.message || data.code || 'Ошибка API'); return data.data || data; });
-  };
   const $ = id => document.getElementById(id);
-  const showMessage = (text, isError = false) => {
-    const el = $('hubmMessage');
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'small mt-3 ' + (isError ? 'text-danger' : 'text-success');
+  const api = (path, options = {}) => window.CRM?.api?.request ? window.CRM.api.request(path, options).then(x => x.data || x) : Promise.reject(new Error('CRM API client unavailable'));
+  let sessionId = '';
+  let currentPage = 1;
+  let totalPages = 0;
+  const message = (text, error = false) => { const el = $('hubmMessage'); el.textContent = text; el.className = 'small ' + (error ? 'hubm-state-error' : 'text-success'); };
+  const mapping = () => ({firstname:$('mapFirstname').value.trim(),lastname:$('mapLastname').value.trim(),email:$('mapEmail').value.trim(),phone:$('mapPhone').value.trim(),notes:$('mapNotes').value.trim()});
+  const paint = report => {
+    $('hubmCounts').replaceChildren(...Object.entries(report.counts || {}).map(([key,value]) => { const el=document.createElement('span'); el.className='hubm-count'; el.textContent=`${key}: ${value}`; return el; }));
+    const rows = (report.items || []).map(item => { const tr=document.createElement('tr'); for (const val of [item.hubspot_id, item.contact?.title || '', item.status === 'pending' ? (item.already_imported ? 'Уже импортирован' : 'Готов к импорту') : item.status]) { const td=document.createElement('td'); td.textContent=String(val); tr.append(td); } return tr; });
+    if (!rows.length) { const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=3; td.textContent='В сессии пока нет записей.'; tr.append(td); rows.push(tr); }
+    $('hubmRows').replaceChildren(...rows);
+    const pagination = report.pagination || {page: 1, total_pages: 1, total_records: rows.length};
+    currentPage = Number(pagination.page) || 1;
+    totalPages = Number(pagination.total_pages) || 1;
+    $('hubmPageLabel').textContent = `Страница ${currentPage} из ${totalPages} · записей: ${Number(pagination.total_records) || 0}`;
+    $('hubmPrevPage').disabled = !sessionId || currentPage <= 1;
+    $('hubmNextPage').disabled = !sessionId || currentPage >= totalPages;
+    $('hubmImport').disabled = !sessionId || !(report.counts?.ready > 0);
+    $('hubmRetry').disabled = !sessionId || !(report.counts?.failed > 0);
+    $('hubmRollback').disabled = !sessionId || !(report.counts?.imported_this_session > 0);
+    $('hubmDiscard').disabled = !sessionId || !(report.counts?.ready > 0 || report.counts?.already_imported > 0 || report.counts?.failed > 0);
   };
-
-  const loadStatus = () => {
-    const statusMeta = $('hubmStatusMeta');
-    if (statusMeta) statusMeta.textContent = 'Проверка соединения…';
-    const statusApiUrl = '/api/v1/modules/hubspot-migration/status';
-    if (!statusApiUrl) {
-      if (statusMeta) statusMeta.textContent = 'Сервис активен и готов к работе';
-      return;
-    }
-    api(statusApiUrl).then(data => {
-      if (data.status === 'not_implemented') {
-        if (statusMeta) statusMeta.textContent = 'Импорт пока недоступен';
-        showMessage(data.message || 'Импорт пока недоступен. Данные не изменены.', true);
-        return;
-      }
-      if (statusMeta) statusMeta.textContent = 'Состояние модуля загружено';
-      showMessage('Состояние модуля обновлено.');
-    }).catch(err => {
-      if (statusMeta) statusMeta.textContent = 'Сервис активен (локальный режим) · ' + (err.message || 'Готов');
-    });
+  const loadPage = async page => {
+    if (!sessionId) return;
+    const report = await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}?page=${page}&per_page=25`);
+    paint(report);
   };
-
   document.addEventListener('DOMContentLoaded', () => {
-    if ($('hubmStatusBox')) loadStatus();
+    $('hubmPrevPage')?.addEventListener('click', () => loadPage(Math.max(1, currentPage - 1)).catch(e => message(e.message || 'Не удалось загрузить страницу.', true)));
+    $('hubmNextPage')?.addEventListener('click', () => loadPage(Math.min(totalPages, currentPage + 1)).catch(e => message(e.message || 'Не удалось загрузить страницу.', true)));
+    $('hubmCreateSession')?.addEventListener('click', async () => { try { const r=await api('/api/v1/_module/crm.hubspot-migration/sessions',{method:'POST',body:{}}); sessionId=r.session_id; sessionStorage.setItem('hubmSessionId',sessionId); $('hubmSessionLabel').textContent=`Сессия: ${sessionId}`; $('hubmPreview').disabled=false; message('Сессия создана. Вставьте JSON и подготовьте предпросмотр.'); } catch(e) { message(e.message || 'Не удалось создать сессию.',true); } });
+    $('hubmPreview')?.addEventListener('click', async () => { try { if (!sessionId) throw new Error('Сначала создайте сессию.'); const records=JSON.parse($('hubmJson').value); if (!Array.isArray(records)) throw new Error('Корневое значение JSON должно быть массивом.'); const r=await api('/api/v1/_module/crm.hubspot-migration/sessions/contacts',{method:'POST',body:{session_id:sessionId,records,mapping:mapping()}}); paint(r); message('Предпросмотр готов. CRM пока не изменена.'); } catch(e) { message(e.message || 'Не удалось подготовить предпросмотр.',true); } });
+    $('hubmImport')?.addEventListener('click', async () => { try { const r=await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}/import`,{method:'POST',body:{limit:25}}); paint(r.report); message(`Пакет обработан: импортировано ${r.imported}, пропущено ${r.skipped}, ошибок ${r.errors}.`); } catch(e) { message(e.message || 'Импорт не выполнен.',true); } });
+    $('hubmRetry')?.addEventListener('click', async () => { try { const r=await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}/retry-errors`,{method:'POST',body:{}}); paint(r.report); message(`Повтор обработал пакет: импортировано ${r.imported}, пропущено ${r.skipped}, ошибок ${r.errors}.`); } catch(e) { message(e.message || 'Повтор не выполнен.',true); } });
+    $('hubmRollback')?.addEventListener('click', async () => { if (!window.confirm('Удалить созданные этой сессией контакты, если после импорта их не меняли? Изменённые записи останутся.')) return; try { const r=await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}/rollback`,{method:'POST',body:{}}); paint(r.report); message(`Откат: удалено ${r.deleted_unchanged_records}; оставлено изменённых или недоступных ${r.retained_changed_or_unavailable_records}.`); } catch(e) { message(e.message || 'Откат не выполнен.',true); } });
+    $('hubmDiscard')?.addEventListener('click', async () => { if (!window.confirm('Очистить ожидающие импорта данные и ошибки этой сессии? Уже импортированные контакты останутся.')) return; try { const r=await api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}/discard-pending`,{method:'POST',body:{}}); paint(r.report); message(`Очищено записей: ${r.discarded_staged_records}. Уже импортированные записи сохранены.`); } catch(e) { message(e.message || 'Не удалось очистить данные сессии.',true); } });
+    const savedSession=sessionStorage.getItem('hubmSessionId');
+    if (savedSession && /^hsm_[a-f0-9]{32}$/.test(savedSession)) { sessionId=savedSession; $('hubmSessionLabel').textContent=`Сессия: ${sessionId}`; $('hubmPreview').disabled=false; api(`/api/v1/_module/crm.hubspot-migration/sessions/${encodeURIComponent(sessionId)}`).then(report => { paint(report); message('Сохранённая сессия восстановлена.'); }).catch(() => { sessionStorage.removeItem('hubmSessionId'); sessionId=''; $('hubmSessionLabel').textContent='Сессия не выбрана'; }); }
   });
 })();
