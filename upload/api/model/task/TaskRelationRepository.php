@@ -147,6 +147,31 @@ final class TaskRelationRepository
     }
 
     /**
+     * Soft-delete active relations attached to a task being deleted.
+     *
+     * Keeping these rows active would leave invisible relations behind: once
+     * both endpoint tasks are soft-deleted, normal object-level checks prevent
+     * anyone from deleting the relation individually.
+     */
+    public function softDeleteForTaskId(int $taskId, string $deletedAt): int
+    {
+        if ($taskId <= 0) {
+            return 0;
+        }
+
+        return (new QueryBuilder($this->pdo))
+            ->from('task_relations_v2')
+            ->whereRaw('(source_task_id = ? OR target_task_id = ?)', [$taskId, $taskId])
+            ->whereNull('deleted_at')
+            ->update([
+                'deleted_at' => $deletedAt,
+                'active_key' => null,
+                'updated_at' => $deletedAt,
+                'row_version' => new Expression('row_version + 1'),
+            ]);
+    }
+
+    /**
      * Check if a relation with given active_key already exists (non-deleted).
      */
     public function existsByActiveKey(string $activeKey): bool

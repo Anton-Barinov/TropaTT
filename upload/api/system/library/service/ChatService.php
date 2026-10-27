@@ -627,6 +627,15 @@ final class ChatService
                 ->execute($params);
         }
 
+        return $this->getParticipantSettings($chatId, $userId);
+    }
+
+    public function getParticipantSettings(int $chatId, int $userId): array
+    {
+        if (!$this->assertParticipant($chatId, $userId)) {
+            return [];
+        }
+
         $stmt = $this->pdo->prepare("SELECT is_favorite, muted_until FROM chat_participants WHERE chat_id = :cid AND user_id = :uid");
         $stmt->execute(['cid' => $chatId, 'uid' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);

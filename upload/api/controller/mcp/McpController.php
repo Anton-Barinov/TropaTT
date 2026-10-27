@@ -149,10 +149,12 @@ use Throwable;
 final class McpController extends BaseController
 {
     private const PROTOCOL_VERSION = Request::MCP_PROTOCOL_VERSION;
+    private const LEGACY_PROTOCOL_VERSIONS = ['2025-11-25', self::PROTOCOL_VERSION];
+    private const MODERN_PROTOCOL_VERSION = Request::MCP_MODERN_PROTOCOL_VERSION;
+    private const SERVER_INFO_META_KEY = 'io.modelcontextprotocol/serverInfo';
     private const MAX_CHAT_ATTACHMENT_BYTES = 20 * 1024 * 1024;
     // Base64 length for 20 MiB: 4 * ceil(bytes / 3).
     private const MAX_CHAT_ATTACHMENT_BASE64_CHARS = 27_962_028;
-
     /** Workspace context carried inside the current JSON-RPC tool call. */
     private array $activeMcpArguments = [];
     private ?array $toolInputSchemas = null;
@@ -164,9 +166,8 @@ final class McpController extends BaseController
         if ($this->request()->bodyTooLarge || strlen($this->request()->rawBody) > Request::MCP_MAX_RAW_BODY_BYTES) {
             return $this->response($this->errorPayload(null, -32000, 'MCP request body exceeds the allowed size.'), 413);
         }
-        $originError = $this->validateOrigin();
-        if ($originError !== null) {
-            return $this->response($this->errorPayload(null, -32003, $originError), 403);
+        if (!$this->request()->mcpOriginIsAllowed()) {
+            return $this->response($this->errorPayload(null, -32003, 'Cross-origin MCP requests are not allowed for this installation.'), 403);
         }
         if (Request::mcpJsonExceedsComplexityLimit($this->request()->rawBody)) {
             return $this->response($this->errorPayload(null, -32000, 'MCP request body exceeds the supported JSON complexity.'), 413);
@@ -188,6 +189,36 @@ final class McpController extends BaseController
 
         $isBatch = $raw[0] === '[';
         $messages = $isBatch ? $payload : [$payload];
+
+        $requestedProtocolVersion = trim((string)$this->request()->header('MCP-Protocol-Version', ''));
+        if ($requestedProtocolVersion !== ''
+            && !in_array($requestedProtocolVersion, [...self::LEGACY_PROTOCOL_VERSIONS, self::MODERN_PROTOCOL_VERSION], true)) {
+            $errorId = count($messages) === 1 && $messages[0] instanceof \stdClass
+                ? $this->safeJsonRpcId($messages[0]->id ?? null)
+                : null;
+            return $this->response($this->unsupportedProtocolVersion($requestedProtocolVersion, $errorId), 400, self::MODERN_PROTOCOL_VERSION);
+        }
+
+        if ($requestedProtocolVersion === self::MODERN_PROTOCOL_VERSION) {
+            if ($isBatch || count($messages) !== 1 || !$messages[0] instanceof \stdClass) {
+                return $this->response($this->errorPayload(null, -32600, 'Modern MCP requests must contain one JSON-RPC message.'), 400, self::MODERN_PROTOCOL_VERSION);
+            }
+            if (!property_exists($messages[0], 'id')) {
+                return $this->response($this->errorPayload(null, -32601, 'Client notifications are not supported over modern Streamable HTTP.'), 400, self::MODERN_PROTOCOL_VERSION);
+            }
+            $headerError = $this->validateModernRequest($messages[0]);
+            if ($headerError !== null) {
+                return $this->response($headerError, 400, self::MODERN_PROTOCOL_VERSION);
+            }
+        }
+        if ($requestedProtocolVersion === '' && count($messages) === 1 && $messages[0] instanceof \stdClass) {
+            $candidateParams = $messages[0]->params ?? null;
+            $candidateMeta = $candidateParams instanceof \stdClass ? ($candidateParams->_meta ?? null) : null;
+            if ($candidateMeta instanceof \stdClass
+                && ($candidateMeta->{'io.modelcontextprotocol/protocolVersion'} ?? null) === self::MODERN_PROTOCOL_VERSION) {
+                return $this->response($this->errorPayload($messages[0]->id ?? null, -32020, 'Header mismatch: MCP-Protocol-Version is required.'), 400, self::MODERN_PROTOCOL_VERSION);
+            }
+        }
         
         // Limit batch size to prevent amplification attacks
         if ($isBatch && count($messages) > 20) {
@@ -209,10 +240,90 @@ final class McpController extends BaseController
         }
 
         if ($responses === []) {
-            return $this->response(null, 202);
+            return $this->response(null, 202, $requestedProtocolVersion ?: self::PROTOCOL_VERSION);
         }
 
-        return $this->response($isBatch ? $responses : $responses[0]);
+        $httpStatus = 200;
+        if (!$isBatch && $requestedProtocolVersion === self::MODERN_PROTOCOL_VERSION
+            && (($responses[0]['error']['code'] ?? null) === -32601)) {
+            $httpStatus = 404;
+        }
+        return $this->response($isBatch ? $responses : $responses[0], $httpStatus, $requestedProtocolVersion ?: self::PROTOCOL_VERSION);
+    }
+
+    private function unsupportedProtocolVersion(string $requested, mixed $id = null): array
+    {
+        return $this->errorPayload($id, -32022, 'Unsupported protocol version', [
+            'supported' => [self::MODERN_PROTOCOL_VERSION, ...self::LEGACY_PROTOCOL_VERSIONS],
+            'requested' => $requested,
+        ]);
+    }
+
+    private function safeJsonRpcId(mixed $id): string|int|float|null
+    {
+        return $id === null || is_string($id) || is_int($id) || (is_float($id) && is_finite($id)) ? $id : null;
+    }
+
+    private function validateModernRequest(\stdClass $message): ?array
+    {
+        $params = $message->params ?? null;
+        $meta = $params instanceof \stdClass ? ($params->_meta ?? null) : null;
+        if (!$meta instanceof \stdClass) {
+            return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32602, 'Request params._meta must be an object.');
+        }
+        $bodyVersion = $meta->{'io.modelcontextprotocol/protocolVersion'} ?? null;
+        if (!is_string($bodyVersion) || $bodyVersion === '') {
+            return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32602, 'Request metadata must include a protocol version.');
+        }
+        if (!($meta->{'io.modelcontextprotocol/clientCapabilities'} ?? null) instanceof \stdClass) {
+            return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32602, 'Request metadata must include clientCapabilities as an object.');
+        }
+        if (property_exists($meta, 'io.modelcontextprotocol/clientInfo')) {
+            $clientInfo = $meta->{'io.modelcontextprotocol/clientInfo'};
+            if (!$clientInfo instanceof \stdClass
+                || !is_string($clientInfo->name ?? null)
+                || !is_string($clientInfo->version ?? null)) {
+                return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32602, 'Request clientInfo must contain string name and version fields.');
+            }
+        }
+        if ($bodyVersion !== self::MODERN_PROTOCOL_VERSION) {
+            return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32020, 'Header mismatch: MCP-Protocol-Version does not match request metadata.');
+        }
+
+        $method = is_string($message->method ?? null) ? $message->method : '';
+        $methodHeader = $this->request()->header('Mcp-Method');
+        if ($methodHeader === null || $methodHeader !== $method) {
+            return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32020, 'Header mismatch: Mcp-Method does not match request body.');
+        }
+
+        $nameField = match ($method) {
+            'tools/call' => 'name',
+            'resources/read' => 'uri',
+            'prompts/get' => 'name',
+            default => null,
+        };
+        if ($nameField !== null) {
+            $bodyName = $params instanceof \stdClass ? ($params->{$nameField} ?? null) : null;
+            $nameHeader = $this->request()->header('Mcp-Name');
+            $decodedName = $nameHeader !== null ? $this->decodeMcpNameHeader($nameHeader) : null;
+            if (!is_string($bodyName) || $nameHeader === null || $decodedName === null || $decodedName !== $bodyName) {
+                return $this->errorPayload($this->safeJsonRpcId($message->id ?? null), -32020, 'Header mismatch: Mcp-Name does not match request body.');
+            }
+        }
+        return null;
+    }
+
+    private function decodeMcpNameHeader(string $value): ?string
+    {
+        if (str_starts_with($value, '=?base64?') && str_ends_with($value, '?=')) {
+            $encoded = substr($value, 9, -2);
+            $decoded = base64_decode($encoded, true);
+            return $decoded === false ? null : $decoded;
+        }
+        if (trim($value) !== $value || preg_match('/[^\x20-\x7E\t]/', $value) === 1) {
+            return null;
+        }
+        return $value;
     }
 
     /**
@@ -280,9 +391,17 @@ final class McpController extends BaseController
             return $isNotification ? null : $this->errorPayload($id, -32602, 'Tool parameters and arguments must be objects');
         }
         $params = $this->parameterArray($rawParams);
+        $isModernProtocol = trim((string)$this->request()->header('MCP-Protocol-Version', '')) === self::MODERN_PROTOCOL_VERSION;
+        if ($isModernProtocol && in_array($method, ['initialize', 'ping', 'notifications/initialized'], true)) {
+            return $isNotification ? null : $this->errorPayload($id, -32601, 'Method not found: ' . $method);
+        }
+        if (!$isModernProtocol && $method === 'server/discover') {
+            return $isNotification ? null : $this->errorPayload($id, -32601, 'Method not found: ' . $method);
+        }
 
         try {
             $result = match ($method) {
+                'server/discover' => $this->discoverResult(),
                 'initialize' => $this->initializeResult($params),
                 'ping' => new \stdClass(),
                 'resources/list' => ['resources' => $this->resources()],
@@ -345,7 +464,14 @@ final class McpController extends BaseController
     private function initializeResult(array $params): array
     {
         $clientVersion = (string)($params['protocolVersion'] ?? $this->request()->header('MCP-Protocol-Version', self::PROTOCOL_VERSION));
-        $protocolVersion = $clientVersion !== '' ? $clientVersion : self::PROTOCOL_VERSION;
+        // This server implements only the protocol revision declared by
+        // Request::MCP_PROTOCOL_VERSION. During the legacy initialize
+        // handshake, counter-offer that supported revision instead of
+        // echoing an unsupported client value (including modern, sessionless
+        // revisions which do not use initialize).
+        $protocolVersion = in_array($clientVersion, self::LEGACY_PROTOCOL_VERSIONS, true)
+            ? $clientVersion
+            : self::PROTOCOL_VERSION;
 
         return [
             'protocolVersion' => $protocolVersion,
@@ -367,6 +493,25 @@ final class McpController extends BaseController
             // model at the public API/MCP documentation so a fresh session can
             // read the contract instead of re-deriving it from the source tree.
             'instructions' => Documentation::mcpInstructions('/api/index.php?route=api/v1/mcp'),
+        ];
+    }
+
+    private function discoverResult(): array
+    {
+        return [
+            'resultType' => 'complete',
+            'supportedVersions' => [self::MODERN_PROTOCOL_VERSION, ...self::LEGACY_PROTOCOL_VERSIONS],
+            'capabilities' => [
+                'tools' => (object)[],
+                'resources' => (object)[],
+            ],
+            '_meta' => [self::SERVER_INFO_META_KEY => [
+                'name' => 'TropaTT',
+                'version' => $this->crmServerVersion(),
+            ]],
+            'instructions' => Documentation::mcpInstructions('/api/index.php?route=api/v1/mcp'),
+            'ttlMs' => 300000,
+            'cacheScope' => 'private',
         ];
     }
 
@@ -463,7 +608,7 @@ final class McpController extends BaseController
 
         $content = match ($uri) {
             'tropatt://server/about' => $this->textResource($uri, 'text/markdown', $this->mcpAboutMarkdown()),
-            'tropatt://server/tools' => $this->textResource($uri, 'application/json', json_encode(['tools' => $this->tools()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
+            'tropatt://server/tools' => $this->textResource($uri, 'application/json', json_encode(['tools' => $this->toolsForToolset('all')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://server/toolsets' => $this->textResource($uri, 'application/json', json_encode($this->listToolsets(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
             'tropatt://server/api-map' => $this->textResource($uri, 'text/markdown', $this->apiMapMarkdown()),
             'tropatt://server/api-endpoints' => !$this->can('settings.manage') ? null : $this->textResource($uri, 'application/json', json_encode(['endpoints' => $this->apiEndpointsIndex()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}'),
@@ -564,7 +709,7 @@ Existing fine-grained CRUD tools remain available via `all` profile and are call
 ## Recommended Agent Workflow
 
 1. Call `initialize`.
-2. Call `tools/list` — the core profile returns ~24 tools (8 mega-tools + 16 regular). For domain-specific work, append `?toolset=<profile>` to the endpoint URL.
+2. Call `tools/list` — the core profile returns about 31 tools for an unrestricted administrator; permission filtering can reduce this count. For domain-specific work, append `?toolset=<profile>` to the endpoint URL.
 3. Call `resources/read` for `tropatt://user/current` to verify authentication and see permissions.
 4. Use mega-tools with the appropriate `action` parameter. Each mega-tool description explains available actions and when to use them.
 5. Use write actions only after the user intent is clear. Confirm destructive actions (delete) before executing.
@@ -594,7 +739,7 @@ The REST API remains the full integration surface. MCP is a safe agent-facing la
 
 ## MCP Toolsets
 
-MCP `tools/list` defaults to the `core` profile (a curated cross-domain starter set). Domain-specific profiles are available: `tasks`, `projects`, `kb`, `people`, `time`, `admin`, and `all` for the full catalog. Request one with `?toolset=<name>` on the endpoint URL or `"params": {"toolset": "<name>"}` on `tools/list`; `tools/listToolsets` lists the profiles.
+MCP `tools/list` defaults to the `core` profile (a curated cross-domain starter set of about 31 tools for an unrestricted administrator; permissions can reduce this count). Domain-specific profiles are available: `tasks`, `projects`, `kb`, `people`, `time`, `admin`, and `all` for the full catalog. Request one with `?toolset=<name>` on the endpoint URL or `"params": {"toolset": "<name>"}` on `tools/list`; `tools/listToolsets` lists the profiles.
 
 ## Endpoint Discovery
 
@@ -746,9 +891,12 @@ MD;
         $actor = $this->actor();
         $authz = $this->container->has('service.authz') ? $this->container->get('service.authz') : null;
         $can = static fn(string $code): bool => !empty($actor['is_root']) || ($authz !== null && $authz->hasPermissions($actor, [$code]));
-        return array_values(array_filter($this->toolDefinitions(), static function (array $tool) use ($permissions, $can): bool {
+        $visible = array_values(array_filter($this->toolDefinitions(), static function (array $tool) use ($permissions, $can, $actor): bool {
             $entry = $permissions[$tool['name']] ?? null;
             if (!is_array($entry)) {
+                return false;
+            }
+            if (!empty($entry['root_only']) && empty($actor['is_root'])) {
                 return false;
             }
             if (($entry['mode'] ?? '') === 'self') {
@@ -763,6 +911,30 @@ MD;
                 ? in_array(true, $allowed, true)
                 : !in_array(false, $allowed, true);
         }));
+
+        if (empty($actor['is_root'])) {
+            foreach ($visible as &$tool) {
+                $rootOnlyActions = self::ROOT_ONLY_MEGA_ACTIONS[$tool['name']] ?? [];
+                if ($rootOnlyActions === []) {
+                    continue;
+                }
+                $properties = $tool['inputSchema']['properties'] ?? null;
+                if (is_array($properties) && is_array($properties['action'] ?? null)) {
+                    $actionEnum = $properties['action']['enum'] ?? null;
+                    if (is_array($actionEnum)) {
+                        $tool['inputSchema']['properties']['action']['enum'] = array_values(array_diff($actionEnum, $rootOnlyActions));
+                    }
+                } elseif ($properties instanceof \stdClass && ($properties->action ?? null) instanceof \stdClass) {
+                    $actionEnum = $properties->action->enum ?? null;
+                    if (is_array($actionEnum)) {
+                        $properties->action->enum = array_values(array_diff($actionEnum, $rootOnlyActions));
+                    }
+                }
+            }
+            unset($tool);
+        }
+
+        return $visible;
     }
 
     private function toolDefinitions(): array
@@ -3974,6 +4146,14 @@ $tools[] = $this->tool(
         return $tools;
     }
 
+    private const ROOT_ONLY_MEGA_ACTIONS = [
+        'crm_admin' => [
+            'activate_module', 'clear_cache', 'get_admin_system_widget', 'get_cache_stats', 'get_ops_metrics', 'get_ops_system',
+            'list_audit_log', 'list_request_logs', 'list_security_log',
+        ],
+        'crm_ai' => ['list_audit'],
+    ];
+
     /**
      * Toolset profiles (core/tasks/projects/kb/people/time/admin) defined in
      * api/config/mcp_toolsets.php. `all` is implicit: the full catalog.
@@ -4107,7 +4287,9 @@ $tools[] = $this->tool(
 
         $canCheck = fn(string $p): bool => $this->can($p);
         $moduleToolsets = $this->getModuleMcpRegistry()->getModuleToolsets($canCheck);
+        $moduleToolCount = 0;
         foreach ($moduleToolsets as $modKey => $modProfile) {
+            $moduleToolCount += count((array)($modProfile['tools'] ?? []));
             $toolsets[] = [
                 'name' => $modKey,
                 'title' => (string)($modProfile['title'] ?? $modKey),
@@ -4120,7 +4302,7 @@ $tools[] = $this->tool(
         return [
             'default' => 'core',
             'toolsets' => $toolsets,
-            'all_count' => count($all),
+            'all_count' => count($all) + $moduleToolCount,
         ];
     }
 
@@ -4170,6 +4352,9 @@ $tools[] = $this->tool(
             return $this->toolError('Unknown tool: ' . $name . '. Not in permission registry.');
         }
         $mcpEntry = $mcpPermissions[$name];
+        if (!empty($mcpEntry['root_only']) && !$this->isRootActor()) {
+            return $this->toolError('Root/platform access required for tool: ' . $name);
+        }
         if ($mcpEntry['mode'] === 'all') {
             if ($mcpEntry['permissions'] === []) {
                 return $this->toolError('Tool ' . $name . ' has empty permissions in registry');
@@ -4984,6 +5169,10 @@ $tools[] = $this->tool(
                 );
             }
             return $this->unknownActionError($toolName, $action);
+        }
+
+        if (in_array($action, self::ROOT_ONLY_MEGA_ACTIONS[$toolName] ?? [], true) && !$this->isRootActor()) {
+            return $this->toolError('Root/platform access required for ' . $toolName . '/' . $action);
         }
 
         $permissions = array_values(array_filter(
@@ -5808,14 +5997,20 @@ $tools[] = $this->tool(
 
     private function crmGetUser(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $publicId = trim((string)($arguments['public_id'] ?? ''));
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
 
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
         /** @var UserService $service */
         $service = $this->container->get('service.user');
-        $user = $service->get($publicId);
+        $user = $service->get($publicId, $actor);
         return $user ? ['user' => $this->publicData($user)] : ['error' => 'User not found.'];
     }
 
@@ -6395,9 +6590,15 @@ $tools[] = $this->tool(
 
     private function crmListAiUsage(array $arguments): array
     {
+        $contextError = $this->organizationContextError($arguments);
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
+        $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
-        return $this->publicData($service->usageList($this->aiUsageFilters($arguments)));
+        return $this->publicData($service->usageList($this->aiUsageFilters($arguments), $actor));
     }
 
     private function crmListAiAudit(array $arguments): array
@@ -9166,7 +9367,14 @@ $tools[] = $this->tool(
         /** @var TaskRelationService $service */
         $service = $this->container->get('service.task_relation');
         $result = $service->list($taskPublicId, $this->actor());
-        return is_array($result) ? ['items' => $result] : ['error' => (string)$result];
+        if (is_array($result)) {
+            return ['items' => $result];
+        }
+        if ($result === null) {
+            return ['error' => 'Task not found or not accessible.'];
+        }
+
+        return ['error' => $result];
     }
 
     private function crmCreateTaskRelation(array $arguments): array
@@ -14194,6 +14402,7 @@ $tools[] = $this->tool(
             WHERE f.public_id = :fid
               AND f.entity_type = 'chat_message'
               AND cm.chat_id = :cid
+              AND cm.deleted_at IS NULL
               AND f.is_deleted = 0
             LIMIT 1
         ");
@@ -14237,7 +14446,8 @@ $tools[] = $this->tool(
             SELECT f.public_id, f.original_name, f.mime_type, f.size_bytes, f.created_at, cm.public_id AS message_public_id
             FROM files f
             JOIN chat_messages cm ON cm.public_id = f.entity_public_id
-            WHERE f.entity_type = 'chat_message' AND cm.chat_id = :cid AND f.is_deleted = 0
+            WHERE f.entity_type = 'chat_message' AND cm.chat_id = :cid
+              AND cm.deleted_at IS NULL AND f.is_deleted = 0
             ORDER BY f.id ASC
         ");
         $stmt->execute(['cid' => (int)$chat['id']]);
@@ -14254,7 +14464,17 @@ $tools[] = $this->tool(
         if (!$chat) {
             return ['error' => 'Chat not found or access denied.'];
         }
-        return ['settings' => $this->publicData($this->pick($chat, ['public_id', 'is_favorite', 'muted_until']))];
+        /** @var ChatService $service */
+        $service = $this->container->get('service.chat');
+        $settings = $service->getParticipantSettings((int)$chat['id'], (int)($this->actor()['id'] ?? 0));
+        if ($settings === []) {
+            return ['error' => 'Chat not found or access denied.'];
+        }
+
+        return ['settings' => $this->publicData(array_merge(
+            ['public_id' => $chatPublicId],
+            $settings
+        ))];
     }
 
     private function crmUpdateChatSettings(array $arguments): array
@@ -14581,10 +14801,11 @@ $tools[] = $this->tool(
         if (array_is_list($payload)) {
             $payload = ['items' => $payload];
         }
-        // An explicit business failure ("ok": false) is a failed tool call too,
-        // otherwise MCP clients treat e.g. a rejected password change as success.
+        // Explicit business and API failures are failed tool calls too; otherwise
+        // MCP clients can treat a rejected operation as a successful invocation.
         $isError = array_key_exists('error', $payload)
-            || (array_key_exists('ok', $payload) && $payload['ok'] === false);
+            || (array_key_exists('ok', $payload) && $payload['ok'] === false)
+            || (array_key_exists('success', $payload) && $payload['success'] === false);
         return [
             'content' => [[
                 'type' => 'text',
@@ -17224,24 +17445,6 @@ $tools[] = $this->tool(
         }
     }
 
-    private function validateOrigin(): ?string
-    {
-        $origin = trim((string)$this->request()->header('Origin', ''));
-        if ($origin === '') {
-            return null;
-        }
-
-        $originHost = parse_url($origin, PHP_URL_HOST);
-        $host = (string)($this->request()->server['HTTP_HOST'] ?? '');
-        $host = preg_replace('/:\d+$/', '', $host) ?: $host;
-
-        if (is_string($originHost) && strcasecmp($originHost, $host) === 0) {
-            return null;
-        }
-
-        return 'Cross-origin MCP requests are not allowed for this installation.';
-    }
-
     private function methodNotFound(string $method): array
     {
         return [
@@ -17347,10 +17550,30 @@ $tools[] = $this->tool(
         ];
     }
 
-    private function response(mixed $payload, int $status = 200): RawJsonResponse
+    private function response(mixed $payload, int $status = 200, ?string $protocolVersion = null): RawJsonResponse
     {
+        if ($protocolVersion === null) {
+            $requestedVersion = trim((string)$this->request()->header('MCP-Protocol-Version', ''));
+            $protocolVersion = in_array($requestedVersion, [...self::LEGACY_PROTOCOL_VERSIONS, self::MODERN_PROTOCOL_VERSION], true)
+                ? $requestedVersion
+                : self::PROTOCOL_VERSION;
+        }
+        if ($protocolVersion === self::MODERN_PROTOCOL_VERSION && is_array($payload)
+            && isset($payload['result']) && is_array($payload['result'])) {
+            $payload['result']['resultType'] ??= 'complete';
+            $payload['result']['_meta'] ??= [];
+            $payload['result']['_meta'][self::SERVER_INFO_META_KEY] ??= [
+                'name' => 'TropaTT',
+                'version' => $this->crmServerVersion(),
+            ];
+            $method = (string)$this->request()->header('Mcp-Method', '');
+            if (in_array($method, ['resources/list', 'resources/read', 'tools/list'], true)) {
+                $payload['result']['ttlMs'] ??= 300000;
+                $payload['result']['cacheScope'] ??= 'private';
+            }
+        }
         return new RawJsonResponse($payload, $status, [
-            'MCP-Protocol-Version' => self::PROTOCOL_VERSION,
+            'MCP-Protocol-Version' => $protocolVersion,
         ]);
     }
 }

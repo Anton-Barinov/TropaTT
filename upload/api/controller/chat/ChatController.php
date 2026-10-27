@@ -907,6 +907,7 @@ final class ChatController extends BaseController
             WHERE f.public_id = :fid
               AND f.entity_type = 'chat_message'
               AND cm.chat_id = :cid
+              AND cm.deleted_at IS NULL
               AND f.is_deleted = 0
             LIMIT 1
         ");
