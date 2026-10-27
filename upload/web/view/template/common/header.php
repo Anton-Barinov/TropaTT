@@ -18,6 +18,47 @@ if ($assetsVersion === '') {
     $assetsVersion = trim((string)file_get_contents($deployHashFile));
   }
 }
+
+// Module updates don't change the core DEPLOY_HASH or core asset mtimes. The
+// browser caches these scripts as immutable, so include the manifest content
+// for each module whose assets are rendered on this page in the cache key.
+$moduleAssetNames = [];
+foreach ([
+  $module_css_files ?? [],
+  $module_js_files ?? [],
+  array_values($module_css_routes ?? []),
+  array_values($module_js_routes ?? []),
+] as $moduleAssetList) {
+  if (!is_array($moduleAssetList)) {
+    continue;
+  }
+  foreach ($moduleAssetList as $moduleAssetPath) {
+    if (!is_string($moduleAssetPath) || !str_starts_with($moduleAssetPath, 'modules/')) {
+      continue;
+    }
+    $moduleParts = explode('/', substr($moduleAssetPath, strlen('modules/')), 2);
+    $moduleName = $moduleParts[0] ?? '';
+    if (preg_match('/^[A-Za-z0-9._-]+$/D', $moduleName) === 1) {
+      $moduleAssetNames[$moduleName] = true;
+    }
+  }
+}
+$moduleManifestHashes = [];
+$moduleRoot = dirname(__DIR__, 4) . '/modules';
+foreach (array_keys($moduleAssetNames) as $moduleName) {
+  $manifestPath = $moduleRoot . '/' . $moduleName . '/manifest.json';
+  if (is_file($manifestPath)) {
+    $manifestHash = @hash_file('sha256', $manifestPath);
+    if (is_string($manifestHash)) {
+      $moduleManifestHashes[] = $moduleName . ':' . $manifestHash;
+    }
+  }
+}
+sort($moduleManifestHashes, SORT_STRING);
+$moduleAssetsVersion = $moduleManifestHashes !== []
+  ? substr(hash('sha256', implode('|', $moduleManifestHashes)), 0, 16)
+  : '';
+
 // Always fold the newest asset mtime into the version. Assets are served with
 // 'Cache-Control: immutable' (see web/.htaccess), so the query string is the
 // ONLY thing that busts the browser cache. DEPLOY_HASH is regenerated only by
@@ -41,8 +82,10 @@ foreach ([
 }
 if ($assetsVersion !== '') {
   $assetsVersion .= $assetsVersionMtime > 0 ? '-' . (string)$assetsVersionMtime : '';
+  $assetsVersion .= $moduleAssetsVersion !== '' ? '-m' . $moduleAssetsVersion : '';
 } else {
   $assetsVersion = $assetsVersionMtime > 0 ? (string)$assetsVersionMtime : '20260505-1';
+  $assetsVersion .= $moduleAssetsVersion !== '' ? '-m' . $moduleAssetsVersion : '';
 }
 // URL directory of the web app, e.g. '/web/' when the CRM sits at the domain
 // root or '/crm/web/' when it is installed in a subdirectory. The PWA client
