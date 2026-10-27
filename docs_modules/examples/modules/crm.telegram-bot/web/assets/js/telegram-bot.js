@@ -113,6 +113,7 @@
   let currentActiveDialogId = null;
   let activeDialogData = null;
   let projectsList = [];
+  let workspaceRequestGeneration = 0;
 
   const showAlert = (message, type = 'success') => {
     const el = $('tgAlertContainer');
@@ -152,9 +153,11 @@
   const loadWorkspaces = async () => {
     const sel = $('tgWorkspaceSelect');
     if (!sel) return;
+    const requestGeneration = workspaceRequestGeneration;
 
     try {
       const data = await api('_module/crm.telegram-bot/organizations');
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
       const activeOrg = data && (data.active_org_ref || data.active_organization_id) ? parseInt(data.active_org_ref || data.active_organization_id, 10) : currentOrgId;
       organizationsList = items;
@@ -182,6 +185,7 @@
         currentOrgPublicId = '';
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.warn('[TelegramBot] Failed to load organizations list:', err);
       organizationsList = [];
       currentOrgPublicId = '';
@@ -194,10 +198,12 @@
 
   // Load Status and config
   const loadStatus = async () => {
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/status', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       // 1. Status Banner
       const banner = $('tgStatusBanner');
@@ -279,6 +285,7 @@
         openBotLink.href = `https://t.me/${encodeURIComponent(currentBotUsername.replace('@', ''))}`;
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load status:', err);
       const banner = $('tgStatusBanner');
       if (banner) {
@@ -293,10 +300,12 @@
 
   // Load Projects for task creation modal
   const loadProjects = async () => {
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/projects', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       projectsList = (data && data.items) || [];
       const sel = $('tgTaskProjectSelect');
       if (sel) {
@@ -307,7 +316,11 @@
         sel.innerHTML = opts;
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.warn('[TelegramBot] Failed to load projects:', err);
+      projectsList = [];
+      const sel = $('tgTaskProjectSelect');
+      if (sel) sel.innerHTML = '<option value="0">Не удалось загрузить проекты</option>';
     }
   };
 
@@ -318,6 +331,7 @@
 
     const statusFilter = $('tgDialogStatusFilter')?.value || 'all';
     const searchVal = $('tgDialogSearch')?.value || '';
+    const requestGeneration = workspaceRequestGeneration;
 
     try {
       const data = await api('_module/crm.telegram-bot/dialogs', {
@@ -328,6 +342,7 @@
           limit: 50,
         },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       const items = (data && data.items) || [];
       const countBadge = $('tgDialogsCountBadge');
@@ -406,6 +421,7 @@
         }
       }
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load dialogs:', err);
       listEl.innerHTML = `<div class="text-danger text-center py-3">Ошибка загрузки: ${esc(err.message)}</div>`;
     }
@@ -413,6 +429,7 @@
 
   // Select Dialog and render chat messages
   const selectDialog = async (dialogId) => {
+    const requestGeneration = workspaceRequestGeneration;
     currentActiveDialogId = dialogId;
 
     // Update active highlight in left list
@@ -439,6 +456,7 @@
       const data = await api(`_module/crm.telegram-bot/dialogs/${encodeURIComponent(dialogId)}`, {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
 
       activeDialogData = data;
       const d = data.dialog || {};
@@ -538,6 +556,7 @@
       // Auto-scroll to bottom of thread
       thread.scrollTop = thread.scrollHeight;
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load dialog messages:', err);
       thread.innerHTML = `<div class="text-danger text-center py-4">Ошибка загрузки переписки: ${esc(err.message)}</div>`;
     }
@@ -666,10 +685,12 @@
     const tbody = $('tgBindingsBody');
     if (!tbody) return;
 
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/bindings', {
         query: { organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
 
       if (items.length === 0) {
@@ -728,6 +749,7 @@
         });
       });
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load bindings:', err);
       tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">Ошибка загрузки списка: ${esc(err.message)}</td></tr>`;
     }
@@ -738,10 +760,12 @@
     const tbody = $('tgLogsBody');
     if (!tbody) return;
 
+    const requestGeneration = workspaceRequestGeneration;
     try {
       const data = await api('_module/crm.telegram-bot/recent-updates', {
         query: { limit: 15, organization_id: currentOrgId },
       });
+      if (requestGeneration !== workspaceRequestGeneration) return;
       const items = (data && data.items) || [];
 
       if (items.length === 0) {
@@ -781,9 +805,34 @@
       });
       tbody.innerHTML = html;
     } catch (err) {
+      if (requestGeneration !== workspaceRequestGeneration) return;
       console.error('[TelegramBot] Failed to load logs:', err);
       tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-3">Ошибка загрузки журнала: ${esc(err.message)}</td></tr>`;
     }
+  };
+
+  // Clear workspace-bound values immediately on a switch so data from the
+  // previous workspace is not shown while new requests are pending.
+  const resetWorkspaceView = () => {
+    currentBotUsername = '';
+    currentActiveDialogId = null;
+    activeDialogData = null;
+    projectsList = [];
+    const status = $('tgStatusBanner');
+    if (status) status.innerHTML = '<div class="text-muted py-3" role="status">Загрузка настроек рабочего пространства…</div>';
+    ['kpiBotName', 'kpiMode', 'kpiBindings', 'kpiUpdates'].forEach(id => { if ($(id)) $(id).textContent = '—'; });
+    ['tgBotToken', 'tgBotUsername', 'tgSecretToken', 'tgWelcomeMessage', 'tgProxyHost', 'tgProxyPort', 'tgProxyUsername', 'tgProxyPassword'].forEach(id => { if ($(id)) $(id).value = ''; });
+    if ($('tgAutoIntake')) $('tgAutoIntake').checked = false;
+    if ($('tgProxyType')) $('tgProxyType').value = 'none';
+    if ($('tgProxyClearPassword')) $('tgProxyClearPassword').checked = false;
+    if ($('tgWebhookUrl')) $('tgWebhookUrl').value = getComputedWebhookUrl(currentOrgId);
+    if ($('tgDialogsList')) $('tgDialogsList').innerHTML = '<div class="text-muted text-center py-4" role="status">Загрузка диалогов…</div>';
+    if ($('tgBindingsBody')) $('tgBindingsBody').innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Загрузка привязок…</td></tr>';
+    if ($('tgLogsBody')) $('tgLogsBody').innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Загрузка журнала…</td></tr>';
+    if ($('tgTaskProjectSelect')) $('tgTaskProjectSelect').innerHTML = '<option value="0">Загрузка проектов…</option>';
+    if ($('tgNoDialogSelected')) $('tgNoDialogSelected').style.removeProperty('display');
+    if ($('tgActiveDialogView')) $('tgActiveDialogView').style.setProperty('display', 'none', 'important');
+    if ($('tgMessagesThread')) $('tgMessagesThread').textContent = '';
   };
 
   // Refresh all sections
@@ -813,6 +862,8 @@
       }
       currentOrgId = selectedOrgId;
       currentOrgPublicId = selectedPublicId;
+      workspaceRequestGeneration++;
+      resetWorkspaceView();
       if ($('tgWorkspaceBadge')) {
         $('tgWorkspaceBadge').textContent = `Орг #${currentOrgId}`;
       }
