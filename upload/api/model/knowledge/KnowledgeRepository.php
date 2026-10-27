@@ -1525,6 +1525,55 @@ final class KnowledgeRepository
         return $this->pages($filters + ['limit' => 30], $actor);
     }
 
+    /**
+     * Search one page of the knowledge list and return counts for the same
+     * filters without the selected status. The list uses those counts for its
+     * status tabs, while the filtered total drives the pager.
+     *
+     * @return array{items: array, pagination: array{page:int,pages:int,total:int,limit:int}, status_counts: array<string,int>}
+     */
+    public function searchPage(string $query, array $filters = [], ?array $actor = null): array
+    {
+        $query = trim($query);
+        if ($query !== '') {
+            $filters['q'] = $query;
+        }
+
+        $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $filters['limit'] = $limit;
+        $filters['page'] = $page;
+
+        [$where, $params] = $this->pageWhere($filters, $actor);
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$where}");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $statusFilters = $filters;
+        unset($statusFilters['status'], $statusFilters['page'], $statusFilters['limit'], $statusFilters['sort'], $statusFilters['order']);
+        [$statusWhere, $statusParams] = $this->pageWhere($statusFilters, $actor);
+        $statusStmt = $this->pdo->prepare("SELECT p.status, COUNT(*) AS total FROM knowledge_pages p JOIN knowledge_spaces s ON s.id = p.space_id WHERE {$statusWhere} GROUP BY p.status");
+        $statusStmt->execute($statusParams);
+        $statusCounts = ['published' => 0, 'draft' => 0, 'review' => 0, 'needs_update' => 0, 'archived' => 0];
+        foreach ($statusStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $status = (string)($row['status'] ?? '');
+            if (array_key_exists($status, $statusCounts)) {
+                $statusCounts[$status] = (int)$row['total'];
+            }
+        }
+
+        return [
+            'items' => $this->pages($filters, $actor),
+            'pagination' => [
+                'page' => $page,
+                'pages' => max(1, (int)ceil($total / $limit)),
+                'total' => $total,
+                'limit' => $limit,
+            ],
+            'status_counts' => $statusCounts,
+        ];
+    }
+
     public function popular(int $limit = 10, ?array $actor = null): array
     {
         return $this->pages(['limit' => $limit, 'sort' => 'views_count', 'order' => 'DESC', 'status' => 'published'], $actor);

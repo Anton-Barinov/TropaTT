@@ -693,9 +693,11 @@ final class KnowledgeController extends BaseController
     public function search(): JsonResponse
     {
         $query = (string)$this->request()->input('q', '');
+        $result = $this->repo()->searchPage($query, $this->request()->allInput(), $this->actor());
         return $this->success('KNOWLEDGE_SEARCH', $this->t('knowledge/messages.search', 'Knowledge search completed'), [
-            'items' => $this->repo()->search($query, $this->request()->allInput(), $this->actor()),
-        ]);
+            'items' => $result['items'],
+            'status_counts' => $result['status_counts'],
+        ], 200, ['pagination' => $result['pagination']]);
     }
 
     public function recent(): JsonResponse
