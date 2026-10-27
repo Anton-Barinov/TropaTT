@@ -16,6 +16,8 @@ final class RecurringProcessorService
 {
     // Typed class constants require PHP 8.3; CRM supports PHP 8.1+ on shared hosting.
     private const DEFAULT_LIMIT = 50;
+    /** @var list<array{event:array<string,mixed>,actor:array<string,mixed>}> */
+    private array $pendingCalendarDispatches = [];
 
     public function __construct(
         private readonly RecurringRepository $recurring,
@@ -24,6 +26,7 @@ final class RecurringProcessorService
         private readonly ReminderRepository $reminders,
         private readonly CalendarEventRepository $events,
         private readonly ?PDO $pdo = null,
+        private readonly ?CalendarService $calendarService = null,
     ) {
     }
 
@@ -43,6 +46,7 @@ final class RecurringProcessorService
 
         foreach ($items as $rule) {
             $inTx = false;
+            $this->pendingCalendarDispatches = [];
             try {
                 if ($this->pdo !== null && !$this->pdo->inTransaction()) {
                     $this->pdo->beginTransaction();
@@ -56,6 +60,15 @@ final class RecurringProcessorService
                 } else {
                     if ($inTx && $this->pdo->inTransaction()) {
                         $this->pdo->commit();
+                    }
+                    foreach ($this->pendingCalendarDispatches as $pending) {
+                        try {
+                            $this->calendarService?->dispatchCreatedAfterCommit($pending['event'], $pending['actor']);
+                        } catch (\Throwable $dispatchError) {
+                            // The recurring record and calendar event are already committed.
+                            // A post-commit delivery error must not report a false rollback.
+                            AppLog::error('[RecurringProcessorService::dispatchAfterCommit] ' . $dispatchError->getMessage());
+                        }
                     }
                 }
                 $results[] = [
@@ -76,6 +89,7 @@ final class RecurringProcessorService
                 if ($inTx && $this->pdo !== null && $this->pdo->inTransaction()) {
                     $this->pdo->rollBack();
                 }
+                $this->pendingCalendarDispatches = [];
                 AppLog::error('[RecurringProcessorService::process] ' . $e->getMessage());
                 $results[] = [
                     'rule_id' => $rule['public_id'] ?? '',
@@ -252,20 +266,40 @@ final class RecurringProcessorService
         $endsAt = $occurrence->add(new \DateInterval('PT1H'))->format('Y-m-d H:i:s');
         $now = gmdate('Y-m-d H:i:s');
 
-        $this->events->create([
+        $ownerUserId = (int)($template['owner_user_id'] ?? 0);
+        $organizationId = (int)($template['organization_id'] ?? 0);
+        $eventInput = [
+            'title' => (string)($template['title'] ?? ''),
+            'description' => (string)($template['description'] ?? ''),
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'owner_user_id' => $ownerUserId,
+            'project_public_id' => $template['project_public_id'] ?? null,
+            'task_public_id' => $template['task_public_id'] ?? null,
+        ];
+        if ($this->calendarService !== null && $organizationId > 0 && $ownerUserId > 0) {
+            $actor = ['id' => $ownerUserId, 'organization_id' => $organizationId, 'is_root' => true];
+            $createdEvent = $this->calendarService->createEvent($eventInput, $actor);
+            if (!is_array($createdEvent)) return null;
+            $this->pendingCalendarDispatches[] = ['event' => $createdEvent, 'actor' => $actor];
+            return (string)$createdEvent['public_id'];
+        }
+
+        $createdId = $this->events->create([
             'public_id' => $newPublicId,
             'title' => (string)($template['title'] ?? ''),
             'description' => (string)($template['description'] ?? ''),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
-            'owner_user_id' => (int)($template['owner_user_id'] ?? 0) ?: 0,
+            'owner_user_id' => $ownerUserId ?: 0,
             'project_id' => (int)($template['project_id'] ?? 0) ?: null,
             'task_id' => (int)($template['task_id'] ?? 0) ?: null,
+            'organization_id' => $organizationId ?: null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        return $newPublicId;
+        return $createdId > 0 ? $newPublicId : null;
     }
 
     private function parseDateTime(?string $value): ?\DateTimeImmutable

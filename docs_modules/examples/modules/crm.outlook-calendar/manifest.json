@@ -1,11 +1,11 @@
 {
     "name": "crm.outlook-calendar",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Microsoft Outlook Calendar Integration",
-    "description": "Синхронизация встреч и событий с Microsoft Outlook Calendar через Microsoft Graph API с поддержкой delta sync, таймзон и участников",
+    "description": "Безопасный импорт событий основного календаря Microsoft 365 в CRM через OAuth 2.0, Microsoft Graph delta sync и зашифрованное хранение токенов",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integrations",
@@ -55,7 +55,7 @@
         },
         {
             "name": "outlook_calendar_sync",
-            "description": "Trigger manual or cron delta sync for Outlook Calendar",
+            "description": "Import the current user's primary Outlook calendar events into the active CRM workspace",
             "handler": "Module\\Crm\\OutlookCalendar\\Mcp\\CalendarSyncTool",
             "permissions": [
                 "calendar.edit"
@@ -65,15 +65,7 @@
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "direction": {
-                        "type": "string",
-                        "enum": [
-                            "both",
-                            "pull",
-                            "push"
-                        ],
-                        "description": "Sync direction"
-                    }
+                    "direction": {"type": "string", "enum": ["pull"], "default": "pull", "description": "Import events from Outlook into CRM"}
                 },
                 "additionalProperties": false
             }

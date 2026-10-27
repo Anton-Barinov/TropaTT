@@ -32,7 +32,8 @@ final class FileService
         private readonly ?AiSemanticIndexService $semanticIndex = null,
         private readonly ?TaskActivityService $activity = null,
         private readonly ?ExternalUserService $externalUsers = null,
-        private readonly ?CommentRepository $comments = null
+        private readonly ?CommentRepository $comments = null,
+        private readonly ?\PDO $db = null
     ) {
     }
 
@@ -297,6 +298,12 @@ final class FileService
             }
             $path = $fallbackPath;
         }
+        $safeStoragePath = $this->validatedStoragePath($path);
+        if ($safeStoragePath === null) {
+            return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
+        }
+        $path = $safeStoragePath;
+
         if ($this->isQuarantinedPath($path)) {
             $this->logger->security([
                 'actor_public_id' => (string)($actor['public_id'] ?? ''),
@@ -552,7 +559,19 @@ final class FileService
                 return (string)($project['client_public_id'] ?? '') === $cpPublicId;
             }
 
+            if ($entityType === 'chat_message') {
+                return $this->actorCanReadChatMessage($entityPublicId, $actor);
+            }
+
             return false;
+        }
+
+        if ($entityType === 'chat_message') {
+            return $this->actorCanReadChatMessage($entityPublicId, $actor);
+        }
+
+        if ($entityType === 'intake_item') {
+            return $this->actorCanReadIntakeItem($entityPublicId, $actor);
         }
 
         // Permission = capability: task.manage may reach every task attachment
@@ -620,6 +639,66 @@ final class FileService
         }
 
         return false;
+    }
+
+    /** Attachments on chat messages are visible only to current members of the same workspace chat. */
+    private function actorCanReadChatMessage(string $messagePublicId, array $actor): bool
+    {
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $actorId = (int)($actor['id'] ?? 0);
+        if ($this->db === null || $organizationId <= 0 || $actorId <= 0 || $messagePublicId === '') {
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT 1
+                 FROM chat_messages cm
+                 INNER JOIN chats c ON c.id = cm.chat_id AND c.organization_id = :chat_organization_id
+                 INNER JOIN chat_participants cp ON cp.chat_id = c.id AND cp.user_id = :actor_id AND cp.organization_id = :participant_organization_id
+                 WHERE cm.public_id = :message_public_id
+                   AND cm.organization_id = :message_organization_id
+                   AND cm.deleted_at IS NULL
+                 LIMIT 1'
+            );
+            $stmt->execute([
+                ':chat_organization_id' => $organizationId,
+                ':actor_id' => $actorId,
+                ':participant_organization_id' => $organizationId,
+                ':message_public_id' => $messagePublicId,
+                ':message_organization_id' => $organizationId,
+            ]);
+            return (bool)$stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** Intake attachments follow the same workspace-scoped read capability as the Intake API. */
+    private function actorCanReadIntakeItem(string $itemPublicId, array $actor): bool
+    {
+        if ($this->db === null || !empty((int)($actor['is_external'] ?? 0))) {
+            return false;
+        }
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        $permissionCodes = $actor['permission_codes'] ?? [];
+        if ($organizationId <= 0 || $itemPublicId === '' || !is_array($permissionCodes)
+            || (!in_array('*', $permissionCodes, true) && !in_array('intake.view', $permissionCodes, true) && !in_array('intake.manage', $permissionCodes, true))
+        ) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT 1 FROM intake_items
+                 WHERE public_id = :public_id AND organization_id = :organization_id AND deleted_at IS NULL
+                 LIMIT 1'
+            );
+            $stmt->execute([':public_id' => $itemPublicId, ':organization_id' => $organizationId]);
+            return (bool)$stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /** @param array<string,mixed> $file */
@@ -732,6 +811,46 @@ final class FileService
 
     /**
      * SEC-001: Resolve storage path with backward compatibility.
+     * 1. Try the path from DB (authoritative source)
+     * 2. Fallback to <dir>/<publicId>.bin (new naming scheme)
+     * Returns null if neither exists.
+     */
+    /** Resolve only regular files below the configured CRM upload/quarantine roots. */
+    private function validatedStoragePath(string $path): ?string
+    {
+        if ($path === '' || preg_match('/[\x00-\x1F\x7F]/', $path)) return null;
+        $input = str_replace('\\', DIRECTORY_SEPARATOR, $path);
+        if (!str_starts_with($input, DIRECTORY_SEPARATOR)) return null;
+        foreach (explode(DIRECTORY_SEPARATOR, $input) as $segment) {
+            if ($segment === '.' || $segment === '..') return null;
+        }
+        $real = realpath($input);
+        if ($real === false || !is_file($real) || is_link($input)) return null;
+        foreach ([$this->uploadsDir, $this->quarantineDir] as $directory) {
+            $rootLexical = rtrim(str_replace('\\', DIRECTORY_SEPARATOR, $directory), DIRECTORY_SEPARATOR);
+            $root = realpath($directory);
+            if ($root === false || !is_dir($root)) continue;
+            $lexicalPrefix = $rootLexical . DIRECTORY_SEPARATOR;
+            $realPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (!str_starts_with($input, $lexicalPrefix) || !str_starts_with($real, $realPrefix)) continue;
+            $relative = substr($input, strlen($lexicalPrefix));
+            $cursor = $rootLexical;
+            foreach (explode(DIRECTORY_SEPARATOR, $relative) as $segment) {
+                if ($segment === '' || $segment === '.' || $segment === '..') return null;
+                $cursor .= DIRECTORY_SEPARATOR . $segment;
+                clearstatcache(true, $cursor);
+                if (is_link($cursor)) return null;
+            }
+            clearstatcache(true, $input);
+            $after = realpath($input);
+            if ($after !== $real || !str_starts_with($after, $realPrefix)) return null;
+            return $real;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve the storage path for a file, with backward compatibility fallback.
      * 1. Try the path from DB (authoritative source)
      * 2. Fallback to <dir>/<publicId>.bin (new naming scheme)
      * Returns null if neither exists.
@@ -872,10 +991,27 @@ final class FileService
 
     private function isQuarantinedPath(string $path): bool
     {
-        $normalizedPath = str_replace('\\', '/', $path);
-        $normalizedQuarantine = str_replace('\\', '/', rtrim($this->quarantineDir, '/'));
+        $normalize = static fn(string $value): string => rtrim(str_replace('\\', '/', $value), '/');
+        $normalizedPath = $normalize($path);
+        $normalizedQuarantine = $normalize($this->quarantineDir);
+        if ($normalizedQuarantine === '') {
+            return false;
+        }
 
-        return $normalizedQuarantine !== '' && str_starts_with($normalizedPath, $normalizedQuarantine . '/');
+        // Compare canonical paths when possible: on systems such as macOS /tmp
+        // and /var may resolve through symlinks to /private/var. Download paths
+        // have already passed validatedStoragePath(), which rejects symlinked
+        // file components, so canonical comparison preserves quarantine MIME
+        // handling without widening the allowed storage roots.
+        $realPath = realpath($path);
+        $realQuarantine = realpath($this->quarantineDir);
+        if ($realPath !== false && $realQuarantine !== false) {
+            $canonicalPath = $normalize($realPath);
+            $canonicalQuarantine = $normalize($realQuarantine);
+            return str_starts_with($canonicalPath, $canonicalQuarantine . '/');
+        }
+
+        return str_starts_with($normalizedPath, $normalizedQuarantine . '/');
     }
 
     private function presentForApi(array $file): array

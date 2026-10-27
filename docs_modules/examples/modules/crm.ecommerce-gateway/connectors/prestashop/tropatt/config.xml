@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+    <name>tropatt</name>
+    <displayName><![CDATA[TropaTT CRM — e-commerce gateway]]></displayName>
+    <version><![CDATA[1.0.3]]></version>
+    <description><![CDATA[Two-way synchronisation of orders, customers and statuses with the TropaTT self-hosted CRM.]]></description>
+    <author><![CDATA[Anton Barinov]]></author>
+    <tab><![CDATA[administration]]></tab>
+    <confirmUninstall><![CDATA[Remove the TropaTT CRM connector?]]></confirmUninstall>
+    <ps_versions_compliancy><![CDATA[1.6.0.0,8.2.0]]></ps_versions_compliancy>
+    <is_configurable>1</is_configurable>
+    <need_instance>0</need_instance>
+    <limited_countries></limited_countries>
+</module>

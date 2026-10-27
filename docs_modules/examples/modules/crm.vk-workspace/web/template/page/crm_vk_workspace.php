@@ -10,13 +10,13 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
     ['label' => $t('admin_module_detail.link_admin', 'Администрирование'), 'href' => 'index.php?route=admin'],
     ['label' => $t('admin_module_detail.link_modules', 'Модули'), 'href' => 'index.php?route=admin-modules'],
     ['label' => $titleRaw, 'active' => true],
-], $titleRaw, 'Интеграция встреч и сервисов VK WorkSpace.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
+], $titleRaw, 'Интеграция недоступна: официальный контракт SaaS API для этих операций не подтверждён.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
 <section class="crm-card mt-3" aria-labelledby="moduleSetupState">
     <div class="crm-card-body">
         <div class="alert alert-warning mb-3" role="status">
-            <strong id="moduleSetupState">Установлен · не подключён</strong>
-            <div>Учётная запись VK WorkSpace не подключена. Встречи не синхронизируются.</div>
+            <strong id="moduleSetupState">API провайдера недоступен · функции отключены</strong>
+            <div>Пакет не подключается к VK WorkSpace. Создание встреч, ссылки на звонки и синхронизация календаря недоступны.</div>
         </div>
-        <p class="mb-0">На этой странице пока нет доступных настроек и проверки соединения. Кнопки настройки или синхронизации не показываются, пока эти действия не реализованы.</p>
+        <p class="mb-0">Официальный публичный контракт SaaS API для создания видеовстреч и управления календарными событиями не подтверждён. Настроек подключения нет; внешние запросы и фиктивные встречи не создаются. См. <a href="https://biz.mail.ru/docs/saas/ru/tariffs/info" target="_blank" rel="noopener noreferrer">официальную документацию VK WorkSpace</a>.</p>
     </div>
 </section></main></div></div>

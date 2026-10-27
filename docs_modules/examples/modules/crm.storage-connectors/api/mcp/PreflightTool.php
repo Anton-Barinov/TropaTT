@@ -3,16 +3,16 @@ declare(strict_types=1);
 
 namespace Module\Crm\StorageConnectors\Mcp;
 
+use Api\System\Library\Container;
 use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
 use Module\Crm\StorageConnectors\Service\StorageManagerService;
-use Api\System\Library\Database\DatabaseConnectionPool;
 
 final class PreflightTool implements ModuleMcpToolInterface
 {
-    public function execute(array $arguments, array $context): array
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $db = DatabaseConnectionPool::getConnection();
-        $service = new StorageManagerService($db);
-        return $service->preflight();
+        if ($context->organizationId <= 0) return ['ok' => false, 'error' => 'WORKSPACE_REQUIRED'];
+        return (new StorageManagerService($container->get('db.pdo')))->preflight();
     }
 }

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** @var array $data */
-$titleRaw = (string)($data['title'] ?? 'Dropbox');
+$titleRaw = (string)($data['title'] ?? 'Dropbox Хранилище');
 $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
 ?>
 <body data-page="module-dropbox" data-protected="1"><div class="crm-app"><aside class="crm-sidebar"><div class="crm-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div><nav class="nav flex-column crm-nav"></nav></aside>
@@ -10,13 +10,18 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
     ['label' => $t('admin_module_detail.link_admin', 'Администрирование'), 'href' => 'index.php?route=admin'],
     ['label' => $t('admin_module_detail.link_modules', 'Модули'), 'href' => 'index.php?route=admin-modules'],
     ['label' => $titleRaw, 'active' => true],
-], $titleRaw, 'Хранение и обмен файлами проектов через Dropbox.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
-<section class="crm-card mt-3" aria-labelledby="moduleSetupState">
-    <div class="crm-card-body">
-        <div class="alert alert-warning mb-3" role="status">
-            <strong id="moduleSetupState">Установлен · не подключён</strong>
-            <div>Учётная запись Dropbox не подключена. Передача файлов не выполняется.</div>
-        </div>
-        <p class="mb-0">На этой странице пока нет доступных настроек и проверки соединения. Кнопки настройки или синхронизации не показываются, пока эти действия не реализованы.</p>
-    </div>
-</section></main></div></div>
+], $titleRaw, 'Подключите Dropbox и передавайте выбранные файлы CRM в приватное хранилище.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
+<div class="dpbx-grid mt-3">
+    <section class="crm-card dpbx-panel" aria-labelledby="dpbxStatusTitle"><div class="crm-card-header"><h2 id="dpbxStatusTitle" class="h5 mb-0">Состояние подключения</h2></div><div class="crm-card-body"><p id="dpbxStatusMeta" class="mb-1" role="status" aria-live="polite">Проверяем настройки Dropbox…</p><div id="dpbxAccount" class="small text-muted"></div><div id="dpbxMessage" class="small mt-3" role="status" aria-live="polite"></div></div></section>
+    <section class="crm-card dpbx-panel" aria-labelledby="dpbxConfigTitle"><div class="crm-card-header"><h2 id="dpbxConfigTitle" class="h5 mb-0">Подключение Dropbox</h2></div><div class="crm-card-body"><p class="small text-muted">Используйте Dropbox App Key, App Secret и refresh token из OAuth-настройки приложения. Секреты шифруются через AES-256-GCM и никогда не показываются повторно. На сервере должен быть установлен APP_KEY длиной не менее 32 символов.</p>
+        <form id="dpbxConfigForm" autocomplete="off" novalidate>
+            <div class="crm-form-group"><label class="crm-form-label" for="dpbxAppKey">App Key</label><input class="crm-form-input" id="dpbxAppKey" name="app_key" type="text" maxlength="128" autocomplete="off" required></div>
+            <div class="crm-form-group"><label class="crm-form-label" for="dpbxAppSecret">App Secret</label><input class="crm-form-input" id="dpbxAppSecret" name="app_secret" type="password" maxlength="4096" autocomplete="new-password" required></div>
+            <div class="crm-form-group"><label class="crm-form-label" for="dpbxRefreshToken">Refresh token</label><input class="crm-form-input" id="dpbxRefreshToken" name="refresh_token" type="password" maxlength="4096" autocomplete="new-password" required></div>
+            <div class="crm-form-group"><label class="crm-form-label" for="dpbxBasePath">Корневая папка Dropbox</label><input class="crm-form-input" id="dpbxBasePath" name="base_folder_path" type="text" maxlength="180" value="/TropaTT_CRM" autocomplete="off" required></div>
+            <div class="d-flex flex-wrap gap-2"><button class="btn crm-btn-primary" id="dpbxSaveBtn" type="submit">Сохранить реквизиты</button><button class="btn crm-btn-secondary" id="dpbxTestBtn" type="button">Проверить подключение</button></div>
+        </form></div></section>
+    <section class="crm-card dpbx-panel" aria-labelledby="dpbxSyncTitle"><div class="crm-card-header"><h2 id="dpbxSyncTitle" class="h5 mb-0">Передать файл в Dropbox</h2></div><div class="crm-card-body"><p class="small text-muted">Передача доступна участникам рабочего пространства, имеющим права просмотра файла. Файлы карантина и файлы больше 20 МБ блокируются. Dropbox-ссылка общего доступа не создаётся.</p>
+        <form id="dpbxSyncForm" autocomplete="off" novalidate><div class="crm-form-group"><label class="crm-form-label" for="dpbxFileId">Публичный ID файла CRM</label><input class="crm-form-input" id="dpbxFileId" name="file_public_id" type="text" maxlength="64" placeholder="fil_…" pattern="[A-Za-z0-9_-]{1,64}" required></div><button class="btn crm-btn-primary" id="dpbxSyncBtn" type="submit">Передать файл</button></form><div id="dpbxSyncResult" class="small mt-3" role="status" aria-live="polite"></div>
+    </div></section>
+</div></main></div></div>

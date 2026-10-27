@@ -1,0 +1,31 @@
+/* Notion Migration module */
+#notionMigrationApp .object-item {
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+#notionMigrationApp .object-item input[type="checkbox"] {
+    margin-top: 0.25rem;
+}
+
+#notionMigrationApp .step-number {
+    display: inline-block;
+    width: 1.4rem;
+    height: 1.4rem;
+    line-height: 1.4rem;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--bs-secondary-bg, #e9ecef);
+    margin-right: 0.4rem;
+    font-size: 0.8rem;
+}
+
+#notionMigrationApp .nav-link.active .step-number {
+    background: var(--bs-primary, #0d6efd);
+    color: #fff;
+}
+
+#notionMigrationApp #jobLog .log-error { color: #ff8a8a; }
+#notionMigrationApp #jobLog .log-warning { color: #ffd166; }

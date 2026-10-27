@@ -1,0 +1,162 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <button type="button" id="button-test" class="btn btn-info"><i class="fa fa-refresh"></i> {{ button_test_connection }}</button>
+        <button type="submit" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if error_warning %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
+    <div id="alert-connection"></div>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
+      </div>
+      <div class="panel-body">
+        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#tab-general" data-toggle="tab"><i class="fa fa-cog"></i> Основные настройки</a></li>
+            <li><a href="#tab-status" data-toggle="tab"><i class="fa fa-exchange"></i> Маппинг статусов</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane active" id="tab-general">
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
+                <div class="col-sm-10">
+                  <select name="module_tropatt_status" id="input-status" class="form-control">
+                    {% if module_tropatt_status %}
+                    <option value="1" selected="selected">{{ text_enabled }}</option>
+                    <option value="0">{{ text_disabled }}</option>
+                    {% else %}
+                    <option value="1">{{ text_enabled }}</option>
+                    <option value="0" selected="selected">{{ text_disabled }}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-gateway-url"><span data-toggle="tooltip" title="{{ help_gateway_url }}">{{ entry_gateway_url }}</span></label>
+                <div class="col-sm-10">
+                  <input type="text" name="module_tropatt_gateway_url" value="{{ module_tropatt_gateway_url }}" placeholder="https://crm.example.com/api/index.php?route=/_module/crm.ecommerce-gateway/v1" id="input-gateway-url" class="form-control" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-store-key"><span data-toggle="tooltip" title="{{ help_store_key }}">{{ entry_store_key }}</span></label>
+                <div class="col-sm-10">
+                  <input type="text" name="module_tropatt_store_key" value="{{ module_tropatt_store_key }}" placeholder="stk_..." id="input-store-key" class="form-control" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-store-secret"><span data-toggle="tooltip" title="{{ help_store_secret }}">{{ entry_store_secret }}</span></label>
+                <div class="col-sm-10">
+                  <input type="password" name="module_tropatt_store_secret" value="{{ module_tropatt_store_secret }}" placeholder="Secret Key" id="input-store-secret" class="form-control" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">{{ entry_webhook_url }}</label>
+                <div class="col-sm-10">
+                  <div class="input-group">
+                    <input type="text" readonly="readonly" value="{{ webhook_url_computed }}" id="input-webhook-url" class="form-control" />
+                    <span class="input-group-btn">
+                      <button class="btn btn-default" type="button" onclick="navigator.clipboard.writeText('{{ webhook_url_computed }}'); alert('Скопировано в буфер обмена!');"><i class="fa fa-copy"></i></button>
+                    </span>
+                  </div>
+                  <small class="help-block">{{ help_webhook_url }}</small>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">{{ entry_send_quick_order }}</label>
+                <div class="col-sm-10">
+                  <label class="radio-inline">
+                    <input type="radio" name="module_tropatt_send_quick_order" value="1" {% if module_tropatt_send_quick_order %}checked="checked"{% endif %} /> Да
+                  </label>
+                  <label class="radio-inline">
+                    <input type="radio" name="module_tropatt_send_quick_order" value="0" {% if not module_tropatt_send_quick_order %}checked="checked"{% endif %} /> Нет
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">{{ entry_debug }}</label>
+                <div class="col-sm-10">
+                  <label class="radio-inline">
+                    <input type="radio" name="module_tropatt_debug" value="1" {% if module_tropatt_debug %}checked="checked"{% endif %} /> Да
+                  </label>
+                  <label class="radio-inline">
+                    <input type="radio" name="module_tropatt_debug" value="0" {% if not module_tropatt_debug %}checked="checked"{% endif %} /> Нет
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane" id="tab-status">
+              <p class="text-muted">Сопоставьте статусы заказов OpenCart со стадиями задач TropaTT CRM. При изменении статуса в CRM модуль автоматически переведет заказ OpenCart в выбранный статус.</p>
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th>Статус OpenCart</th>
+                      <th>Код стадии CRM (например: new, in_progress, completed, cancelled)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for status in order_statuses %}
+                    <tr>
+                      <td><strong>{{ status.name }}</strong> (ID: {{ status.order_status_id }})</td>
+                      <td>
+                        <input type="text" name="module_tropatt_status_mapping[{{ status.order_status_id }}]" value="{{ module_tropatt_status_mapping[status.order_status_id] ?? '' }}" placeholder="stage_code" class="form-control input-sm" />
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+$('#button-test').on('click', function() {
+  var btn = $(this);
+  btn.button('loading');
+  $('#alert-connection').empty();
+  $.ajax({
+    url: '{{ test_connection_url }}',
+    type: 'post',
+    data: {
+      gateway_url: $('#input-gateway-url').val(),
+      store_key: $('#input-store-key').val(),
+      store_secret: $('#input-store-secret').val()
+    },
+    dataType: 'json',
+    success: function(json) {
+      btn.button('reset');
+      if (json.success) {
+        $('#alert-connection').html('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> ' + json.message + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      } else {
+        $('#alert-connection').html('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json.message + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      }
+    },
+    error: function(xhr, ajaxOptions, thrownError) {
+      btn.button('reset');
+      $('#alert-connection').html('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> AJAX Error: ' + thrownError + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+    }
+  });
+});
+</script>
+{{ footer }}

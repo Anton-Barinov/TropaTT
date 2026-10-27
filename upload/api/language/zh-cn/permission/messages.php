@@ -27,6 +27,7 @@ return [
     'perm_api_client_view' => '查看 API 客户端和密钥',
     'perm_api_client_manage' => '管理 API 客户端和密钥',
     'perm_webhook_manage' => '管理 Webhook 和投递',
+    'perm_corporate_mail_read' => '读取企业邮箱对话',
     'perm_feature_flag_manage' => '管理 Feature flag',
     'perm_organization_manage' => '管理组织/工作空间',
     'perm_ai_use' => '使用 AI 操作',

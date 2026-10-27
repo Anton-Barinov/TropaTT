@@ -49,4 +49,5 @@ return [
     'day_sat' => '周六',
     'day_sun' => '周日',
     'invalid_timezone' => '无效的时区',
+    'booking_conflict' => '该时间与其他预约冲突，请选择其他时段。',
 ];

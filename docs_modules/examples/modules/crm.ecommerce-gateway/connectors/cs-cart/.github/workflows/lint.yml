@@ -1,0 +1,70 @@
+name: PHP lint
+
+# Standalone CI for the `tropatt-cs-cart` connector repository.
+# The addon targets CS-Cart 4.x (PHP 7.4-8.2), so the syntax check covers that range.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint addon sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find app -name '*.php' -type f | sort)
+          test ${#files[@]} -gt 0
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done
+
+  manifest:
+    name: Validate addon.xml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the addon manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse('app/addons/tropatt/addon.xml')
+          root = tree.getroot()
+          assert root.tag == 'addon', root.tag
+          assert (root.findtext('id') or '').strip() == 'tropatt'
+          assert (root.findtext('version') or '').strip()
+          settings = root.find('settings')
+          assert settings is not None, 'no <settings> section'
+          ids = {item.get('id') for item in settings.iter('item')}
+          for required in ('gateway_url', 'store_key', 'store_secret', 'status_mapping'):
+              assert required in ids, f'missing setting {required}'
+          print('addon.xml is well-formed and complete')
+          PY

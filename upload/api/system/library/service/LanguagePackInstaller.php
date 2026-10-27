@@ -273,6 +273,26 @@ final class LanguagePackInstaller
                 continue;
             }
 
+            // Marketplace language packs may store API dictionaries at the
+            // archive root under their locale directory (for example
+            // `ka-ge/calendar/messages.php`) instead of `api/ka-ge/...`.
+            // Accept only the exact locale prefix from the validated manifest;
+            // this keeps the alternate layout confined to this language pack.
+            if (str_starts_with($norm, $code . '/')) {
+                $subPath = substr($norm, strlen($code) + 1);
+                if ($subPath === '' || str_starts_with($subPath, '/') || str_contains($subPath, '..')) {
+                    throw new InvalidArgumentException('Language pack validation failed: invalid API dictionary path');
+                }
+                $targetFile = $apiLangDir . '/' . $subPath;
+                $targetDir = dirname($targetFile);
+                if (!is_dir($targetDir)) {
+                    @mkdir($targetDir, 0775, true);
+                }
+                file_put_contents($targetFile, $content, LOCK_EX);
+                @chmod($targetFile, 0640);
+                continue;
+            }
+
             if (str_starts_with($norm, 'api/')) {
                 $subPath = substr($norm, 4);
                 $targetFile = $apiLangDir . '/' . $subPath;

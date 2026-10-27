@@ -4,25 +4,43 @@ declare(strict_types=1);
 
 namespace Module\Crm\HubSpotMigration\Mcp;
 
-class MigrationRunTool
-{
-    public function execute(array $args, array $context): array
-    {
-        $mode = (string)($args['mode'] ?? '');
-        if (!in_array($mode, ['dry_run', 'live_batch', 'rollback'], true)) {
-            return ['status' => 'rejected', 'code' => 'INVALID_MODE'];
-        }
-        $batchSize = filter_var($args['batch_size'] ?? 50, FILTER_VALIDATE_INT);
-        if ($batchSize === false || $batchSize < 1 || $batchSize > 100) {
-            return ['status' => 'rejected', 'code' => 'INVALID_BATCH_SIZE'];
-        }
+use Api\System\Library\Cache\ApiFileCache;
+use Api\System\Library\Container;
+use Api\System\Library\Service\ClientService;
+use Module\Crm\HubSpotMigration\Service\HubSpotMigrationService;
+use Throwable;
 
-        return [
-            'mode' => $mode,
-            'batch_size' => $batchSize,
-            'processed' => 0,
-            'status' => 'not_implemented',
-            'message' => 'Migration execution is not available until the module provides a workspace-scoped import pipeline.'
-        ];
+final class MigrationRunTool
+{
+    public function execute(array $args, array $context, Container $container): array
+    {
+        $db = $context['db'] ?? null;
+        $workspaceId = (int)($context['workspace_id'] ?? 0);
+        $actorPublicId = (string)($context['actor_public_id'] ?? '');
+        $operation = (string)($args['operation'] ?? '');
+        $sessionId = (string)($args['session_id'] ?? '');
+        if (!$db instanceof \PDO || $workspaceId < 1 || $actorPublicId === '') return ['success' => false, 'error' => 'Authorized workspace and actor context are required.'];
+        if (!in_array($operation, ['import_batch', 'rollback'], true) || !preg_match('/^hsm_[a-f0-9]{32}$/D', $sessionId)) return ['success' => false, 'error' => 'Choose a valid operation and migration session.'];
+        $limit = filter_var($args['limit'] ?? 25, FILTER_VALIDATE_INT);
+        if ($operation === 'import_batch' && ($limit === false || $limit < 1 || $limit > 25)) return ['success' => false, 'error' => 'Batch size must be between 1 and 25.'];
+        try {
+            // The MCP execution context has already authorized this actor, module permission and workspace.
+            $actorQuery = $db->prepare('SELECT id FROM users WHERE public_id=:public_id LIMIT 1');
+            $actorQuery->execute(['public_id' => $actorPublicId]);
+            $row = $actorQuery->fetch(\PDO::FETCH_ASSOC);
+            if (!is_array($row)) return ['success' => false, 'error' => 'Authorized actor could not be resolved.'];
+            $actor = ['id' => (int)$row['id'], 'organization_id' => $workspaceId];
+            $clients = $container->get('service.client');
+            if (!$clients instanceof ClientService) return ['success' => false, 'error' => 'CRM contact service is unavailable.'];
+            $service = new HubSpotMigrationService($db, $workspaceId, $clients, $actor);
+            $result = $operation === 'import_batch' ? $service->importBatch($sessionId, (int)$limit) : $service->rollback($sessionId);
+            if ($container->has('cache.api')) {
+                $cache = $container->get('cache.api');
+                if ($cache instanceof ApiFileCache) $cache->invalidateNamespace('client');
+            }
+            return $result;
+        } catch (Throwable) {
+            return ['success' => false, 'error' => 'Migration action failed safely. Check the session report in the CRM module.'];
+        }
     }
 }

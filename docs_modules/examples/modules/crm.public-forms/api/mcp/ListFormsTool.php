@@ -3,24 +3,23 @@ declare(strict_types=1);
 
 namespace Module\Crm\PublicForms\Mcp;
 
-use Api\System\Library\Database\DatabaseConnectionPool;
-use PDO;
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+use Module\Crm\PublicForms\Service\PublicFormsService;
 
-final class ListFormsTool
+final class ListFormsTool implements ModuleMcpToolInterface
 {
-    public function handle(array $arguments, array $context): array
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $orgId = (int)($context['user']['organization_id'] ?? 1);
-        $db = DatabaseConnectionPool::getConnection();
-
-        $stmt = $db->prepare(
-            "SELECT public_id, slug, title, form_type, is_published, created_at
-             FROM crm_public_forms
-             WHERE organization_id = :org_id
-             ORDER BY id DESC"
-        );
-        $stmt->execute([':org_id' => $orgId]);
-        $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $auth = $container->has('auth_user') ? $container->get('auth_user') : null;
+        $user = is_array($auth) && is_array($auth['user'] ?? null) ? $auth['user'] : null;
+        if ($user === null || $context->organizationId < 1 || !$container->has('db.pdo')
+            || (empty($user['is_root']) && (!$container->has('service.authz')
+                || !$container->get('service.authz')->hasPermissions($user, ['settings.view'])))) {
+            return ['error' => 'FORBIDDEN'];
+        }
+        $items = (new PublicFormsService($container->get('db.pdo')))->listForms($context->organizationId);
 
         return [
             'forms' => $items,

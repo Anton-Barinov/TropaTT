@@ -363,7 +363,16 @@ final class ModuleController
         $manifest = $pm->getManifest($name);
         if ($manifest !== null && $manifest->migrations !== null) {
             $migrationDir = $pm->getModulesDir() . '/' . $manifest->name . '/' . $manifest->migrations;
-            $mm->rollbackAll($name, $migrationDir);
+            $rollback = $mm->rollbackAll($name, $migrationDir);
+            if (($rollback['errors'] ?? []) !== []) {
+                AppLog::error('[ModuleController::uninstall] migration rollback failed for ' . $name . ': ' . implode('; ', $rollback['errors']));
+                return JsonResponse::error(
+                    'MODULE_MIGRATION_ROLLBACK_FAILED',
+                    $this->t('module/messages.rollback_failed', 'Module migrations could not be fully rolled back; the module remains installed'),
+                    409,
+                    ['migrations' => $rollback['errors']]
+                );
+            }
         }
 
         $mc->unregister($name);

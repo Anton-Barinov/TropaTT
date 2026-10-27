@@ -4,27 +4,23 @@ declare(strict_types=1);
 
 namespace Module\Crm\Zoom\Mcp;
 
-class ZoomStatusTool
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+use Module\Crm\Zoom\Service\ZoomService;
+use Throwable;
+
+final class ZoomStatusTool implements ModuleMcpToolInterface
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $this->db = $db;
-    }
-
-    public function handle(array $params): array
-    {
-        return [
-            'status' => 'not_configured',
-            'provider' => 'Zoom Video Communications',
-            'features' => [
-                'meetings' => 'enabled',
-                'recordings_sync' => 'enabled',
-                'calendar_sync' => 'enabled',
-                'webhooks' => 'enabled'
-            ],
-            'configured' => false
-        ];
+        if ($context->organizationId <= 0 || $context->organizationPublicId === null) return ['success' => false, 'status' => 'unavailable', 'error' => 'ACTIVE_WORKSPACE_REQUIRED'];
+        try {
+            $db = $container->get('db.pdo');
+            if (!$db instanceof \PDO) return ['success' => false, 'error' => 'DATABASE_UNAVAILABLE'];
+            return ['success' => true, 'provider' => 'Zoom', ...(new ZoomService($db, $context->organizationId))->getStatus()];
+        } catch (Throwable) {
+            return ['success' => false, 'provider' => 'Zoom', 'status' => 'unavailable', 'error' => 'ZOOM_STATUS_UNAVAILABLE'];
+        }
     }
 }

@@ -1,78 +1,34 @@
 <?php
-/** @var array<string, mixed> $form */
+declare(strict_types=1);
+/** @var array $data */
+$slug = (string)($data['form_slug'] ?? '');
+$safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($form['title']) ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light py-5">
-    <div class="container" style="max-width: 600px;">
-        <div class="card shadow-sm p-4">
-            <h2 class="mb-3"><?= htmlspecialchars($form['title']) ?></h2>
-            <?php if (!empty($form['description'])): ?>
-                <p class="text-muted"><?= htmlspecialchars($form['description']) ?></p>
-            <?php endif; ?>
-
-            <form id="public-form" action="/api/v1/_module/crm.public-forms/forms/<?= rawurlencode((string)$form['slug']) ?>/submit" method="POST">
-                <input type="hidden" name="_idempotency_key" value="<?= htmlspecialchars(bin2hex(random_bytes(16)), ENT_QUOTES, 'UTF-8') ?>">
-                <!-- Honeypot field (hidden from real users) -->
-                <div style="display:none;" aria-hidden="true">
-                    <input type="text" name="_hp_website" tabindex="-1" autocomplete="off">
-                </div>
-
-                <?php foreach (($form['fields_schema'] ?? []) as $f): ?>
-                    <div class="mb-3">
-                        <label class="form-label"><?= htmlspecialchars($f['label'] ?? '') ?> <?= !empty($f['required']) ? '<span class="text-danger">*</span>' : '' ?></label>
-                        <input type="<?= htmlspecialchars($f['type'] ?? 'text') ?>" name="<?= htmlspecialchars($f['name'] ?? '') ?>" class="form-control" <?= !empty($f['required']) ? 'required' : '' ?>>
+<body data-page="public-form" data-protected="0" data-form-slug="<?= $safeSlug ?>">
+<div class="crm-app"><div class="crm-main-wrap">
+<main class="crm-content crm-module-page pform-public-page">
+    <section class="crm-card pform-public-card" aria-labelledby="publicFormHeading">
+        <div class="crm-card-body">
+            <a class="crm-brand pform-public-brand" href="index.php?route=login"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></a>
+            <div id="publicFormState" class="alert alert-info mt-4" role="status">Загружаем форму…</div>
+            <div id="publicFormContent" hidden>
+                <h1 class="h3" id="publicFormHeading"></h1>
+                <p class="text-muted" id="publicFormDescription"></p>
+                <form id="publicFormSubmission" class="pform-public-fields" novalidate>
+                    <div id="publicFormBooking" class="mb-3" hidden>
+                        <label class="form-label" for="publicBookingDate">Дата встречи</label>
+                        <input class="form-control mb-2" id="publicBookingDate" type="date">
+                        <label class="form-label" for="publicBookingSlot">Свободное время</label>
+                        <select class="form-select" id="publicBookingSlot" name="_booking_slot"><option value="">Выберите дату</option></select><div class="form-text" id="publicBookingSlotStatus" role="status" aria-live="polite"></div>
                     </div>
-                <?php endforeach; ?>
-
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" name="consent_agreed" value="1" id="consentCheck" required>
-                    <label class="form-check-label small text-muted" for="consentCheck">
-                        <?= htmlspecialchars($form['consent_text'] ?? 'Я согласен на обработку персональных данных') ?>
-                    </label>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">Отправить заявку</button>
-            </form>
-            <div id="public-form-result" class="mt-3" role="status" aria-live="polite"></div>
+                    <div id="publicFormFields"></div>
+                    <div class="pform-honeypot" aria-hidden="true"><label for="publicFormWebsite">Website</label><input id="publicFormWebsite" type="text" name="_hp_website" tabindex="-1" autocomplete="off"></div>
+                    <div class="form-check my-3"><input class="form-check-input" type="checkbox" value="1" id="publicFormConsent" required><label class="form-check-label" id="publicFormConsentLabel" for="publicFormConsent"></label></div>
+                    <button class="btn crm-btn-primary" id="publicFormSubmitBtn" type="submit">Отправить обращение</button>
+                </form>
+                <div id="publicFormResult" class="mt-3" role="status" aria-live="polite"></div>
+            </div>
+            <p class="small text-muted mt-4 mb-0">Отправляя форму, вы передаёте данные организации, которая её опубликовала.</p>
         </div>
-    </div>
-    <script>
-      document.getElementById('public-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const button = form.querySelector('button[type="submit"]');
-        const result = document.getElementById('public-form-result');
-        if (!form.reportValidity()) return;
-        const payload = Object.fromEntries(new FormData(form).entries());
-        payload.consent_agreed = form.elements.consent_agreed?.checked ? '1' : '';
-        button.disabled = true;
-        result.textContent = '';
-        try {
-          const response = await fetch(form.action, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(payload),
-            credentials: 'omit'
-          });
-          const data = await response.json();
-          if (!response.ok || data.success === false) throw new Error(data.message || 'Не удалось отправить заявку.');
-          result.className = 'mt-3 alert alert-success';
-          result.textContent = data.message || 'Заявка отправлена.';
-          form.reset();
-        } catch (error) {
-          result.className = 'mt-3 alert alert-danger';
-          result.textContent = error instanceof Error ? error.message : 'Не удалось отправить заявку.';
-        } finally {
-          button.disabled = false;
-        }
-      });
-    </script>
-</body>
-</html>
+    </section>
+</main></div></div>

@@ -1,11 +1,11 @@
 {
     "name": "crm.whatsapp-business",
-    "version": "1.0.4",
+    "version": "1.1.1",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "WhatsApp Business Platform",
-    "description": "Единая очередь клиентских диалогов WhatsApp Business Cloud API и интеграция с Intake",
+    "description": "Workspace-scoped WhatsApp Cloud API inbox with signed Meta webhooks, CRM Intake linkage, secure credentials and 24-hour text replies.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -22,7 +22,7 @@
         {
             "id": "whatsapp-inbox",
             "title": "WhatsApp Inbox",
-            "route": "whatsapp-inbox",
+            "route": "module-whatsapp-business",
             "icon": "chat-dots",
             "permission": "settings.edit"
         }

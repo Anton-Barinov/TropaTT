@@ -79,23 +79,75 @@ final class DomainEventPublisher
         }
 
         $actorPublicId = trim((string)($user['public_id'] ?? ''));
-        $correlationId = $this->correlationId();
+        $merged = $this->envelopePayload($payload, $organizationPublicId, $actorPublicId, $source, null);
 
+        ModuleHookDispatcher::dispatch($this->container, $event, $merged, $organizationId);
+    }
+
+    /**
+     * Persist webhook deliveries in the caller's open source-mutation
+     * transaction. Failure propagates so the mutation can roll back.
+     *
+     * @param array<string,mixed> $payload
+     * @return array<string,mixed> the canonical event payload for post-commit module hooks
+     */
+    public function enqueueTransactional(
+        string $event,
+        array $payload,
+        array $actor,
+        int $organizationId,
+        string $sourceEventId
+    ): array {
+        if ($organizationId < 1 || $sourceEventId === '') {
+            throw new \InvalidArgumentException('Workspace and source event ID are required.');
+        }
+
+        $merged = $this->transactionalPayload($payload, $actor, $organizationId, $sourceEventId);
+
+        $webhooks = $this->container->get('service.webhook');
+        if (!$webhooks instanceof \Api\System\Library\Service\WebhookService) {
+            throw new \RuntimeException('Webhook outbox service is unavailable.');
+        }
+        $webhooks->dispatchEventStrict($event, $merged, $organizationId, $sourceEventId);
+
+        return $merged;
+    }
+
+    /** Build the stable, redacted envelope for a source-mutation event. */
+    public function transactionalPayload(array $payload, array $actor, int $organizationId, string $sourceEventId): array
+    {
+        if ($organizationId < 1 || $sourceEventId === '') {
+            throw new \InvalidArgumentException('Workspace and source event ID are required.');
+        }
+        $user = is_array($actor['user'] ?? null) ? $actor['user'] : $actor;
+        $organizationPublicId = trim((string)($user['organization_public_id'] ?? ''));
+        if ($organizationPublicId === '') {
+            $organizationPublicId = $this->organizationPublicId($organizationId);
+        }
+        $actorPublicId = trim((string)($user['public_id'] ?? ''));
+        return $this->envelopePayload($payload, $organizationPublicId, $actorPublicId, null, $sourceEventId);
+    }
+
+    /** Dispatch local module hooks after the source transaction commits. */
+    public function dispatchHooksAfterCommit(string $event, array $payload): void
+    {
+        ModuleHookDispatcher::dispatchHooks($this->container, $event, $payload);
+    }
+
+    /** @param array<string,mixed> $payload @return array<string,mixed> */
+    private function envelopePayload(array $payload, string $organizationPublicId, string $actorPublicId, ?string $source, ?string $eventId): array
+    {
         $envelope = [
-            'event_id' => 'evt_' . bin2hex(random_bytes(16)),
+            'event_id' => $eventId ?? ('evt_' . bin2hex(random_bytes(16))),
             'event_version' => self::EVENT_VERSION,
             'occurred_at' => gmdate('Y-m-d\TH:i:s\Z'),
             'organization_public_id' => $organizationPublicId,
             'actor_public_id' => $actorPublicId,
             'source' => $this->resolveSource($source),
-            'correlation_id' => $correlationId,
+            'correlation_id' => $this->correlationId(),
         ];
 
-        // Envelope wins on collision so subscribers always see canonical
-        // tracing fields; every other payload key is passed through unchanged.
-        $merged = array_merge(self::redact($payload), $envelope);
-
-        ModuleHookDispatcher::dispatch($this->container, $event, $merged, $organizationId);
+        return array_merge(self::redact($payload), $envelope);
     }
 
     /**

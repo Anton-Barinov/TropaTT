@@ -62,7 +62,14 @@
       const conflicts = data.conflicts?.[key] || [];
       return `<section class="mb-3"><h3 class="h6">${escapeHtml(labels[key])}</h3><p class="small mb-1">Будет добавлено: ${create.length}; пропущено из-за совпадений: ${conflicts.length}</p>${conflicts.length ? `<ul class="small text-muted">${conflicts.map(item => `<li>${escapeHtml(item.title || item.name || item.code || item.slug)} — уже существует</li>`).join('')}</ul>` : ''}</section>`;
     }).join('');
-    $('skitsPreviewContent').innerHTML = rows;
+    const requirements = Array.isArray(data.requirements) ? data.requirements : [];
+    const requirementNotice = requirements.length
+      ? '<div class="alert alert-warning py-2" role="status">' + requirements.map(item => {
+        const codes = Array.isArray(item.missing_status_codes) ? item.missing_status_codes.map(escapeHtml).join(', ') : '';
+        return '<div>' + escapeHtml(item.message || 'Для выбранного компонента требуются дополнительные данные.') + (codes ? ' (' + codes + ')' : '') + '</div>';
+      }).join('') + '</div>'
+      : '';
+    $('skitsPreviewContent').innerHTML = requirementNotice + rows;
     $('skitsComponentChoices').innerHTML = Object.keys(labels).map(key => {
       const count = (data.will_create?.[key] || []).length;
       const canManageRoles = Boolean(data.can_manage_global_roles);
@@ -72,9 +79,21 @@
     }).join('');
     const apply = $('skitsApplyBtn');
     apply.disabled = true;
-    $('skitsComponentChoices').querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
-      apply.disabled = !$('skitsComponentChoices').querySelector('input:checked');
-    }));
+    const updateDependencies = () => {
+      const choices = $('skitsComponentChoices');
+      const statusInput = choices.querySelector('input[value="statuses"]');
+      const projectInput = choices.querySelector('input[value="project_templates"]');
+      const statusRequired = requirements.some(item => item.component === 'project_templates' && item.depends_on === 'statuses');
+      if (projectInput && statusRequired && !statusInput?.checked) {
+        projectInput.checked = false;
+        projectInput.disabled = true;
+      } else if (projectInput && statusRequired && Number(data.will_create?.project_templates?.length || 0) > 0) {
+        projectInput.disabled = false;
+      }
+      apply.disabled = !choices.querySelector('input:checked');
+    };
+    $('skitsComponentChoices').querySelectorAll('input').forEach(input => input.addEventListener('change', updateDependencies));
+    updateDependencies();
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   const showPreview = async kitId => {

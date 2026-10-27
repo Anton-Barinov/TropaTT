@@ -85,6 +85,9 @@ final class CalendarController extends BaseController
                     'task_public_id' => [$this->t('common/messages.task_not_found')],
                 ]);
             }
+            if ($item === 'BOOKING_CONFLICT') {
+                return $this->error('CALENDAR_BOOKING_CONFLICT', $this->t('calendar/messages.booking_conflict'), 409);
+            }
 
             $this->invalidateCache('calendar');
 
@@ -160,6 +163,9 @@ final class CalendarController extends BaseController
             return $this->error('TASK_NOT_FOUND', $this->t('common/messages.task_not_found'), 404, [
                 'task_public_id' => [$this->t('common/messages.task_not_found')],
             ]);
+        }
+        if ($item === 'BOOKING_CONFLICT') {
+            return $this->error('CALENDAR_BOOKING_CONFLICT', $this->t('calendar/messages.booking_conflict'), 409);
         }
 
         $this->invalidateCache('calendar');

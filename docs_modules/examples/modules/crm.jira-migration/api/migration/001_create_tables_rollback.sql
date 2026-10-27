@@ -1,0 +1,11 @@
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `module_jira_unsupported_fields`;
+DROP TABLE IF EXISTS `module_jira_unresolved_entities`;
+DROP TABLE IF EXISTS `module_jira_identity_mappings`;
+DROP TABLE IF EXISTS `module_jira_job_logs`;
+DROP TABLE IF EXISTS `module_jira_job_items`;
+DROP TABLE IF EXISTS `module_jira_jobs`;
+DROP TABLE IF EXISTS `module_jira_settings`;
+DROP TABLE IF EXISTS `module_jira_rate_limits`;
+DROP TABLE IF EXISTS `module_jira_connections`;
+SET FOREIGN_KEY_CHECKS = 1;

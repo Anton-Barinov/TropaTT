@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <id>TropaTT CRM gateway order hook</id>
+    <version>1.0.1</version>
+    <vqmver>2.0</vqmver>
+    <author>Anton Barinov</author>
+
+    <!--
+      OpenCart 1.5.x has neither OCMOD (2.0+) nor the model event table (2.3+),
+      so the order hook is installed by vQmod:
+
+        1. make sure vQmod is installed in the shop (the `vqmod/` directory at
+           the OpenCart root with `vqmod/vqmod.php` included from index.php and
+           admin/index.php);
+        2. copy `vqmod/xml/tropatt.xml` into the shop's `vqmod/xml/` directory
+           (the archive already places it there);
+        3. open the storefront and the admin once so vQmod regenerates its
+           cache, then install the module in Extensions → Modules.
+
+      vQmod injects the call into `catalog/model/checkout/order.php` right after the
+      signature of the two methods that *change an order status* in a 1.5 storefront:
+
+        confirm($order_id, $order_status_id, $comment = '', $notify = false)  (line 159)
+        update($order_id, $order_status_id, $comment = '', $notify = false)   (line 583)
+
+      `addOrderHistory()` does not exist in that file - it is an admin-side method of
+      OpenCart 2.x with a different signature (`addOrderHistory($order_id, $data)`) -
+      so the previous search string never matched and the modification was silently
+      not applied: no order ever left a 1.5 shop for the CRM.
+
+      The order row exists at that point and the new status travels in the arguments,
+      so the payload carries the right status even though the UPDATE below has not
+      run yet. `ModelModuleTropatt::handleOrderStatusChange()` decides whether the
+      push happens (module enabled, echo guard off); the model - not the controller -
+      owns the flag, because injected model code cannot reach controller state.
+
+      The push is idempotent on the CRM side (`X-TropaTT-Idempotency-Key` =
+      `{store_key}:order:{order_id}`), so a retry never creates a duplicate.
+    -->
+    <file name="catalog/model/checkout/order.php">
+        <operation>
+            <search position="after"><![CDATA[public function confirm($order_id, $order_status_id]]></search>
+            <add><![CDATA[
+		// TropaTT CRM hook: push the order and its new status to the gateway.
+		if ($this->config->get('module_tropatt_status')) {
+			$this->load->model('module/tropatt');
+			$this->model_module_tropatt->handleOrderStatusChange($order_id, $order_status_id);
+		}
+]]></add>
+        </operation>
+        <operation>
+            <search position="after"><![CDATA[public function update($order_id, $order_status_id]]></search>
+            <add><![CDATA[
+		// TropaTT CRM hook: push the order and its new status to the gateway.
+		if ($this->config->get('module_tropatt_status')) {
+			$this->load->model('module/tropatt');
+			$this->model_module_tropatt->handleOrderStatusChange($order_id, $order_status_id);
+		}
+]]></add>
+        </operation>
+    </file>
+</modification>

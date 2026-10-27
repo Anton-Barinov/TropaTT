@@ -4,27 +4,26 @@ declare(strict_types=1);
 
 namespace Module\Crm\VkWorkspace\Mcp;
 
-class VkStatusTool
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+
+final class VkStatusTool implements ModuleMcpToolInterface
 {
-    private \PDO $db;
-
-    public function __construct(\PDO $db)
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $this->db = $db;
-    }
+        if ($context->organizationId <= 0 || $context->organizationPublicId === null) {
+            return ['success' => false, 'status' => 'unavailable', 'error' => 'ACTIVE_WORKSPACE_REQUIRED'];
+        }
 
-    public function handle(array $params): array
-    {
         return [
-            'status' => 'not_configured',
-            'provider' => 'VK WorkSpace (VK Звонки / Календарь / Teams)',
-            'features' => [
-                'vk_calls' => 'enabled',
-                'calendar_sync' => 'enabled',
-                'vk_teams_notifications' => 'enabled',
-                'mail_invites' => 'enabled'
-            ],
-            'configured' => false
+            'success' => true,
+            'provider' => 'VK WorkSpace',
+            'status' => 'provider_api_unavailable',
+            'configured' => false,
+            'connected' => false,
+            'features' => ['calls' => false, 'calendar' => false, 'mail' => false, 'disk' => false, 'teams' => false],
+            'message' => 'VK WorkSpace integration is not available yet. No provider operation was performed.',
         ];
     }
 }

@@ -10,7 +10,7 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
     ['label' => $t('admin_module_detail.link_admin', 'Администрирование'), 'href' => 'index.php?route=admin'],
     ['label' => $t('admin_module_detail.link_modules', 'Модули'), 'href' => 'index.php?route=admin-modules'],
     ['label' => $titleRaw, 'active' => true],
-], $titleRaw, 'Общие корпоративные ящики команды, получение и отправка писем через IMAP/SMTP.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
+], $titleRaw, 'Настройка ящиков, получение новых писем через IMAP и отправка через SMTP.', '<a class="btn crm-btn-secondary" href="index.php?route=admin-modules" data-i18n="admin_module_detail.back_to_modules">' . htmlspecialchars($t('admin_module_detail.back_to_modules', 'Вернуться к модулям'), ENT_QUOTES, 'UTF-8') . '</a>'); ?>
 
 <!-- Dynamic Status Banner -->
 <div id="cmailStatusBanner" class="mb-4">
@@ -97,6 +97,38 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
     </div>
 </div>
 
+<section class="crm-card crm-section-card mb-4" id="cmailInboxPanel" hidden aria-live="polite">
+    <div class="crm-section-head d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div><h2 class="h6 mb-1">Входящие и переписки</h2><p class="small text-muted mb-0" id="cmailInboxMailboxLabel"></p></div>
+        <div class="d-flex gap-2"><button class="btn btn-sm crm-btn-secondary" id="cmailInboxRefresh" type="button">Обновить</button><button class="btn btn-sm crm-btn-secondary" id="cmailInboxClose" type="button">Закрыть</button></div>
+    </div>
+    <div class="cmail-inbox-layout">
+        <div class="cmail-thread-list" id="cmailThreadList" aria-label="Список переписок"><p class="text-muted p-3 mb-0">Выберите подключённый ящик.</p></div>
+        <div class="cmail-thread-content">
+            <div class="cmail-message-list" id="cmailMessageList" aria-live="polite"><p class="text-muted p-3 mb-0">Откройте переписку, чтобы просмотреть письма и ответить.</p></div>
+            <form class="cmail-reply-form" id="cmailReplyForm" hidden>
+                <div class="small text-muted mb-2" id="cmailReplyRecipient"></div>
+                <label class="form-label" for="cmailReplySubject">Тема</label>
+                <input class="form-control mb-2" id="cmailReplySubject" maxlength="500" required>
+                <label class="form-label" for="cmailReplyBody">Ответ</label>
+                <textarea class="form-control mb-2" id="cmailReplyBody" rows="5" maxlength="1000000" required></textarea>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <small class="text-muted" id="cmailReplyStatus" role="status"></small>
+                    <div class="d-flex gap-2 flex-wrap"><button class="btn btn-sm crm-btn-secondary" id="cmailReplyCheckStatus" type="button" hidden>Проверить статус отправки</button><button class="btn btn-sm crm-btn-primary" id="cmailReplySend" type="submit">Отправить ответ</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="crm-card crm-section-card mb-4" id="cmailFailuresPanel" hidden aria-live="polite">
+    <div class="crm-section-head d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div><h2 class="h6 mb-1">Проблемные письма</h2><p class="small text-muted mb-0">Ошибки отдельных UID сохраняются и не блокируют получение следующих писем.</p></div>
+        <button class="btn btn-sm crm-btn-secondary" id="cmailFailuresClose" type="button">Закрыть</button>
+    </div>
+    <div class="table-responsive"><table class="table crm-table align-middle mb-0"><thead><tr><th>UID</th><th>UIDVALIDITY</th><th>Причина</th><th>Попытки</th><th>Обновлено</th><th></th></tr></thead><tbody id="cmailFailuresBody"></tbody></table></div>
+</section>
+
 <!-- Modal: Add / Edit Mailbox -->
 <div class="modal fade" id="cmailMailboxModal" tabindex="-1" aria-labelledby="cmailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -146,7 +178,6 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                             <select class="form-select" id="cmailFieldImapEnc">
                                 <option value="ssl" selected>SSL / TLS (993)</option>
                                 <option value="tls">STARTTLS (143)</option>
-                                <option value="none">Без шифрования (143)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -177,7 +208,6 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                             <select class="form-select" id="cmailFieldSmtpEnc">
                                 <option value="tls" selected>STARTTLS (587)</option>
                                 <option value="ssl">SSL / TLS (465)</option>
-                                <option value="none">Без шифрования (25)</option>
                             </select>
                         </div>
                         <div class="col-md-6">

@@ -1,0 +1,4 @@
+DROP INDEX idx_clickup_job_org_queue ON module_clickup_jobs;
+DROP INDEX idx_clickup_connection_org ON module_clickup_connections;
+ALTER TABLE module_clickup_jobs DROP COLUMN organization_id;
+ALTER TABLE module_clickup_connections DROP COLUMN organization_id;

@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 return [
-    ['methods' => ['GET'], 'route' => '/limits', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'list', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.manage']],
-    ['methods' => ['GET'], 'route' => '/limits/{user_id}', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'get', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.manage']],
+    ['methods' => ['GET'], 'route' => '/limits', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'list', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.view', 'module.wip-limit.manage']],
+    ['methods' => ['GET'], 'route' => '/limits/{user_id}', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'get', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.view', 'module.wip-limit.manage']],
     ['methods' => ['GET'], 'route' => '/limits-for-task/{task_public_id}', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'getForTask', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.view', 'module.wip-limit.manage']],
     ['methods' => ['POST'], 'route' => '/limits', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'set', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.manage']],
     ['methods' => ['DELETE'], 'route' => '/limits/{user_id}', 'controller' => Module\Crm\WipLimit\Controller\WipApiController::class, 'action' => 'delete', 'auth' => true, 'workspace_required' => true, 'required_permissions' => ['module.wip-limit.manage']],

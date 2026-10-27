@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/config.xsd">
+    <default>
+        <tropatt>
+            <general>
+                <enabled>0</enabled>
+                <default_stage>new</default_stage>
+                <status_mapping>pending=new
+processing=in_progress
+complete=done
+canceled=canceled</status_mapping>
+                <source_code>default</source_code>
+            </general>
+        </tropatt>
+    </default>
+</config>

@@ -1,49 +1,39 @@
 <?php
-
 declare(strict_types=1);
 
 namespace Module\Crm\GoogleDrive\Mcp;
 
+use Api\System\Library\Container;
+use Api\System\Library\Module\Mcp\ModuleMcpToolInterface;
+use Api\System\Library\Module\ModuleExecutionContext;
+use Module\Crm\GoogleDrive\Service\SafeLocalFileReader;
 use Module\Crm\GoogleDrive\Service\GoogleDriveStorageService;
+use Throwable;
 
-class AttachFileTool
+final class AttachFileTool implements ModuleMcpToolInterface
 {
-    public function execute(array $args, array $context): array
+    public function execute(array $arguments, ModuleExecutionContext $context, Container $container): array
     {
-        $db = $context['db'] ?? null;
-        if (!$db instanceof \PDO) {
-            return ['success' => false, 'error' => 'Database connection unavailable'];
+        if ($context->organizationId <= 0 || $context->organizationPublicId === null || $context->actorPublicId === null) return ['success' => false, 'code' => 'WORKSPACE_OR_ACTOR_REQUIRED'];
+        if (!$container->has('auth_user')) return ['success' => false, 'code' => 'WORKSPACE_OR_ACTOR_REQUIRED'];
+        $auth = $container->get('auth_user');
+        $actor = is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        if ((int)($actor['organization_id'] ?? 0) !== $context->organizationId || ($actor['public_id'] ?? null) !== $context->actorPublicId) return ['success' => false, 'code' => 'ACTOR_CONTEXT_MISMATCH'];
+        $fileId = trim((string)($arguments['file_public_id'] ?? ''));
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $fileId)) return ['success' => false, 'code' => 'FILE_ID_INVALID'];
+        try {
+            $files = $container->get('service.file');
+            $file = $files->get($fileId, $actor);
+            if (!is_array($file) || !empty($file['is_deleted'])) return ['success' => false, 'code' => 'FILE_NOT_FOUND'];
+            if (!empty($file['is_quarantined'])) return ['success' => false, 'code' => 'FILE_QUARANTINED'];
+            $download = $files->canDownloadInternal($fileId, $actor);
+            if (!(bool)($download['ok'] ?? false)) return ['success' => false, 'code' => 'FILE_NOT_FOUND'];
+            $path = (string)($download['path'] ?? '');
+            $content = SafeLocalFileReader::read($path, (int)($file['size_bytes'] ?? -1), (string)(realpath((string)$container->get('config')->get('default.storage.uploads', '')) ?: ''));
+            $result = (new GoogleDriveStorageService($container->get('db.pdo'), $context->organizationId))->uploadFile($file, $content);
+            return ['success' => true, 'result' => $result];
+        } catch (Throwable) {
+            return ['success' => false, 'code' => 'GOOGLE_DRIVE_UPLOAD_FAILED', 'message' => 'The CRM file could not be transferred. Check workspace file access and Google Drive connection.'];
         }
-
-        $service = new GoogleDriveStorageService($db, (int)($context['workspace_id'] ?? 1));
-        $fileId = (string)($args['file_public_id'] ?? '');
-        $projectId = (string)($args['project_public_id'] ?? 'prj_test_drive');
-        $clientId = (string)($args['client_public_id'] ?? '');
-        $role = (string)($args['share_role'] ?? 'reader');
-
-        $driveId = '1gDrive_' . substr(md5($fileId), 0, 16);
-        $links = $service->formatDriveLinks($driveId);
-
-        $record = $service->recordDriveFile([
-            'crm_file_public_id' => $fileId,
-            'crm_project_public_id' => $projectId,
-            'crm_client_public_id' => $clientId,
-            'drive_file_id' => $driveId,
-            'original_name' => "Project_Report_{$fileId}.pdf",
-            'mime_type' => 'application/pdf',
-            'web_view_link' => $links['web_view_link'],
-            'web_content_link' => $links['web_content_link'],
-            'file_size_bytes' => 2048576,
-            'share_role' => $role
-        ]);
-
-        return [
-            'success' => true,
-            'file_public_id' => $fileId,
-            'drive_file_id' => $driveId,
-            'web_view_link' => $record['web_view_link'],
-            'share_role' => $role,
-            'message' => 'File successfully linked to Google Drive with collaborative access.'
-        ];
     }
 }

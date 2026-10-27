@@ -11,7 +11,7 @@ final class AutomationApiController extends BaseController
 {
     private function service(): AutomationHubService
     {
-        return new AutomationHubService($this->container->get('db.pdo'));
+        return new AutomationHubService($this->container->get('db.pdo'), null, $this->container->get('service.webhook'));
     }
 
     private function organizationId(): ?int
@@ -50,22 +50,52 @@ final class AutomationApiController extends BaseController
         $url = (string)($input['webhook_endpoint_url'] ?? '');
         $secret = (string)($input['secret_token'] ?? '');
         $mappings = (array)($input['field_mappings'] ?? []);
+        $events = is_array($input['events'] ?? null) ? $input['events'] : [];
+        $auth = $this->user();
 
-        if ($recipeKey === '' || $title === '' || $url === '') {
-            return $this->error('VALIDATION_ERROR', 'recipe_key, title, and webhook_endpoint_url are required', 422);
+        if ($recipeKey === '' || $title === '' || $url === '' || $events === []) {
+            return $this->error('VALIDATION_ERROR', 'recipe_key, title, webhook_endpoint_url, and at least one event are required', 422);
         }
 
-        $publicId = $this->service()->saveRecipe(
-            (int)$this->organizationId(),
-            $platform,
-            $recipeKey,
-            $title,
-            $url,
-            $secret,
-            $mappings
-        );
+        try {
+            $publicId = $this->service()->saveRecipe(
+                (int)$this->organizationId(),
+                $platform,
+                $recipeKey,
+                $title,
+                $url,
+                $secret,
+                $mappings,
+                $events,
+                (array)($auth['user'] ?? [])
+            );
+        } catch (\Throwable $e) {
+            return $this->error('AUTOMATION_CONFIG_SAVE_FAILED', 'Could not save the connection. Verify the HTTPS endpoint, signing secret, and application encryption key.', 422);
+        }
 
         return $this->success('AUTOMATION_RECIPE_SAVED', 'OK', ['public_id' => $publicId]);
+    }
+
+    public function setRecipeActive(): JsonResponse
+    {
+        if (($denied = $this->organizationRequired()) !== null) {
+            return $denied;
+        }
+        $input = $this->request()->allInput();
+        $recipePublicId = is_string($input['recipe_public_id'] ?? null) ? trim($input['recipe_public_id']) : '';
+        $active = $input['active'] ?? null;
+        if ($recipePublicId === '' || !is_bool($active)) {
+            return $this->error('VALIDATION_ERROR', 'recipe_public_id and boolean active are required', 422);
+        }
+        try {
+            $this->service()->setRecipeActive((int)$this->organizationId(), $recipePublicId, $active, (array)(($this->user()['user'] ?? [])));
+            return $this->success('AUTOMATION_RECIPE_STATE_SAVED', 'Connection state updated.', [
+                'public_id' => $recipePublicId,
+                'is_active' => $active,
+            ]);
+        } catch (\RuntimeException) {
+            return $this->error('AUTOMATION_RECIPE_STATE_FAILED', 'Connection was not found in the active workspace.', 404);
+        }
     }
 
     public function testWebhook(): JsonResponse
@@ -75,18 +105,19 @@ final class AutomationApiController extends BaseController
         }
         $input = $this->request()->allInput();
         $recipePublicId = (string)($input['recipe_public_id'] ?? '');
+        $correlationId = is_string($input['correlation_id'] ?? null) ? trim($input['correlation_id']) : null;
         if ($recipePublicId === '') {
             return $this->error('VALIDATION_ERROR', 'recipe_public_id is required', 422);
         }
 
         try {
-            $result = $this->service()->dispatch($recipePublicId, 'test.ping', [
+            $result = $this->service()->dispatch((int)$this->organizationId(), $recipePublicId, 'test.ping', [
                 'ping' => 'pong',
                 'timestamp' => time(),
                 'sender' => 'TropaTT Automation Hub',
-            ]);
+            ], $correlationId);
         } catch (\Throwable $e) {
-            return $this->error('DISPATCH_ERROR', $e->getMessage(), 400);
+            return $this->error('DISPATCH_ERROR', 'The test webhook could not be completed. Verify the active workspace, endpoint, and signing key, then retry.', 400);
         }
 
         return $this->success('AUTOMATION_WEBHOOK_DISPATCHED', 'OK', $result);

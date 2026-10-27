@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>TropaTT CRM Gateway — order history hook</name>
+    <code>tropatt_order_history</code>
+    <version>1.0.0</version>
+    <author>Anton Barinov</author>
+    <link>https://tropatt.com</link>
+
+    <!--
+      OpenCart 2.0.x – 2.2.x has no `oc_event` table (the model event mechanism
+      appeared in 2.3), so this OCMOD modification is the only way to hook the
+      order status change without editing core files by hand:
+
+        1. Extensions → Installer → upload tropatt-opencart-2.0-2.2.ocmod.zip
+           (the archive contains this file and the `upload/` payload);
+        2. Extensions → Modifications → Refresh;
+        3. Extensions → Modules → TropaTT CRM → Install, then open its settings.
+
+      The hook is called right after `addOrderHistory()` starts: the order row
+      already exists and the new status is in the arguments, so the payload
+      carries the correct status even though the UPDATE below has not run yet.
+
+      The push is idempotent on the CRM side (`X-TropaTT-Idempotency-Key` =
+      `{store_key}:order:{order_id}`), so a retry never creates a duplicate.
+    -->
+    <file path="catalog/model/checkout/order.php">
+        <operation>
+            <search><![CDATA[public function addOrderHistory($order_id, $order_status_id]]></search>
+            <add position="after"><![CDATA[
+		// TropaTT CRM hook: push the order and its new status to the gateway.
+		if ($this->config->get('module_tropatt_status')) {
+			$this->load->model('extension/module/tropatt');
+			$this->model_extension_module_tropatt->pushOrderToCrm($order_id, $order_status_id);
+		}
+]]></add>
+        </operation>
+    </file>
+</modification>

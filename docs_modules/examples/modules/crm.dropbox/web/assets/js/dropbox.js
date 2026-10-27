@@ -1,61 +1,66 @@
 (() => {
   'use strict';
-  const api = (path, options = {}) => {
-    if (window.CRM?.api?.request) return window.CRM.api.request(path, options).then(envelope => envelope.data || envelope);
-    const method = String(options.method || 'GET').toUpperCase();
-    const headers = { Accept: 'application/json', ...(options.headers || {}) };
-    if (['POST','PATCH','PUT','DELETE'].includes(method) && window.CRM?.api?.getCsrfToken) headers['X-CSRF-Token'] = window.CRM.api.getCsrfToken();
-    const hasBody = options.body !== undefined && options.body !== null;
-    if (hasBody && typeof options.body !== 'string' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-    return fetch(path, {...options, method, credentials:'same-origin', headers, body: hasBody ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined}).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok || data.success === false) throw new Error(data.message || data.code || 'Ошибка API'); return data.data || data; });
+  const base = '_module/crm.dropbox';
+  const api = (path, options = {}) => window.CRM?.api?.request
+    ? window.CRM.api.request(`${base}/${path}`, options).then(envelope => envelope.data || envelope)
+    : Promise.reject(new Error('CRM API client is unavailable.'));
+  const byId = id => document.getElementById(id);
+  const setMessage = (id, text, error = false) => {
+    const node = byId(id);
+    if (!node) return;
+    node.textContent = text;
+    node.className = `small mt-3 ${error ? 'text-danger' : 'text-muted'}`;
   };
-  const $ = id => document.getElementById(id);
-  const showMessage = (text, isError = false) => {
-    const el = $('dpbxMessage');
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'small mt-3 ' + (isError ? 'text-danger' : 'text-success');
-  };
-
-  const loadStatus = () => {
-    const statusMeta = $('dpbxStatusMeta');
-    if (statusMeta) statusMeta.textContent = 'Проверка соединения…';
-    const statusApiUrl = '/api/v1/modules/dropbox/status';
-    if (!statusApiUrl) {
-      if (statusMeta) statusMeta.textContent = 'Сервис активен и готов к работе';
-      return;
-    }
-    api(statusApiUrl).then(data => {
-      if (statusMeta) statusMeta.textContent = 'Соединение стабильно · Код 200 OK · Ошибок нет';
-      showMessage('Подключение успешно проверено.');
-    }).catch(err => {
-      if (statusMeta) statusMeta.textContent = 'Сервис активен (локальный режим) · ' + (err.message || 'Готов');
-    });
+  const lock = (button, active, idle, busy) => {
+    button.disabled = active;
+    button.textContent = active ? busy : idle;
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
-    if (!$('dpbxConfigForm') && !$('dpbxStatusBox')) return;
-    $('dpbxConfigForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      showMessage('Сохранение конфигурации…');
-      setTimeout(() => {
-        showMessage('Параметры сохранены и активированы в системе.');
-        loadStatus();
-      }, 400);
+  document.addEventListener('DOMContentLoaded', async () => {
+    const status = byId('dpbxStatusMeta');
+    if (!status) return;
+    const refreshStatus = async () => {
+      const state = await api('status');
+      status.textContent = state.configured ? 'Реквизиты сохранены; выполните проверку подключения.' : 'Dropbox не подключён.';
+      byId('dpbxAccount').textContent = state.account_email ? `Аккаунт: ${state.account_email}` : 'Аккаунт ещё не подтверждён.';
+      if (state.base_folder_path) byId('dpbxBasePath').value = state.base_folder_path;
+    };
+    try { await refreshStatus(); } catch (_) { status.textContent = 'Не удалось загрузить состояние. Обновите страницу или проверьте права.'; }
+
+    byId('dpbxConfigForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = byId('dpbxSaveBtn');
+      lock(button, true, 'Сохранить реквизиты', 'Сохранение…');
+      try {
+        await api('settings', { method: 'POST', body: Object.fromEntries(new FormData(event.currentTarget)) });
+        event.currentTarget.querySelectorAll('input[type="password"]').forEach(input => { input.value = ''; });
+        setMessage('dpbxMessage', 'Реквизиты зашифрованы и сохранены. Теперь нажмите «Проверить подключение».');
+        await refreshStatus();
+      } catch (_) { setMessage('dpbxMessage', 'Не удалось сохранить настройки. Проверьте обязательные поля и APP_KEY.', true); }
+      finally { lock(button, false, 'Сохранить реквизиты', 'Сохранение…'); }
     });
-    $('dpbxTestBtn')?.addEventListener('click', () => {
-      showMessage('Тестирование шлюза связи…');
-      loadStatus();
+
+    byId('dpbxTestBtn')?.addEventListener('click', async event => {
+      const button = event.currentTarget;
+      lock(button, true, 'Проверить подключение', 'Проверка…');
+      try {
+        const result = await api('test-connection', { method: 'POST', body: {} });
+        setMessage('dpbxMessage', `Подключение работает${result.account_email ? `: ${result.account_email}` : ''}.`);
+        await refreshStatus();
+        status.textContent = 'Dropbox подключён';
+      } catch (_) { setMessage('dpbxMessage', 'Проверка не пройдена. Проверьте ключ, секрет, refresh token и доступ к HTTPS.', true); }
+      finally { lock(button, false, 'Проверить подключение', 'Проверка…'); }
     });
-    $('dpbxRefreshBtn')?.addEventListener('click', () => {
-      loadStatus();
+
+    byId('dpbxSyncForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = byId('dpbxSyncBtn');
+      lock(button, true, 'Передать файл', 'Передача…');
+      try {
+        const result = await api('sync-file', { method: 'POST', body: { file_public_id: byId('dpbxFileId').value.trim() } });
+        setMessage('dpbxSyncResult', `Файл передан: ${result.path || result.remote_id} (${result.size_bytes} байт).`);
+      } catch (_) { setMessage('dpbxSyncResult', 'Передача не выполнена. Проверьте доступ к файлу, рабочее пространство и подключение Dropbox.', true); }
+      finally { lock(button, false, 'Передать файл', 'Передача…'); }
     });
-    $('dpbxSaveBtn')?.addEventListener('click', () => {
-      $('dpbxConfigForm')?.dispatchEvent(new Event('submit', { cancelable: true }));
-    });
-    $('dpbxQuickActionBtn')?.addEventListener('click', () => {
-      showMessage('Тестовый вызов выполнен успешно.');
-    });
-    loadStatus();
   });
 })();

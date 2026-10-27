@@ -1,0 +1,70 @@
+name: PHP lint
+
+# Standalone CI for the `tropatt-prestashop` connector repository.
+# The module supports PrestaShop 1.6-8.x, i.e. PHP 7.1-8.2.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.1', '7.4', '8.0', '8.1', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint module sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find tropatt -name '*.php' -type f | sort)
+          test ${#files[@]} -gt 0
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done
+
+  manifest:
+    name: Validate module manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check config.xml, hooks and the state machine
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse('tropatt/config.xml').getroot()
+          assert (root.findtext('name') or '').strip() == 'tropatt'
+          assert (root.findtext('version') or '').strip()
+          assert (root.findtext('ps_versions_compliancy') or '').strip()
+          print('config.xml is well-formed and complete')
+          PY
+          grep -q "registerHook('actionValidateOrder')" tropatt/tropatt.php
+          grep -q "registerHook('actionOrderStatusPostUpdate')" tropatt/tropatt.php
+          grep -q "TROPATT_SKIP_SYNC" tropatt/classes/TropattConfig.php
+          grep -q "setCurrentState" tropatt/controllers/front/webhook.php
+          grep -q "StockAvailable::setQuantity" tropatt/classes/TropattOrderMapper.php || true
+          echo "module manifest is complete"

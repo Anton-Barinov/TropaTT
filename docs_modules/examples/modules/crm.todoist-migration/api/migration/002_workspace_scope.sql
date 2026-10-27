@@ -1,0 +1,25 @@
+-- Organization isolation; legacy data is assigned only when its owner has exactly one membership.
+ALTER TABLE `module_todoist_connections` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_jobs` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_job_items` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_source_mappings` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_user_mappings` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_rate_limits` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_job_logs` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+ALTER TABLE `module_todoist_unresolved_entities` ADD COLUMN `organization_id` BIGINT UNSIGNED NULL;
+UPDATE `module_todoist_connections` c JOIN (SELECT om.user_id, MIN(om.organization_id) AS organization_id FROM organization_memberships om GROUP BY om.user_id HAVING COUNT(DISTINCT om.organization_id) = 1) owner_org ON owner_org.user_id = c.created_by_user_id SET c.organization_id = owner_org.organization_id WHERE c.organization_id IS NULL;
+UPDATE `module_todoist_jobs` child JOIN `module_todoist_connections` parent ON parent.id = child.connection_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_job_items` child JOIN `module_todoist_jobs` parent ON parent.id = child.job_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_source_mappings` child JOIN `module_todoist_connections` parent ON parent.id = child.connection_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_user_mappings` child JOIN `module_todoist_connections` parent ON parent.id = child.connection_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_rate_limits` child JOIN `module_todoist_connections` parent ON parent.id = child.connection_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_job_logs` child JOIN `module_todoist_jobs` parent ON parent.id = child.job_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+UPDATE `module_todoist_unresolved_entities` child JOIN `module_todoist_jobs` parent ON parent.id = child.job_id SET child.organization_id = parent.organization_id WHERE child.organization_id IS NULL;
+CREATE INDEX `idx_todoist_org_connections` ON `module_todoist_connections` (`organization_id`);
+CREATE INDEX `idx_todoist_org_jobs` ON `module_todoist_jobs` (`organization_id`);
+CREATE INDEX `idx_todoist_org_items` ON `module_todoist_job_items` (`organization_id`);
+CREATE INDEX `idx_todoist_org_mappings` ON `module_todoist_source_mappings` (`organization_id`);
+CREATE INDEX `idx_todoist_org_mappings` ON `module_todoist_user_mappings` (`organization_id`);
+CREATE INDEX `idx_todoist_org_limits` ON `module_todoist_rate_limits` (`organization_id`);
+CREATE INDEX `idx_todoist_org_logs` ON `module_todoist_job_logs` (`organization_id`);
+CREATE INDEX `idx_todoist_org_entities` ON `module_todoist_unresolved_entities` (`organization_id`);

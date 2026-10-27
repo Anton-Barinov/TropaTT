@@ -49,4 +49,5 @@ return [
     'day_sat' => 'Sat',
     'day_sun' => 'Sun',
     'invalid_timezone' => 'Invalid timezone',
+    'booking_conflict' => 'This time conflicts with another appointment. Choose a different slot.',
 ];

@@ -1,18 +1,19 @@
 {
     "name": "crm.storage-connectors",
-    "version": "1.0.11",
+    "version": "1.0.17",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Storage Connectors (Nextcloud, WebDAV & S3)",
-    "description": "Внешние хранилища файлов задач и базы знаний: Nextcloud/WebDAV и S3-compatible backend с проверкой RBAC и fallback на локальное хранилище",
+    "description": "Настройки и ручной пакетный перенос файлов в Nextcloud/WebDAV или S3. Не переключает штатное хранение файлов CRM.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "storage",
     "dependencies": [],
     "require_permissions": [
         "settings.view",
-        "settings.edit"
+        "settings.edit",
+        "files.view"
     ],
     "service_provider": "Module\\Crm\\StorageConnectors\\StorageConnectorsServiceProvider",
     "migrations": "api/migrations",
@@ -68,7 +69,7 @@
         },
         {
             "name": "storage_test_connection",
-            "description": "Test connection and write/read verification against remote S3 or WebDAV backend",
+            "description": "Test the configured remote S3 or WebDAV connection for the active workspace.",
             "handler": "Module\\Crm\\StorageConnectors\\Mcp\\TestConnectionTool",
             "permissions": [
                 "settings.edit"

@@ -4,144 +4,57 @@ declare(strict_types=1);
 
 namespace Module\Crm\VkWorkspace\Service;
 
-class VkWorkspaceService
+use PDO;
+use RuntimeException;
+
+/** Fail-closed boundary until VK WorkSpace provider APIs and credentials are implemented. */
+final class VkWorkspaceService
 {
-    private \PDO $db;
-    private int $workspaceId;
-    private ?string $apiToken;
-    private ?string $botToken;
-    private string $domain;
-
-    public function __construct(
-        \PDO $db,
-        int $workspaceId = 1,
-        ?string $apiToken = null,
-        ?string $botToken = null,
-        string $domain = 'myteam.mail.ru'
-    ) {
-        $this->db = $db;
-        $this->workspaceId = $workspaceId;
-        $this->apiToken = $apiToken;
-        $this->botToken = $botToken;
-        $this->domain = $domain;
+    public function __construct(private readonly PDO $db, private readonly int $workspaceId)
+    {
     }
 
-    /**
-     * Generate VK Calls room URL and credentials
-     */
-    public function createCallRoom(string $title): array
+    /** @return array<string, mixed> */
+    public function getStatus(): array
     {
-        $roomId = 'vkc_' . bin2hex(random_bytes(6));
-        $pin = (string)random_int(100000, 999999);
-        $callUrl = "https://calls.vk.com/{$roomId}?pin={$pin}";
-
         return [
-            'room_id' => $roomId,
-            'call_url' => $callUrl,
-            'pin' => $pin
+            'status' => 'provider_api_unavailable',
+            'configured' => false,
+            'connected' => false,
+            'features' => ['calls' => false, 'calendar' => false, 'mail' => false, 'disk' => false, 'teams' => false],
+            'message' => 'VK WorkSpace integration is not available yet. No provider operation was performed.',
         ];
     }
 
     /**
-     * Schedule a meeting: creates VK call room, saves record, formats calendar event
+     * Meeting creation is disabled until official API calls, tenant settings,
+     * and provider response validation are implemented.
+     *
+     * @return never
      */
-    public function scheduleMeeting(array $data): array
+    public function scheduleMeeting(array $data): never
     {
-        $publicId = 'vkm_' . substr(md5(uniqid('', true)), 0, 16);
-        $title = (string)($data['title'] ?? 'Встреча VK WorkSpace');
-        $startsAt = (string)($data['starts_at'] ?? date('Y-m-d H:i:s'));
-        $durationMinutes = (int)($data['duration_minutes'] ?? 30);
-        $endsAt = date('Y-m-d H:i:s', strtotime($startsAt) + ($durationMinutes * 60));
-        $description = (string)($data['description'] ?? '');
-        $crmEventId = (string)($data['crm_calendar_event_public_id'] ?? ('evt_' . substr(md5(uniqid()), 0, 12)));
-        $projectId = (string)($data['crm_project_public_id'] ?? '');
-        $taskId = (string)($data['crm_task_public_id'] ?? '');
-        $clientId = (string)($data['crm_client_public_id'] ?? '');
+        $this->assertWorkspace();
+        throw new RuntimeException('VK_WORKSPACE_INTEGRATION_UNAVAILABLE: VK WorkSpace meetings cannot be scheduled until the provider integration is implemented.');
+    }
 
-        $room = $this->createCallRoom($title);
+    /** @return list<array<string, mixed>> */
+    public function listMeetings(): array
+    {
+        $this->assertWorkspace();
+        $stmt = $this->db->prepare(
+            'SELECT public_id, title, description, starts_at, ends_at, status, created_at
+             FROM module_vk_workspace_meetings WHERE workspace_id = :workspace_id AND provider_verified = 1
+             ORDER BY starts_at DESC LIMIT 50'
+        );
+        $stmt->execute(['workspace_id' => $this->workspaceId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-        $stmt = $this->db->prepare("
-            INSERT INTO module_vk_workspace_meetings
-            (public_id, workspace_id, crm_calendar_event_public_id, crm_project_public_id, crm_task_public_id, crm_client_public_id, title, description, starts_at, ends_at, call_room_url, call_room_id, call_pin, status, created_at)
-            VALUES (:pid, :ws_id, :crm_event, :crm_proj, :crm_task, :crm_client, :title, :desc, :starts, :ends, :url, :room_id, :pin, 'scheduled', CURRENT_TIMESTAMP)
-        ");
-
-        $stmt->execute([
-            'pid' => $publicId,
-            'ws_id' => $this->workspaceId,
-            'crm_event' => $crmEventId !== '' ? $crmEventId : null,
-            'crm_proj' => $projectId !== '' ? $projectId : null,
-            'crm_task' => $taskId !== '' ? $taskId : null,
-            'crm_client' => $clientId !== '' ? $clientId : null,
-            'title' => $title,
-            'desc' => $description,
-            'starts' => $startsAt,
-            'ends' => $endsAt,
-            'url' => $room['call_url'],
-            'room_id' => $room['room_id'],
-            'pin' => $room['pin']
-        ]);
-
-        $meetingId = (int)$this->db->lastInsertId();
-
-        $participants = (array)($data['participants'] ?? []);
-        $addedParticipants = [];
-        if (!empty($participants)) {
-            $pStmt = $this->db->prepare("
-                INSERT INTO module_vk_workspace_participants
-                (meeting_id, email, rsvp_status, created_at)
-                VALUES (:mid, :email, 'needs_action', CURRENT_TIMESTAMP)
-            ");
-            foreach ($participants as $pEmail) {
-                $email = trim((string)$pEmail);
-                if ($email !== '') {
-                    $pStmt->execute(['mid' => $meetingId, 'email' => $email]);
-                    $addedParticipants[] = $email;
-                }
-            }
+    private function assertWorkspace(): void
+    {
+        if ($this->workspaceId <= 0) {
+            throw new RuntimeException('ACTIVE_WORKSPACE_REQUIRED: An authorized workspace is required.');
         }
-
-        return [
-            'public_id' => $publicId,
-            'title' => $title,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'call_room_url' => $room['call_url'],
-            'call_pin' => $room['pin'],
-            'crm_calendar_event_public_id' => $crmEventId,
-            'participants_count' => count($addedParticipants),
-            'status' => 'scheduled'
-        ];
-    }
-
-    /**
-     * Format VK Teams notification payload
-     */
-    public function formatTeamsNotification(string $title, string $startsAt, string $callUrl): array
-    {
-        $message = "📅 **Запланирована встреча**: {$title}\n"
-                 . "⏰ **Время начала**: {$startsAt}\n"
-                 . "📞 **Ссылка на звонок**: {$callUrl}";
-
-        return [
-            'text' => $message,
-            'parse_mode' => 'MarkdownV2',
-            'inline_keyboard' => [
-                [
-                    ['text' => 'Присоединиться к VK Звонку', 'url' => $callUrl]
-                ]
-            ]
-        ];
-    }
-
-    /**
-     * Get VK Teams API request headers
-     */
-    public function getBotHeaders(): array
-    {
-        return [
-            'Authorization: Bearer ' . ($this->botToken ?? 'mock_bot_token'),
-            'Content-Type: application/json'
-        ];
     }
 }

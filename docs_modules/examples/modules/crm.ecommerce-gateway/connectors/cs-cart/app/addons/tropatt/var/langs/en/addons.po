@@ -1,0 +1,22 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: tropatt\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "tropatt"
+msgstr "TropaTT CRM — e-commerce gateway"
+
+msgid "tropatt_gateway_url"
+msgstr "Gateway URL"
+
+msgid "tropatt_store_key"
+msgstr "Store key"
+
+msgid "tropatt_store_secret"
+msgstr "Store secret"
+
+msgid "tropatt_webhook_secret"
+msgstr "Webhook secret"
+
+msgid "tropatt_status_mapping"
+msgstr "Status mapping (CS-Cart status = CRM stage)"

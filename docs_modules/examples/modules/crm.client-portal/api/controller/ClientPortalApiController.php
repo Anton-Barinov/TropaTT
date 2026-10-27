@@ -53,6 +53,57 @@ final class ClientPortalApiController extends BaseController
         return $this->success('CLIENT_SERVICE_REQUESTS_LIST', 'Requests listed', ['items' => $items]);
     }
 
+    public function getRequest(array $params): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
+        $user = (array)$auth['user'];
+        $orgId = $this->activeOrganizationId($user);
+        if ($orgId === null) {
+            return $this->error('FORBIDDEN', 'An active workspace is required', 403);
+        }
+
+        $clientPublicId = null;
+        if ($this->isExternalClient($user)) {
+            $clientPublicId = $this->resolveClientPublicId($user, $orgId);
+            if ($clientPublicId === null) {
+                return $this->error('FORBIDDEN', 'No client account is linked to this user in the active workspace', 403);
+            }
+        } elseif (!$this->canManageClientRequests($user)) {
+            return $this->error('FORBIDDEN', 'Insufficient permissions to view client service requests', 403);
+        }
+
+        $publicId = trim((string)($params['public_id'] ?? ''));
+        $request = $this->getService()->getRequest($orgId, $publicId, $clientPublicId);
+        if ($request === null) {
+            return $this->error('NOT_FOUND', 'Request not found or access denied', 404);
+        }
+
+        // Return an allowlist, not the row, so internal linkage fields stay private.
+        $safeRequest = [
+            'public_id' => (string)$request['public_id'],
+            'category' => (string)$request['category'],
+            'title' => (string)$request['title'],
+            'description' => (string)$request['description'],
+            'service_status' => (string)$request['service_status'],
+            'sla_status' => (string)$request['sla_status'],
+            'sla_response_due_at' => $request['sla_response_due_at'] !== null ? (string)$request['sla_response_due_at'] : null,
+            'sla_resolution_due_at' => $request['sla_resolution_due_at'] !== null ? (string)$request['sla_resolution_due_at'] : null,
+            'created_at' => (string)$request['created_at'],
+            'updated_at' => (string)$request['updated_at'],
+        ];
+
+        return $this->success('CLIENT_SERVICE_REQUEST', 'Request retrieved', ['request' => $safeRequest]);
+    }
+
     public function createRequest(): JsonResponse
     {
         $auth = $this->user();

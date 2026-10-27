@@ -18,7 +18,11 @@ final class CorporateMailApiController extends BaseController
     private function getOrganizationId(): int
     {
         $auth = $this->user();
-        return (int)($auth['user']['organization_id'] ?? 1);
+        $organizationId = (int)($auth['user']['organization_id'] ?? 0);
+        if ($organizationId <= 0) {
+            throw new \RuntimeException('An active workspace is required for corporate mail.');
+        }
+        return $organizationId;
     }
 
     /**
@@ -56,6 +60,45 @@ final class CorporateMailApiController extends BaseController
             return $this->success('MAILBOXES_LIST', 'Mailboxes retrieved', ['items' => $items]);
         } catch (Throwable $e) {
             return $this->error('LIST_ERROR', 'Failed to list mailboxes: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    public function listThreads(array $params = []): JsonResponse
+    {
+        if (!$this->user()) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        try {
+            $items = $this->getService()->listThreads(
+                $this->getOrganizationId(),
+                trim((string)($params['public_id'] ?? '')),
+                (int)$this->request()->input('limit', 100)
+            );
+            return $this->success('MAIL_THREADS_LIST', 'Mail conversations retrieved', ['items' => $items]);
+        } catch (Throwable $e) {
+            if ($e->getMessage() === 'MAILBOX_NOT_FOUND') return $this->error('NOT_FOUND', 'Mailbox not found', 404);
+            return $this->error('THREADS_ERROR', 'Could not retrieve mail conversations', 500);
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    public function listMessages(array $params = []): JsonResponse
+    {
+        if (!$this->user()) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        $threadId = $this->request()->input('thread_id', '');
+        if (!is_string($threadId) || trim($threadId) === '' || strlen($threadId) > 128) {
+            return $this->error('VALIDATION_ERROR', 'A valid conversation id is required', 422);
+        }
+        try {
+            $items = $this->getService()->listMessages(
+                $this->getOrganizationId(),
+                trim((string)($params['public_id'] ?? '')),
+                $threadId,
+                (int)$this->request()->input('limit', 100)
+            );
+            return $this->success('MAIL_MESSAGES_LIST', 'Conversation messages retrieved', ['items' => $items]);
+        } catch (Throwable $e) {
+            if ($e->getMessage() === 'MAILBOX_NOT_FOUND') return $this->error('NOT_FOUND', 'Mailbox not found', 404);
+            return $this->error('MESSAGES_ERROR', 'Could not retrieve conversation messages', 500);
         }
     }
 
@@ -248,9 +291,44 @@ final class CorporateMailApiController extends BaseController
         try {
             $service = $this->getService();
             $syncRes = $service->syncMailbox($this->getOrganizationId(), $publicId);
+            if (empty($syncRes['ok'])) {
+                return $this->error('SYNC_FAILED', (string)($syncRes['message'] ?? 'Синхронизация не выполнена.'), 502, $syncRes);
+            }
             return $this->success('MAILBOX_SYNCED', $syncRes['message'], $syncRes);
         } catch (Throwable $e) {
-            return $this->error('SYNC_ERROR', 'Ошибка синхронизации: ' . $e->getMessage(), 500);
+            return $this->error('SYNC_ERROR', 'Ошибка синхронизации. Проверьте настройки ящика и повторите попытку.', 502);
+        }
+    }
+
+    /** List failed IMAP UIDs for a mailbox in the active workspace. */
+    public function listSyncFailures(array $params = []): JsonResponse
+    {
+        if (!$this->user()) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        $publicId = (string)($params['public_id'] ?? '');
+        if ($publicId === '') return $this->error('INVALID_PARAM', 'Public ID is required', 400);
+        try {
+            $items = $this->getService()->listImapFailures($this->getOrganizationId(), $publicId);
+            return $this->success('MAIL_SYNC_FAILURES', 'Ошибки синхронизации получены', ['items' => $items]);
+        } catch (Throwable $e) {
+            return $this->error('SYNC_FAILURES_ERROR', 'Не удалось получить ошибки синхронизации.', 500);
+        }
+    }
+
+    /** Retry one explicitly recorded UID using a fresh IMAP session. */
+    public function retrySyncFailure(array $params = []): JsonResponse
+    {
+        if (!$this->user()) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        $publicId = (string)($params['public_id'] ?? '');
+        $input = $this->request()->allInput();
+        $uid = filter_var($input['uid'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $validity = filter_var($input['uidvalidity'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($publicId === '' || $uid === false || $validity === false) return $this->error('INVALID_PARAM', 'Mailbox, UID and UIDVALIDITY are required', 400);
+        try {
+            $result = $this->getService()->retryImapFailure($this->getOrganizationId(), $publicId, (int)$validity, (int)$uid);
+            if (empty($result['ok'])) return $this->error('UID_RETRY_FAILED', $result['message'], 502, $result);
+            return $this->success('UID_RETRIED', $result['message'], $result);
+        } catch (Throwable $e) {
+            return $this->error('UID_RETRY_FAILED', 'Не удалось повторить обработку UID. Проверьте актуальность синхронизации.', 409);
         }
     }
 
@@ -270,6 +348,64 @@ final class CorporateMailApiController extends BaseController
             return $this->success('ENV_IMPORTED', 'Почтовый ящик успешно импортирован из .env', ['public_id' => $pubId]);
         } catch (Throwable $e) {
             return $this->error('IMPORT_ERROR', 'Не удалось импортировать из .env: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    public function sendMessage(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            $input = $this->request()->allInput();
+            $recipients = $input['to'] ?? ($input['recipients'] ?? []);
+            if (is_string($recipients)) {
+                $recipients = preg_split('/[,;\s]+/', $recipients) ?: [];
+            }
+            if (!is_array($recipients)) {
+                $recipients = [];
+            }
+            $rawIdempotencyKey = $input['idempotency_key'] ?? null;
+            $idempotencyKey = is_string($rawIdempotencyKey) ? trim($rawIdempotencyKey) : '';
+            if ($idempotencyKey === '') $idempotencyKey = (string)($this->request()->header('X-TropaTT-Idempotency-Key') ?? '');
+            $result = $this->getService()->sendMessage(
+                $this->getOrganizationId(),
+                trim((string)($params['public_id'] ?? $input['public_id'] ?? '')),
+                array_values(array_map('strval', $recipients)),
+                (string)($input['subject'] ?? ''),
+                (string)($input['body'] ?? ''),
+                !empty($input['in_reply_to']) ? (string)$input['in_reply_to'] : null,
+                $idempotencyKey
+            );
+            return $this->success('MAIL_SENT', $result['message'], $result);
+        } catch (Throwable $e) {
+            if (str_contains(strtolower($e->getMessage()), 'uncertain') || str_contains(strtolower($e->getMessage()), 'retry is blocked')) {
+                return $this->error('MAIL_DELIVERY_UNCERTAIN', 'Почтовый сервер мог принять письмо. Не отправляйте его повторно с новым ключом; проверьте статус по исходному ключу.', 409);
+            }
+            return $this->error('SEND_ERROR', 'Не удалось отправить письмо. Проверьте настройки ящика и получателей.', 422);
+        }
+    }
+
+    /** @param array<string, mixed> $params */
+    public function getSendAttemptStatus(array $params = []): JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', 'Unauthorized', 401);
+        try {
+            $rawIdempotencyKey = $this->request()->input('idempotency_key', '');
+            $idempotencyKey = is_string($rawIdempotencyKey) ? trim($rawIdempotencyKey) : '';
+            if ($idempotencyKey === '') $idempotencyKey = (string)($this->request()->header('X-TropaTT-Idempotency-Key') ?? '');
+            $status = $this->getService()->getSendAttemptStatus(
+                $this->getOrganizationId(),
+                trim((string)($params['public_id'] ?? '')),
+                $idempotencyKey
+            );
+            if ($status === null) return $this->error('NOT_FOUND', 'Send attempt not found', 404);
+            return $this->success('MAIL_SEND_STATUS', 'Send status retrieved', $status);
+        } catch (Throwable) {
+            return $this->error('STATUS_ERROR', 'Unable to retrieve mail delivery status.', 422);
         }
     }
 }

@@ -26,7 +26,7 @@ final class AutomationHubServiceProvider extends AbstractModuleServiceProvider
                 'route' => 'module-automation-hub',
                 'label' => 'Автоматизация (n8n/Make)',
                 'icon' => '<i class="fa-solid fa-bolt"></i>',
-                'permission' => 'settings.edit',
+                'permission' => 'webhook.manage',
                 'parent' => null,
             ],
         ];

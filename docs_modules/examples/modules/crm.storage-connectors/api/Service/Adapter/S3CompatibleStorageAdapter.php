@@ -28,6 +28,10 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
         int $timeoutSeconds = 20
     ) {
         $this->endpointUrl = rtrim($endpointUrl, '/');
+        $endpointParts = parse_url($this->endpointUrl);
+        if (!is_array($endpointParts) || !in_array((string)($endpointParts['path'] ?? ''), ['', '/'], true)) {
+            throw new RuntimeException('S3 endpoints must be configured as an HTTPS origin without a URL path prefix.');
+        }
         $this->bucket = trim($bucket, '/');
         if ($this->bucket === '' || str_contains($this->bucket, '/') || preg_match('/[\x00-\x20\x7F]/', $this->bucket)) {
             throw new RuntimeException('S3 bucket name is invalid.');
@@ -45,21 +49,24 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
         $headers = $this->signRequest('GET', $uri, '', ['max-keys' => '1']);
         $ch = curl_init($url . '?max-keys=1');
+        $response = '';
+        $tooLarge = false;
         curl_setopt_array($ch, [
             ...SafeEndpoint::curlOptions($url . '?max-keys=1', $this->timeoutSeconds),
             CURLOPT_HTTPGET => true,
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$response, &$tooLarge): int { if (strlen($response) + strlen($chunk) > 65536) { $tooLarge = true; return 0; } $response .= $chunk; return strlen($chunk); },
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_HTTPHEADER => $headers,
         ]);
 
-        $res = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
         curl_close($ch);
 
-        if ($err !== '') {
-            return ['ok' => false, 'message' => "S3 network error: {$err}"];
+        if ($err !== '' || $tooLarge) {
+            return ['ok' => false, 'message' => 'S3 connection test failed or response exceeded the response limit.'];
         }
 
         if ($httpCode >= 200 && $httpCode < 300) {
@@ -70,7 +77,7 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
             return ['ok' => false, 'message' => 'S3 access denied. Verify access_key and secret_key permissions.'];
         }
 
-        return ['ok' => false, 'message' => "S3 returned HTTP {$httpCode}: " . substr((string)$res, 0, 150)];
+        return ['ok' => false, 'message' => "S3 returned HTTP {$httpCode}."];
     }
 
     public function putObject(string $objectKey, string $content): array
@@ -88,22 +95,24 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
         ]);
 
         $ch = curl_init($url);
+        $responseBytes = 0;
         curl_setopt_array($ch, [
             ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'PUT',
             CURLOPT_POSTFIELDS => $content,
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$responseBytes): int { $responseBytes += strlen($chunk); return $responseBytes <= 65536 ? strlen($chunk) : 0; },
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_HTTPHEADER => $headers,
         ]);
 
-        $res = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
         curl_close($ch);
 
         if ($err !== '' || ($httpCode < 200 || $httpCode >= 300)) {
-            throw new RuntimeException("S3 upload failed: HTTP {$httpCode} {$err}");
+            throw new RuntimeException('S3 upload failed.');
         }
 
         return [
@@ -166,10 +175,12 @@ final class S3CompatibleStorageAdapter implements StorageAdapterInterface
 
         $headers = $this->signRequest('DELETE', $uri, '');
         $ch = curl_init($url);
+        $responseBytes = 0;
         curl_setopt_array($ch, [
             ...SafeEndpoint::curlOptions($url, $this->timeoutSeconds),
             CURLOPT_CUSTOMREQUEST => 'DELETE',
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$responseBytes): int { $responseBytes += strlen($chunk); return $responseBytes <= 65536 ? strlen($chunk) : 0; },
             CURLOPT_TIMEOUT => $this->timeoutSeconds,
             CURLOPT_HTTPHEADER => $headers,
         ]);

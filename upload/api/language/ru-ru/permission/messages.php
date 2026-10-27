@@ -27,6 +27,7 @@ return [
     'perm_api_client_view' => 'Просмотр API-клиентов и ключей',
     'perm_api_client_manage' => 'Управление API-клиентами и ключами',
     'perm_webhook_manage' => 'Управление webhooks и доставками',
+    'perm_corporate_mail_read' => 'Чтение переписки корпоративной почты',
     'perm_feature_flag_manage' => 'Управление feature flags',
     'perm_organization_manage' => 'Управление организациями/рабочими пространствами',
     'perm_ai_use' => 'Использование AI-действий',

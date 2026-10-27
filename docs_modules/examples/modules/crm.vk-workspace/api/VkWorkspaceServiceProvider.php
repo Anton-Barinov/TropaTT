@@ -30,14 +30,11 @@ class VkWorkspaceServiceProvider extends AbstractModuleServiceProvider
         // Hooks & background worker registration
     }
 
-    public function getService(int $workspaceId = 1): VkWorkspaceService
+    public function getService(int $workspaceId = 0): VkWorkspaceService
     {
-        return new VkWorkspaceService(
-            $this->db,
-            $workspaceId,
-            $this->config['api_token'] ?? null,
-            $this->config['bot_token'] ?? null,
-            $this->config['domain'] ?? 'myteam.mail.ru'
-        );
+        if (!$this->db instanceof \PDO) {
+            throw new \RuntimeException('VK WorkSpace storage is unavailable.');
+        }
+        return new VkWorkspaceService($this->db, $workspaceId);
     }
 }

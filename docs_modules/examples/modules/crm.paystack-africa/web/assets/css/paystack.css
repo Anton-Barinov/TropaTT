@@ -34,6 +34,18 @@
   background: var(--crm-surface-variant, #f8fafc);
   border: 1px solid var(--crm-border, #e2e8f0);
 }
+.pystk-status-list > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--crm-border, #e2e8f0);
+}
+.pystk-status-list > div:last-child { border-bottom: 0; }
+.pystk-status-list dt { color: var(--crm-text-muted, #64748b); font-weight: 600; }
+.pystk-status-list dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+#pystkSecretKey { -webkit-text-security: disc; }
 @media (max-width: 991px) {
   .pystk-grid {
     grid-template-columns: 1fr;
@@ -41,4 +53,9 @@
   .pystk-hero {
     flex-wrap: wrap;
   }
+}
+@media (max-width: 575.98px) {
+  .pystk-status-list > div { grid-template-columns: 1fr; gap: 0.25rem; }
+  .pystk-panel .crm-card-body { padding: 1rem; }
+  #pystkSaveBtn, #pystkRefreshBtn { width: 100%; }
 }

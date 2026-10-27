@@ -11,7 +11,10 @@ final class ListRecipesTool implements ModuleMcpToolInterface
 {
     public function execute(array $arguments, array $context): array
     {
-        $orgId = (int)($context['organization_id'] ?? 1);
+        $orgId = (int)($context['organization_id'] ?? $context['user']['organization_id'] ?? 0);
+        if ($orgId < 1) {
+            throw new \RuntimeException('Active workspace is required.');
+        }
         $db = DatabaseConnectionPool::getConnection();
         $service = new AutomationHubService($db);
 

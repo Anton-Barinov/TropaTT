@@ -1,18 +1,18 @@
 {
     "name": "crm.automation-hub",
-    "version": "1.0.3",
+    "version": "1.0.8",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "n8n and Make Automation Hub",
-    "description": "Двусторонняя автоматизация процессов с n8n и Make: готовые шаблоны, сопоставление полей, HMAC-подписи и журнал доставки",
+    "description": "Автоматическая доставка выбранных событий TropaTT CRM в n8n и Make через подписанную очередь webhook; тестовые ping с защитой от дублей",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integrations",
     "dependencies": [],
     "require_permissions": [
         "settings.view",
-        "settings.edit"
+        "webhook.manage"
     ],
     "service_provider": "Module\\Crm\\AutomationHub\\AutomationHubServiceProvider",
     "migrations": "api/migrations",
@@ -24,7 +24,7 @@
             "title": "Автоматизация (n8n/Make)",
             "route": "module-automation-hub",
             "icon": "zap",
-            "permission": "settings.edit"
+            "permission": "webhook.manage"
         }
     ],
     "assets": {
@@ -56,7 +56,7 @@
             "description": "Send test webhook payload with HMAC-SHA256 signature to n8n or Make endpoint",
             "handler": "Module\\Crm\\AutomationHub\\Mcp\\TestWebhookTool",
             "permissions": [
-                "settings.edit"
+                "webhook.manage"
             ],
             "mode": "all",
             "workspace_required": true,
@@ -66,6 +66,10 @@
                     "recipe_public_id": {
                         "type": "string",
                         "description": "Public ID of the automation recipe"
+                    },
+                    "correlation_id": {
+                        "type": "string",
+                        "description": "Optional stable idempotency ID for retrying the same test delivery."
                     }
                 },
                 "required": [

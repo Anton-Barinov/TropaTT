@@ -1,0 +1,66 @@
+name: PHP lint
+
+# Standalone CI for the `tropatt-webasyst` connector repository.
+# Webasyst 7-10 runs on PHP 7.4-8.2, so the syntax check covers that range.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint plugin sources
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find wa-apps -name '*.php' -type f | sort)
+          test ${#files[@]} -gt 0
+          for file in "${files[@]}"; do
+            php -l "${file}"
+          done
+
+  manifest:
+    name: Validate plugin manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the plugin manifest, routing and handlers
+        run: |
+          set -euo pipefail
+          test -f wa-apps/shop/plugins/tropatt/lib/config/plugin.php
+          test -f wa-apps/shop/plugins/tropatt/lib/config/settings.php
+          test -f wa-apps/shop/plugins/tropatt/lib/config/routing.php
+          grep -q "order_action.create" wa-apps/shop/plugins/tropatt/lib/config/plugin.php
+          grep -q "order_action.\*" wa-apps/shop/plugins/tropatt/lib/config/plugin.php
+          grep -q "tropatt/webhook" wa-apps/shop/plugins/tropatt/lib/config/routing.php
+          grep -q "shopWorkflow::getAction" wa-apps/shop/plugins/tropatt/lib/actions/shopTropattPluginFrontendWebhook.action.php
+          grep -q "getStorage()->write" wa-apps/shop/plugins/tropatt/lib/actions/shopTropattPluginFrontendWebhook.action.php
+          grep -q "shopOrderModel" wa-apps/shop/plugins/tropatt/lib/classes/tropattOrderMapper.class.php
+          grep -q "shop_order_params" wa-apps/shop/plugins/tropatt/lib/classes/tropattOrderMapper.class.php
+          echo "plugin manifest is complete"

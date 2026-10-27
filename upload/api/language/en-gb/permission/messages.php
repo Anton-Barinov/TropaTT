@@ -27,6 +27,7 @@ return [
     'perm_api_client_view' => 'View API clients and keys',
     'perm_api_client_manage' => 'Manage API clients and keys',
     'perm_webhook_manage' => 'Manage webhooks and deliveries',
+    'perm_corporate_mail_read' => 'Read corporate mailbox conversations',
     'perm_feature_flag_manage' => 'Manage feature flags',
     'perm_organization_manage' => 'Manage organizations/workspaces',
     'perm_ai_use' => 'Use AI actions',

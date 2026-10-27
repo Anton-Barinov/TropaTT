@@ -390,12 +390,40 @@ final class WebhookService
      */
     public function dispatchEvent(string $event, array $payload, ?int $organizationId = null): int
     {
+        return $this->enqueueEvent($event, $payload, $organizationId, null, false);
+    }
+
+    /**
+     * Enqueue a domain event inside the transaction that commits its source
+     * mutation. A stable source ID and a database unique key make repeated
+     * publisher calls idempotent. Exceptions intentionally propagate so the
+     * source transaction can roll back rather than commit an event with no
+     * durable delivery row.
+     *
+     * @param array<string,mixed> $payload
+     */
+    public function dispatchEventStrict(string $event, array $payload, int $organizationId, string $sourceEventId): int
+    {
+        if ($organizationId < 1 || $sourceEventId === '' || strlen($sourceEventId) > 64) {
+            throw new \InvalidArgumentException('A workspace and stable source event ID are required.');
+        }
+
+        return $this->enqueueEvent($event, $payload, $organizationId, $sourceEventId, true);
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function enqueueEvent(string $event, array $payload, ?int $organizationId, ?string $sourceEventId, bool $strict): int
+    {
         $event = substr(trim($event), 0, 128);
         if ($event === '') {
             return 0;
         }
 
-        $subscriptions = $this->activeSubscriptionsForEvent($event, $organizationId);
+        if ($strict && ($organizationId === null || $organizationId < 1)) {
+            throw new \RuntimeException('Workspace context is required for transactional webhook delivery.');
+        }
+
+        $subscriptions = $this->activeSubscriptionsForEvent($event, $organizationId, $strict);
         if ($subscriptions === []) {
             return 0;
         }
@@ -430,13 +458,28 @@ final class WebhookService
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
+            if ($sourceEventId !== null) {
+                $deliveryPayload['source_event_id'] = $sourceEventId;
+            }
             $webhookOrganizationId = (int)($webhook['organization_id'] ?? 0) ?: null;
             if ($webhookOrganizationId !== null) {
                 $deliveryPayload['organization_id'] = $webhookOrganizationId;
             }
 
-            $this->repository->createDelivery($deliveryPayload);
-            $enqueued++;
+            try {
+                $this->repository->createDelivery($deliveryPayload);
+                $enqueued++;
+            } catch (\Throwable $e) {
+                // Duplicate publication is an idempotent no-op. Other storage
+                // errors are fatal in strict mode so the caller can roll back.
+                if ($sourceEventId !== null && $this->repository->deliveryExistsForSourceEvent((int)$webhook['id'], $sourceEventId)) {
+                    continue;
+                }
+                if ($strict) {
+                    throw $e;
+                }
+                throw $e;
+            }
         }
 
         $this->logger->audit([
@@ -453,24 +496,32 @@ final class WebhookService
     /**
      * @return list<array<string,mixed>>
      */
-    private function activeSubscriptionsForEvent(string $event, ?int $organizationId): array
+    private function activeSubscriptionsForEvent(string $event, ?int $organizationId, bool $strict = false): array
     {
-        // Cache per-organization within the request: dispatching several
-        // events for org A must never reuse (or pollute) org B's lookup.
-        $cacheKey = $organizationId ?? 0;
-        if (!isset($this->activeSubscriptionsByOrg[$cacheKey])) {
-            try {
-                $this->activeSubscriptionsByOrg[$cacheKey] = $this->repository->listActiveSubscriptions($organizationId);
-            } catch (\Throwable $e) {
-                // A missing table on a partially migrated install must not break
-                // the core request that triggered the event.
-                $this->logger->warning('webhook_subscriptions_lookup_failed', ['error' => $e->getMessage()]);
-                $this->activeSubscriptionsByOrg[$cacheKey] = [];
+        // Strict transactional publication must distinguish a successful empty
+        // result from a failed lookup. Do not reuse the best-effort request cache
+        // here: it may contain [] from a swallowed error earlier in this request.
+        if ($strict) {
+            $subscriptions = $this->repository->listActiveSubscriptions($organizationId);
+        } else {
+            // Cache per-organization within the request: dispatching several
+            // events for org A must never reuse (or pollute) org B's lookup.
+            $cacheKey = $organizationId ?? 0;
+            if (!isset($this->activeSubscriptionsByOrg[$cacheKey])) {
+                try {
+                    $this->activeSubscriptionsByOrg[$cacheKey] = $this->repository->listActiveSubscriptions($organizationId);
+                } catch (\Throwable $e) {
+                    // A missing table on a partially migrated install must not break
+                    // the core request that triggered an event.
+                    $this->logger->warning('webhook_subscriptions_lookup_failed', ['error' => $e->getMessage()]);
+                    $this->activeSubscriptionsByOrg[$cacheKey] = [];
+                }
             }
+            $subscriptions = $this->activeSubscriptionsByOrg[$cacheKey];
         }
 
         $matched = [];
-        foreach ($this->activeSubscriptionsByOrg[$cacheKey] as $webhook) {
+        foreach ($subscriptions as $webhook) {
             $events = array_map(static fn($value): string => strtolower((string)$value), (array)($webhook['events'] ?? []));
             if ($events === [] || in_array(strtolower($event), $events, true) || in_array('*', $events, true)) {
                 $matched[] = $webhook;

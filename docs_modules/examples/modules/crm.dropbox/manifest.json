@@ -1,11 +1,11 @@
 {
     "name": "crm.dropbox",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
     "title": "Интеграция с Dropbox",
-    "description": "Синхронизация файлов задач и проектов с Dropbox: автоматическая структура папок проектов, генерация временных и публичных shared links, поддержка курсоров list_folder",
+    "description": "Подключение Dropbox через OAuth refresh token, безопасная передача файлов CRM в приватную папку и проверка аккаунта.",
     "core_version": ">=1.0.0",
     "license": "MIT",
     "category": "integration",
@@ -40,7 +40,7 @@
     "mcp_tools": [
         {
             "name": "dropbox_status",
-            "description": "Get current connection status, account email and space usage on Dropbox",
+            "description": "Report whether Dropbox is configured for the active workspace; never reveal stored credentials",
             "handler": "Module\\Crm\\Dropbox\\Mcp\\DropboxStatusTool",
             "permissions": [
                 "settings.view"
@@ -55,9 +55,10 @@
         },
         {
             "name": "dropbox_sync_project_files",
-            "description": "Sync files of a project or task to a structured Dropbox folder and generate shared links",
+            "description": "Upload an authorized CRM file to the active workspace Dropbox account without creating a public share link",
             "handler": "Module\\Crm\\Dropbox\\Mcp\\SyncProjectFilesTool",
             "permissions": [
+                "files.view",
                 "files.create"
             ],
             "mode": "all",
@@ -65,22 +66,9 @@
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "project_public_id": {
-                        "type": "string",
-                        "description": "Public ID of the CRM project"
-                    },
                     "file_public_id": {
                         "type": "string",
-                        "description": "Public ID of the CRM file to upload"
-                    },
-                    "visibility": {
-                        "type": "string",
-                        "enum": [
-                            "public",
-                            "team_only"
-                        ],
-                        "default": "public",
-                        "description": "Shared link access level"
+                        "description": "Public ID of an accessible, non-quarantined CRM file to upload"
                     }
                 },
                 "required": [
