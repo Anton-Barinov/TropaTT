@@ -186,7 +186,17 @@
             });
     }
 
-    loadDiscovered();
+    // The common API client is loaded with `defer` from the footer. This inline
+    // page script runs while the document is still being parsed, before deferred
+    // scripts execute, so calling loadDiscovered() here can show a false
+    // "API unavailable" state on every cold load. DOMContentLoaded fires after
+    // deferred scripts have executed; keep the immediate path for any future
+    // embedding that runs this template after DOM readiness.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadDiscovered, { once: true });
+    } else {
+        loadDiscovered();
+    }
 })();
 </script>
 </body>
