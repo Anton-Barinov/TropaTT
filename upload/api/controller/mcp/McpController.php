@@ -6025,7 +6025,7 @@ $tools[] = $this->tool(
 
     private function crmRevokeSecuritySession(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6092,7 +6092,7 @@ $tools[] = $this->tool(
             return $contextError;
         }
 
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6120,7 +6120,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateUser(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6133,7 +6133,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteUser(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6145,7 +6145,7 @@ $tools[] = $this->tool(
     }
     private function crmGetUserTokenInfo(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6161,7 +6161,7 @@ $tools[] = $this->tool(
 
     private function crmRotateUserToken(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6177,7 +6177,7 @@ $tools[] = $this->tool(
 
     private function crmRevokeUserToken(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6189,7 +6189,7 @@ $tools[] = $this->tool(
 
     private function crmGetUserActivity(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6579,7 +6579,7 @@ $tools[] = $this->tool(
 
     private function crmGetAiProvider(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6630,7 +6630,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateAiPrompt(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6669,7 +6669,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateAiJsonSchema(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6713,7 +6713,7 @@ $tools[] = $this->tool(
 
     private function crmGetAiJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6725,7 +6725,7 @@ $tools[] = $this->tool(
 
     private function crmRetryAiJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6805,7 +6805,7 @@ $tools[] = $this->tool(
 
     private function crmGetAiSuggestion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6817,7 +6817,7 @@ $tools[] = $this->tool(
 
     private function crmDismissAiSuggestion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6828,7 +6828,7 @@ $tools[] = $this->tool(
 
     private function crmPreviewApplyAiSuggestion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6839,7 +6839,7 @@ $tools[] = $this->tool(
 
     private function crmConfirmAiSuggestion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -6997,7 +6997,7 @@ $tools[] = $this->tool(
 
     private function crmGetIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7022,7 +7022,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7043,7 +7043,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7056,7 +7056,7 @@ $tools[] = $this->tool(
 
     private function crmAcceptIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7074,7 +7074,7 @@ $tools[] = $this->tool(
 
     private function crmRejectIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7090,7 +7090,7 @@ $tools[] = $this->tool(
 
     private function crmSnoozeIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7113,7 +7113,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectModule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7134,7 +7134,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateProjectModule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7150,7 +7150,7 @@ $tools[] = $this->tool(
 
     private function crmArchiveProjectModule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7163,7 +7163,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteProjectModule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7324,7 +7324,7 @@ $tools[] = $this->tool(
 
     private function crmRestoreRecycleBinItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7337,7 +7337,7 @@ $tools[] = $this->tool(
 
     private function crmPurgeRecycleBinItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7357,7 +7357,7 @@ $tools[] = $this->tool(
 
     private function crmGetImportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7378,7 +7378,7 @@ $tools[] = $this->tool(
 
     private function crmCancelImportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7390,7 +7390,7 @@ $tools[] = $this->tool(
 
     private function crmRetryImportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7409,7 +7409,7 @@ $tools[] = $this->tool(
 
     private function crmGetExportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7429,7 +7429,7 @@ $tools[] = $this->tool(
 
     private function crmCancelExportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7441,7 +7441,7 @@ $tools[] = $this->tool(
 
     private function crmRetryExportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -7453,7 +7453,7 @@ $tools[] = $this->tool(
 
     private function crmDownloadExportJob(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8126,7 +8126,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateFeatureFlag(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8170,7 +8170,7 @@ $tools[] = $this->tool(
 
     private function crmGetApiClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8550,7 +8550,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteComment(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8624,7 +8624,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateSubtask(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8675,7 +8675,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteSubtask(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8689,7 +8689,7 @@ $tools[] = $this->tool(
 
     private function crmMoveTask(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8854,7 +8854,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateProject(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8870,7 +8870,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteProject(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8882,7 +8882,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteDependency(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8896,7 +8896,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteWorklog(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8910,7 +8910,7 @@ $tools[] = $this->tool(
 
     private function crmDuplicateIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -8939,7 +8939,7 @@ $tools[] = $this->tool(
 
     private function crmReopenIntakeItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9014,7 +9014,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateWebhook(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9042,7 +9042,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteWebhook(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9056,7 +9056,7 @@ $tools[] = $this->tool(
 
     private function crmTestWebhook(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9101,7 +9101,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateRole(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9130,7 +9130,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteRole(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9189,7 +9189,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateOrganization(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9208,7 +9208,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteOrganization(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9248,7 +9248,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdatePriority(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9266,7 +9266,7 @@ $tools[] = $this->tool(
     }
     private function crmDeletePriority(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9277,7 +9277,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteTag(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9288,7 +9288,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteStatus(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9301,7 +9301,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteCompany(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9315,7 +9315,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9329,7 +9329,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteCounterparty(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9343,7 +9343,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteContact(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9356,7 +9356,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteDepartment(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9368,7 +9368,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteTeam(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9380,7 +9380,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteMilestone(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9392,7 +9392,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteChecklist(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9404,7 +9404,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteChecklistItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9429,7 +9429,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9441,7 +9441,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteStickyNote(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9498,7 +9498,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteTaskRelation(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9510,7 +9510,7 @@ $tools[] = $this->tool(
 
     private function crmGetOrganization(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9671,7 +9671,7 @@ $tools[] = $this->tool(
 
     private function crmGetApiKeyUsage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9719,7 +9719,7 @@ $tools[] = $this->tool(
 
     private function crmConvertStickyToTask(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9735,7 +9735,7 @@ $tools[] = $this->tool(
 
     private function crmConvertStickyToPage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9763,7 +9763,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteWorkflowRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9775,7 +9775,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteRecurringRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9787,7 +9787,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteSlaPolicy(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9799,7 +9799,7 @@ $tools[] = $this->tool(
 
     private function crmArchiveEstimateSet(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9811,7 +9811,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteEstimateSet(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9823,7 +9823,7 @@ $tools[] = $this->tool(
 
     private function crmArchiveEstimateOption(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9835,7 +9835,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteEstimateOption(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9874,7 +9874,7 @@ $tools[] = $this->tool(
 
     private function crmGetBusinessCalendar(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9886,7 +9886,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateBusinessCalendar(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9907,7 +9907,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteBusinessCalendar(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9949,7 +9949,7 @@ $tools[] = $this->tool(
 
     private function crmGetHoliday(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9961,7 +9961,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateHoliday(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -9982,7 +9982,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteHoliday(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10033,7 +10033,7 @@ $tools[] = $this->tool(
 
     private function crmGetWorkingHours(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10045,7 +10045,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateWorkingHours(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10069,7 +10069,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteWorkingHours(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10112,7 +10112,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateApiClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10137,7 +10137,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteApiClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10178,7 +10178,7 @@ $tools[] = $this->tool(
 
     private function crmRotateApiKey(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10190,7 +10190,7 @@ $tools[] = $this->tool(
 
     private function crmRevokeApiKey(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10202,7 +10202,7 @@ $tools[] = $this->tool(
 
     private function crmTouchSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10414,7 +10414,7 @@ $tools[] = $this->tool(
 
     private function crmGetCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10440,7 +10440,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10524,7 +10524,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10536,7 +10536,7 @@ $tools[] = $this->tool(
     }
     private function crmStartCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10549,7 +10549,7 @@ $tools[] = $this->tool(
     }
     private function crmCompleteCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10562,7 +10562,7 @@ $tools[] = $this->tool(
     }
     private function crmReopenCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10575,7 +10575,7 @@ $tools[] = $this->tool(
     }
     private function crmArchiveCycle(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10625,7 +10625,7 @@ $tools[] = $this->tool(
 
     private function crmGetTeam(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10649,7 +10649,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateTeam(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10669,7 +10669,7 @@ $tools[] = $this->tool(
 
     private function crmGetDepartment(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10693,7 +10693,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateDepartment(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10713,7 +10713,7 @@ $tools[] = $this->tool(
 
     private function crmGetCounterparty(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10741,7 +10741,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateCounterparty(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10762,7 +10762,7 @@ $tools[] = $this->tool(
 
     private function crmGetCompany(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10790,7 +10790,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateCompany(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10811,7 +10811,7 @@ $tools[] = $this->tool(
 
     private function crmGetClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10839,7 +10839,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateClient(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10860,7 +10860,7 @@ $tools[] = $this->tool(
 
     private function crmGetContact(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10888,7 +10888,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateContact(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10909,7 +10909,7 @@ $tools[] = $this->tool(
 
     private function crmGetApproval(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10937,7 +10937,7 @@ $tools[] = $this->tool(
 
     private function crmReviewApproval(array $arguments, string $action): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10960,7 +10960,7 @@ $tools[] = $this->tool(
 
     private function crmGetRecurringRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -10990,7 +10990,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateRecurringRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11007,7 +11007,7 @@ $tools[] = $this->tool(
 
     private function crmSetRecurringRuleState(array $arguments, bool $active): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11027,7 +11027,7 @@ $tools[] = $this->tool(
 
     private function crmGetWorkflowRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11053,7 +11053,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateWorkflowRule(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11073,7 +11073,7 @@ $tools[] = $this->tool(
 
     private function crmRunWorkflowRuleTest(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11101,7 +11101,7 @@ $tools[] = $this->tool(
         if ($contextError !== null) {
             return $contextError;
         }
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11114,7 +11114,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectSummary(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id or project_public_id is required.'];
         }
@@ -11127,7 +11127,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectTimeline(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id or project_public_id is required.'];
         }
@@ -11141,7 +11141,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectMilestonesSummary(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id or project_public_id is required.'];
         }
@@ -11154,7 +11154,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectRisks(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id or project_public_id is required.'];
         }
@@ -11167,7 +11167,7 @@ $tools[] = $this->tool(
 
     private function crmGetProjectWorkload(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id or project_public_id is required.'];
         }
@@ -11215,7 +11215,7 @@ $tools[] = $this->tool(
 
     private function crmGetKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11607,7 +11607,7 @@ $tools[] = $this->tool(
 
     private function crmGetKnowledgeSpace(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11666,7 +11666,7 @@ $tools[] = $this->tool(
 
     private function crmListKnowledgePageVersions(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -11746,7 +11746,7 @@ $tools[] = $this->tool(
 
     private function crmListKnowledgeComments(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12104,7 +12104,7 @@ $tools[] = $this->tool(
 
     private function crmListKnowledgeFiles(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12158,7 +12158,7 @@ $tools[] = $this->tool(
 
     private function crmPublishKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12171,7 +12171,7 @@ $tools[] = $this->tool(
 
     private function crmArchiveKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12184,7 +12184,7 @@ $tools[] = $this->tool(
 
     private function crmRestoreKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12197,7 +12197,7 @@ $tools[] = $this->tool(
 
     private function crmRequestKnowledgeReview(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12210,7 +12210,7 @@ $tools[] = $this->tool(
 
     private function crmApproveKnowledgeReview(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12223,7 +12223,7 @@ $tools[] = $this->tool(
 
     private function crmRejectKnowledgeReview(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12236,7 +12236,7 @@ $tools[] = $this->tool(
 
     private function crmDuplicateKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12246,7 +12246,7 @@ $tools[] = $this->tool(
 
     private function crmMoveKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12260,7 +12260,7 @@ $tools[] = $this->tool(
 
     private function crmLockKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12274,7 +12274,7 @@ $tools[] = $this->tool(
 
     private function crmUnlockKnowledgePage(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12286,7 +12286,7 @@ $tools[] = $this->tool(
 
     private function crmLockKnowledgePageVersion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12308,7 +12308,7 @@ $tools[] = $this->tool(
 
     private function crmUnlockKnowledgePageVersion(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12327,7 +12327,7 @@ $tools[] = $this->tool(
 
     private function crmGetKnowledgeSpacePermissions(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12410,7 +12410,7 @@ $tools[] = $this->tool(
 
     private function crmGetKnowledgePagePermissions(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12563,7 +12563,7 @@ $tools[] = $this->tool(
 
     private function crmGetCalendarEvent(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12577,7 +12577,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateCalendarEvent(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12593,7 +12593,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteCalendarEvent(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12618,7 +12618,7 @@ $tools[] = $this->tool(
 
     private function crmGetMilestone(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12643,7 +12643,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateMilestone(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12666,7 +12666,7 @@ $tools[] = $this->tool(
 
     private function crmGetReminder(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12695,7 +12695,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateReminder(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12714,7 +12714,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteReminder(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12735,7 +12735,7 @@ $tools[] = $this->tool(
 
     private function crmGetSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12763,7 +12763,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12779,7 +12779,7 @@ $tools[] = $this->tool(
 
     private function crmArchiveSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12795,7 +12795,7 @@ $tools[] = $this->tool(
 
     private function crmDuplicateSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12811,7 +12811,7 @@ $tools[] = $this->tool(
 
     private function crmPinSavedView(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12827,7 +12827,7 @@ $tools[] = $this->tool(
 
     private function crmGetSavedViewTaskFilters(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12850,7 +12850,7 @@ $tools[] = $this->tool(
 
     private function crmGetStickyNote(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12875,7 +12875,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateStickyNote(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12888,7 +12888,7 @@ $tools[] = $this->tool(
 
     private function crmSetStickyNoteArchived(array $arguments, bool $archived): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12911,7 +12911,7 @@ $tools[] = $this->tool(
 
     private function crmGetEstimateSet(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12939,7 +12939,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateEstimateSet(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -12987,7 +12987,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateEstimateOption(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13087,7 +13087,7 @@ $tools[] = $this->tool(
 
     private function crmGetCustomField(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13110,7 +13110,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateCustomField(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13125,7 +13125,7 @@ $tools[] = $this->tool(
     }
     private function crmDeleteCustomField(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13203,7 +13203,7 @@ $tools[] = $this->tool(
 
     private function crmGetSlaPolicy(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13229,7 +13229,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateSlaPolicy(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13349,7 +13349,7 @@ $tools[] = $this->tool(
 
     private function crmGetFile(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13390,7 +13390,7 @@ $tools[] = $this->tool(
 
     private function crmGetFileDownloadInfo(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13414,7 +13414,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteFile(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13453,7 +13453,7 @@ $tools[] = $this->tool(
         if ($contextError !== null) {
             return $contextError;
         }
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13476,7 +13476,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateStatus(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13498,7 +13498,7 @@ $tools[] = $this->tool(
 
     private function crmGetTag(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13526,7 +13526,7 @@ $tools[] = $this->tool(
     }
     private function crmUpdateTag(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13607,7 +13607,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateChecklist(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13649,7 +13649,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateChecklistItem(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13702,7 +13702,7 @@ $tools[] = $this->tool(
 
     private function crmGetWorklog(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13745,7 +13745,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateWorklog(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13789,7 +13789,7 @@ $tools[] = $this->tool(
 
     private function crmGetIdea(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13829,7 +13829,7 @@ $tools[] = $this->tool(
 
     private function crmUpdateIdea(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13876,7 +13876,7 @@ $tools[] = $this->tool(
 
     private function crmDeleteIdea(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -13902,7 +13902,7 @@ $tools[] = $this->tool(
 
     private function crmVoteIdea(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -14746,7 +14746,7 @@ $tools[] = $this->tool(
 
     private function crmDeletePushSubscription(array $arguments): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -14765,7 +14765,7 @@ $tools[] = $this->tool(
 
     private function crmSetNotificationReadState(array $arguments, bool $read): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
@@ -16674,7 +16674,7 @@ $tools[] = $this->tool(
 
     private function deleteOwnedCollaborationItem(array $arguments, string $serviceId, string $method, string $notFoundMessage): array
     {
-        $publicId = $this->argumentPublicId($arguments, ['public_id', 'user_public_id', 'target_user_public_id']);
+        $publicId = $this->argumentPublicId($arguments, ['public_id']);
         if ($publicId === '') {
             return ['error' => 'public_id is required.'];
         }
