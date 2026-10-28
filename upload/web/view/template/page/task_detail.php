@@ -68,7 +68,7 @@
       <div class="alert alert-info mb-0 crm-task-risk-alert" id="taskRiskAlert"><strong data-i18n="task_detail.risk_label"><?= htmlspecialchars($t('task_detail.risk_label', 'Риск:'), ENT_QUOTES, 'UTF-8') ?></strong> <span data-i18n="task_detail.risk_loading"><?= htmlspecialchars($t('task_detail.risk_loading', 'оценка риска загружается...'), ENT_QUOTES, 'UTF-8') ?></span></div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3 crm-task-tabs-head">
+    <div class="d-flex justify-content-between align-items-center crm-task-tabs-head">
       <ul class="nav nav-tabs crm-task-tabs-nav flex-grow-1" id="taskDetailTabsNav" role="tablist">
         <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="subtasks"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
         <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="checklists"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>

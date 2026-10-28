@@ -6406,21 +6406,30 @@ body.modal-open {
   font-size: 0.92rem;
 }
 
+.crm-task-detail-page .crm-task-tabs-head {
+  margin-bottom: 0 !important;
+  position: relative;
+  z-index: 2;
+}
+
 .crm-task-detail-page .crm-task-tabs-nav {
   gap: 0.3rem;
   border-bottom: none;
   margin-bottom: 0 !important;
+  align-items: flex-end;
 }
 
 .crm-task-detail-page .crm-task-tabs-nav .nav-link {
   white-space: nowrap;
-  border-radius: 14px 14px 0 0;
+  border-radius: 12px 12px 0 0;
   display: inline-flex;
   align-items: center;
   gap: 0.38rem;
-  padding: 0.62rem 0.88rem;
+  padding: 0.55rem 0.88rem;
+  min-height: 42px;
   font-size: 0.92rem;
   font-weight: 700;
+  position: relative;
 }
 
 .crm-task-detail-page .crm-task-tabs-nav .nav-link:hover {
@@ -6428,9 +6437,12 @@ body.modal-open {
 }
 
 .crm-task-detail-page .crm-task-tabs-nav .nav-link.active {
-  background: linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-surface-2) 100%);
+  background: var(--crm-surface) !important;
   color: var(--crm-success);
-  border-color: var(--crm-border) var(--crm-border) var(--crm-surface);
+  border-color: var(--crm-border) var(--crm-border) var(--crm-surface) !important;
+  border-bottom: 1px solid var(--crm-surface) !important;
+  margin-bottom: -1px !important;
+  z-index: 3;
   box-shadow: 0 -1px 0 color-mix(in srgb, var(--crm-surface) 60%, transparent), 0 10px 20px color-mix(in srgb, var(--crm-success) 5%, transparent);
 }
 
@@ -6464,21 +6476,27 @@ body.modal-open {
 
 .crm-task-detail-page .crm-tab-counter {
   min-width: 1.2rem;
-  height: 1.2rem;
+  min-height: 0 !important;
+  height: 1.2rem !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.3rem;
+  padding: 0 0.35rem !important;
   border-radius: 999px;
   font-size: 0.68rem;
   font-weight: 800;
+  line-height: 1 !important;
   background: var(--crm-text-muted) !important;
 }
 
 .crm-task-detail-page .crm-task-section {
-  border-top-left-radius: 0;
+  border-top-left-radius: 0 !important;
   margin-top: -1px;
   padding: 1rem;
+}
+
+.crm-task-detail-page #taskTabsConfigBtn {
+  margin-bottom: 4px;
 }
 
 .crm-task-detail-page #taskTimerPanel {
