@@ -70,7 +70,9 @@ final class TaskRelationService
 
         $result = $this->buildGroupedResponse($rows, $taskId, $actor);
 
-        return $this->includeHierarchyRelations($result, $taskId, $actor);
+        $result = $this->includeHierarchyRelations($result, $taskId, $actor);
+
+        return $this->enrichStatusInfo($result);
     }
 
     /**
@@ -260,7 +262,16 @@ final class TaskRelationService
         $limit = min(50, max(1, (int)($filters['limit'] ?? 20)));
         $projectPublicId = trim((string)($filters['project_public_id'] ?? ''));
 
-        return $this->relations->searchTasks($query, $actor, $limit, $projectPublicId);
+        $items = $this->relations->searchTasks($query, $actor, $limit, $projectPublicId);
+        $statusDict = $this->relations->getTaskStatusDictionary();
+        foreach ($items as $idx => $item) {
+            $code = (string)($item['status_code'] ?? '');
+            $info = $this->resolveStatusInfo($code, $statusDict);
+            $items[$idx]['status_title'] = $info['title'];
+            $items[$idx]['status_color'] = $info['color'];
+        }
+
+        return $items;
     }
 
     /**
@@ -552,5 +563,97 @@ final class TaskRelationService
         $result['meta']['subtasks_count'] = count($result['groups']['parent_of'] ?? []);
 
         return $result;
+    }
+
+    /**
+     * Enrich relation groups with resolved status title and color.
+     *
+     * @param array<string,mixed> $result
+     * @return array<string,mixed>
+     */
+    private function enrichStatusInfo(array $result): array
+    {
+        $statusDict = $this->relations->getTaskStatusDictionary();
+        foreach ($result['groups'] ?? [] as $groupKey => $items) {
+            foreach ($items as $idx => $item) {
+                $code = (string)($item['status_code'] ?? '');
+                $info = $this->resolveStatusInfo($code, $statusDict);
+                $result['groups'][$groupKey][$idx]['status_title'] = $info['title'];
+                $result['groups'][$groupKey][$idx]['status_color'] = $info['color'];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Resolve status title and color from dictionary or standard localized fallbacks.
+     *
+     * @param string $code
+     * @param array<string,array{title:string,color:string}> $dbStatuses
+     * @return array{title:string,color:string}
+     */
+    private function resolveStatusInfo(string $code, array $dbStatuses): array
+    {
+        $normalized = strtolower(trim($code));
+        if (isset($dbStatuses[$normalized]) && $dbStatuses[$normalized]['title'] !== '') {
+            return [
+                'title' => $dbStatuses[$normalized]['title'],
+                'color' => $dbStatuses[$normalized]['color'] ?: $this->defaultStatusColor($normalized),
+            ];
+        }
+
+        $fallbacks = [
+            'new' => 'К выполнению',
+            'todo' => 'К выполнению',
+            'in_progress' => 'В работе',
+            'active' => 'Активный',
+            'planning' => 'Планирование',
+            'on_hold' => 'На паузе',
+            'paused' => 'На паузе',
+            'blocked' => 'Блокировано',
+            'done' => 'Готово',
+            'completed' => 'Готово',
+            'archived' => 'Архив',
+            'review' => 'Ревью',
+            'in_review' => 'Ревью',
+            'qa_testing' => 'QA тестирование',
+            'testing' => 'Тестирование',
+            'ready_release' => 'Готова к релизу',
+            'deploy' => 'Деплой',
+            'deployment' => 'Деплой',
+            'canceled' => 'Отменена',
+            'cancelled' => 'Отменена',
+            'rejected' => 'Отклонена',
+            'closed' => 'Закрыта',
+            'draft' => 'Черновик',
+            'reopened' => 'Переоткрыта',
+            'resolved' => 'Решена',
+            'released' => 'Выпущена',
+            'backlog' => 'Бэклог',
+        ];
+
+        return [
+            'title' => $fallbacks[$normalized] ?? ($code !== '' ? $code : 'Без статуса'),
+            'color' => $this->defaultStatusColor($normalized),
+        ];
+    }
+
+    private function defaultStatusColor(string $code): string
+    {
+        return match ($code) {
+            'new', 'todo' => '#64748b',
+            'in_progress', 'active' => '#2563eb',
+            'planning' => '#0ea5e9',
+            'on_hold', 'paused' => '#d97706',
+            'blocked' => '#ef4444',
+            'review', 'in_review' => '#8b5cf6',
+            'qa_testing', 'testing' => '#a855f7',
+            'deploy', 'deployment' => '#0284c7',
+            'ready_release' => '#14b8a6',
+            'done', 'completed', 'closed', 'resolved' => '#16a34a',
+            'canceled', 'cancelled', 'rejected', 'archived' => '#94a3b8',
+            default => '#64748b',
+        };
     }
 }

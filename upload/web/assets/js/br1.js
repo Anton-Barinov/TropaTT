@@ -504,11 +504,39 @@ window.CRM.br1 = (function () {
   }
 
   function statusColor(code) {
-    var normalizedCode = String(code || '');
-    var status = availableTaskStatuses.find(function (item) {
-      return String(item.code || '') === normalizedCode;
+    var normalizedCode = String(code || '').trim().toLowerCase();
+    var status = (availableTaskStatuses || []).find(function (item) {
+      return String(item.code || '').trim().toLowerCase() === normalizedCode;
     });
-    return normalizeStatusColor(status && status.color);
+    if (status && status.color) {
+      return normalizeStatusColor(status.color);
+    }
+    var defaultColors = {
+      new: '#64748b',
+      todo: '#64748b',
+      in_progress: '#2563eb',
+      active: '#2563eb',
+      planning: '#0ea5e9',
+      on_hold: '#d97706',
+      paused: '#d97706',
+      blocked: '#ef4444',
+      review: '#8b5cf6',
+      in_review: '#8b5cf6',
+      qa_testing: '#a855f7',
+      testing: '#a855f7',
+      deploy: '#0284c7',
+      deployment: '#0284c7',
+      ready_release: '#14b8a6',
+      done: '#16a34a',
+      completed: '#16a34a',
+      closed: '#16a34a',
+      resolved: '#16a34a',
+      canceled: '#94a3b8',
+      cancelled: '#94a3b8',
+      rejected: '#94a3b8',
+      archived: '#94a3b8'
+    };
+    return defaultColors[normalizedCode] || '#64748b';
   }
 
   function applyTaskStatusBadgeColor(statusBadge, code) {
@@ -525,14 +553,24 @@ window.CRM.br1 = (function () {
   }
 
   function statusLabel(code) {
-    var codeKey = String(code || '');
-    if (availableTaskStatuses.length) {
+    var codeKey = String(code || '').trim();
+    if (!codeKey) {
+      return window.CRM.i18n.t('js.br1.bez_statusa', 'Без статуса');
+    }
+
+    if (availableTaskStatuses && availableTaskStatuses.length) {
       var dynamicStatus = availableTaskStatuses.find(function (item) {
-        return String(item.code || '') === codeKey;
+        return String(item.code || '').trim().toLowerCase() === codeKey.toLowerCase();
       });
       if (dynamicStatus && dynamicStatus.title) {
         return String(dynamicStatus.title);
       }
+    }
+
+    var lower = codeKey.toLowerCase();
+    var kanbanStatus = window.CRM && window.CRM.messages && window.CRM.messages.kanban && window.CRM.messages.kanban.status;
+    if (kanbanStatus && kanbanStatus[lower]) {
+      return String(kanbanStatus[lower]);
     }
 
     var map = {
@@ -542,15 +580,24 @@ window.CRM.br1 = (function () {
       active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
       planning: window.CRM.i18n.t('js.br1.planning', 'Планирование'),
       on_hold: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
+      paused: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
       blocked: window.CRM.i18n.t('js.br1.blokirovano', 'Блокировано'),
       done: window.CRM.i18n.t('js.br1.gotovo', 'Готово'),
       completed: window.CRM.i18n.t('js.br1.gotovo_2', 'Готово'),
       archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив'),
       review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
+      in_review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
       qa_testing: window.CRM.i18n.t('js.br1.qa_testing', 'QA тестирование'),
-      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу')
+      testing: window.CRM.i18n.t('js.br1.testing', 'Тестирование'),
+      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу'),
+      deploy: window.CRM.i18n.t('js.br1.deploy', 'Деплой'),
+      deployment: window.CRM.i18n.t('js.br1.deploy', 'Деплой'),
+      canceled: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      cancelled: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      rejected: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      closed: window.CRM.i18n.t('js.br1.gotovo', 'Готово')
     };
-    return map[code] || code || window.CRM.i18n.t('js.br1.bez_statusa', 'Без статуса');
+    return map[lower] || map[codeKey] || codeKey;
   }
 
   function priorityLabel(code) {
@@ -1588,11 +1635,6 @@ window.CRM.br1 = (function () {
   }
 
   async function loadTaskStatusesDictionary() {
-    if (!hasPermission('task.manage')) {
-      availableTaskStatuses = [];
-      return;
-    }
-
     try {
       var statusesEnvelope = await window.CRM.api.request('api/v1/statuses', {
         query: {
@@ -8970,7 +9012,8 @@ window.CRM.br1 = (function () {
           var itemKey = escapeHtml(String(item.task_key || itemTaskId));
           var itemTitle = escapeHtml(String(item.title || 'Без названия'));
           var statusCode = String(item.status_code || '');
-          var bg = statusColor(statusCode) || '#64748b';
+          var statusTitle = item.status_title || statusLabel(statusCode);
+          var bg = normalizeStatusColor(item.status_color) || statusColor(statusCode) || '#64748b';
           var textClr = statusTextColor(bg);
           var assignee = escapeHtml(String(item.assignee_name || ''));
 
@@ -8981,7 +9024,7 @@ window.CRM.br1 = (function () {
           html += '</div>';
 
           html += '<div class="d-flex align-items-center gap-2 flex-shrink-0">';
-          html += '<span class="crm-badge" style="background-color:' + bg + ';color:' + textClr + ';border-color:' + bg + ';">' + escapeHtml(statusLabel(statusCode)) + '</span>';
+          html += '<span class="crm-badge" style="background-color:' + bg + ';color:' + textClr + ';border-color:' + bg + ';">' + escapeHtml(statusTitle) + '</span>';
           if (assignee) {
             html += '<span class="small text-muted d-none d-sm-inline"><i class="fa-regular fa-user me-1"></i>' + assignee + '</span>';
           }
@@ -9134,9 +9177,9 @@ window.CRM.br1 = (function () {
               var key = escapeHtml(String(it.task_key || pId));
               var title = escapeHtml(String(it.title || 'Без названия'));
               var sc = String(it.status_code || '');
-              var bg = statusColor(sc) || '#64748b';
+              var sl = escapeHtml(it.status_title || statusLabel(sc));
+              var bg = normalizeStatusColor(it.status_color) || statusColor(sc) || '#64748b';
               var tc = statusTextColor(bg);
-              var sl = escapeHtml(statusLabel(sc));
 
               html += '<button type="button" class="list-group-item list-group-item-action py-2 px-3 d-flex align-items-center justify-content-between gap-2" data-task-pid="' + pId + '" data-task-key="' + key + '" data-task-title="' + title + '">';
               html += '<div class="text-truncate text-start"><strong class="me-1 text-primary">' + key + '</strong> ' + title + '</div>';

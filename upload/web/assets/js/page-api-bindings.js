@@ -518,24 +518,33 @@ window.CRM.pageApiBindings = (function () {
       active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
       planning: window.CRM.i18n.t('js.br1.planning', 'Планирование'),
       on_hold: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
+      paused: window.CRM.i18n.t('js.br1.na_pauze', 'На паузе'),
       blocked: window.CRM.i18n.t('js.br1.blokirovano', 'Блокировано'),
       done: window.CRM.i18n.t('js.br1.gotovo', 'Готово'),
       completed: window.CRM.i18n.t('js.br1.gotovo_2', 'Готово'),
       archived: window.CRM.i18n.t('js.br1.arkhiv', 'Архив'),
       review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
+      in_review: window.CRM.i18n.t('js.br1.review', 'Ревью'),
       qa_testing: window.CRM.i18n.t('js.br1.qa_testing', 'QA тестирование'),
-      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу')
+      testing: window.CRM.i18n.t('js.br1.testing', 'Тестирование'),
+      ready_release: window.CRM.i18n.t('js.br1.ready_release', 'Готова к релизу'),
+      deploy: window.CRM.i18n.t('js.br1.deploy', 'Деплой'),
+      deployment: window.CRM.i18n.t('js.br1.deploy', 'Деплой'),
+      canceled: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      cancelled: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      rejected: window.CRM.i18n.t('js.br1.otmenena', 'Отменена'),
+      closed: window.CRM.i18n.t('js.br1.gotovo', 'Готово')
     };
-    return map[key] || key || '—';
+    return map[key.toLowerCase()] || map[key] || key || '—';
   }
 
   function statusClass(code) {
     if (window.CRM.br1 && typeof window.CRM.br1.statusBadgeClass === 'function') {
       return window.CRM.br1.statusBadgeClass(code);
     }
-    var key = String(code || '').trim();
-    if (key === 'done' || key === 'completed') return 'success';
-    if (key === 'in_progress' || key === 'active' || key === 'planning' || key === 'on_hold') return 'active';
+    var key = String(code || '').trim().toLowerCase();
+    if (key === 'done' || key === 'completed' || key === 'closed' || key === 'resolved') return 'success';
+    if (key === 'in_progress' || key === 'active' || key === 'planning' || key === 'on_hold' || key === 'deploy' || key === 'review') return 'active';
     if (key === 'blocked') return 'blocked';
     if (key === 'overdue') return 'overdue';
     return 'archived';

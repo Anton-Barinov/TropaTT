@@ -21,6 +21,27 @@ final class TaskRelationRepository
      *
      * @return array<int,array<string,mixed>>
      */
+    public function getTaskStatusDictionary(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare('SELECT code, title, color FROM statuses WHERE scope = :scope AND is_active = 1');
+            $stmt->execute([':scope' => 'task']);
+            $dict = [];
+            foreach (($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: []) as $row) {
+                $code = strtolower(trim((string)($row['code'] ?? '')));
+                if ($code !== '') {
+                    $dict[$code] = [
+                        'title' => (string)($row['title'] ?? ''),
+                        'color' => (string)($row['color'] ?? ''),
+                    ];
+                }
+            }
+            return $dict;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public function listForTaskId(int $taskId): array
     {
         return (new QueryBuilder($this->pdo))
