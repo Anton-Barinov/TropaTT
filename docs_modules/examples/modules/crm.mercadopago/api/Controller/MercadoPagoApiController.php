@@ -46,11 +46,26 @@ final class MercadoPagoApiController extends BaseController
         $stmt->execute([':workspace' => $workspaceId]);
         $settings = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $this->success('MERCADOPAGO_STATUS', 'Состояние подключения загружено.', [
-            'connected' => is_array($settings),
+            'configured' => is_array($settings),
             'gateway' => 'Mercado Pago Brazil',
             'sandbox_mode' => is_array($settings) ? (bool)$settings['sandbox_mode'] : null,
             'public_key' => is_array($settings) ? (string)($settings['public_key'] ?? '') : null,
         ]);
+    }
+
+    public function testConnection(): JsonResponse
+    {
+        $access = $this->authorizeWorkspace('settings.edit');
+        if ($access instanceof JsonResponse) {
+            return $access;
+        }
+        [$workspaceId] = $access;
+        try {
+            $result = (new MercadoPagoPaymentService($this->container->get('db.pdo'), $workspaceId))->testConnection();
+            return $this->success('MERCADOPAGO_CONNECTION_OK', 'Mercado Pago accepted the saved access token.', $result);
+        } catch (Throwable) {
+            return $this->error('MERCADOPAGO_CONNECTION_FAILED', 'Mercado Pago could not validate the saved token. Check the token, mode, account access, and outbound HTTPS.', 502);
+        }
     }
 
     public function saveConfig(): JsonResponse

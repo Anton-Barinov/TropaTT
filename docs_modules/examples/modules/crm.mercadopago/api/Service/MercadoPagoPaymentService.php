@@ -51,6 +51,18 @@ final class MercadoPagoPaymentService
         $stmt->execute([':workspace' => $this->workspaceId, ':public_key' => $publicKey, ':token' => $encryptedToken, ':sandbox' => $sandboxMode ? 1 : 0]);
     }
 
+    /** Verify that the saved credential is accepted by Mercado Pago without returning account data. */
+    public function testConnection(): array
+    {
+        $credentials = $this->getCredentials();
+        $profile = $this->request('GET', '/users/me', $credentials['token'], null);
+        if (!is_array($profile) || !is_scalar($profile['id'] ?? null) || !preg_match('/^[0-9]{1,32}$/D', (string)$profile['id'])) {
+            throw new RuntimeException('Mercado Pago returned an invalid account response.');
+        }
+
+        return ['connected' => true];
+    }
+
     /** @return array{payment_public_id:string,preference_id:string,init_point_url:string,status:string,amount:float,currency:string,external_reference:string} */
     public function createPaymentPreference(array $data): array
     {
@@ -368,7 +380,7 @@ final class MercadoPagoPaymentService
     /** @param array<string, string> $query @return array<string, mixed> */
     private function request(string $method, string $path, string $token, ?array $payload, array $query = []): array
     {
-        if (!preg_match('#^/(?:checkout/preferences|v1/payments/[0-9]{1,32}|v1/payments/search)$#', $path)) {
+        if (!preg_match('#^/(?:users/me|checkout/preferences|v1/payments/[0-9]{1,32}|v1/payments/search)$#', $path)) {
             throw new RuntimeException('Mercado Pago request path is not allowed.');
         }
         $headers = ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json'];

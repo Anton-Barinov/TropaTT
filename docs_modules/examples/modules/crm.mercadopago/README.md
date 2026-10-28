@@ -6,8 +6,9 @@ This module creates Checkout Pro preferences through Mercado Pago's official API
 
 1. Install the module and apply its migration.
 2. Open the module page in the CRM, choose test mode, and save the Mercado Pago access token (and optional public key). The token is encrypted using the CRM `APP_KEY`; if the key or OpenSSL support is unavailable, saving and payment operations fail closed.
-3. Use a test access token with test mode. The module returns the provider's `sandbox_init_point` in test mode and `init_point` in live mode.
-4. Keep live credentials out of source control, URLs, logs, and support tickets.
+3. Run **Проверить подключение** before creating payment links. Saving a token confirms only that it was stored; the check makes a real authenticated request to Mercado Pago and is required to enable checkout creation in the current page session.
+4. Use a test access token with test mode. The module returns the provider's `sandbox_init_point` in test mode and `init_point` in live mode.
+5. Keep live credentials out of source control, URLs, logs, and support tickets.
 
 The provider request uses HTTPS with certificate verification, a 15-second timeout, redirects disabled, a fixed API host, a 1 MiB response cap, and generic error messages that do not expose authorization headers or provider response bodies. A payment record is written only after Mercado Pago returns a valid preference ID and a checkout URL on an HTTPS Mercado Pago domain.
 
