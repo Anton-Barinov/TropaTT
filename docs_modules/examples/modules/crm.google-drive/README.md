@@ -14,6 +14,7 @@
 
 ## Безопасность и границы
 
+- Версия 1.0.7 добавляет прямую миграцию уже установленных схем: новые строки больше не наследуют workspace `1` и включённое по умолчанию состояние. Существующие workspace ID и пользовательские настройки сохраняются.
 - Каждый credential и file mapping привязан к `workspace_id`; MCP и HTTP перед передачей подтверждают актёра, его workspace, доступ к исходному файлу и результат `canDownloadInternal`.
 - OAuth refresh token и access token шифруются в БД; API статуса возвращает только факт настройки и подтверждённый email. Секреты нигде не возвращаются.
 - Запросы выполняются только к фиксированным HTTPS Google OAuth/Drive API hosts, порт 443, TLS certificate/hostname verification, DNS/IP safety validation с pinning и без redirects.

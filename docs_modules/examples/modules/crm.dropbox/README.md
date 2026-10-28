@@ -18,6 +18,7 @@ This module connects one Dropbox account to the active CRM workspace. It support
 
 ## Security and limitations
 
+- Version 1.0.7 applies a forward migration to existing installations so module-created workspace and file rows no longer inherit workspace `1` or an active/synced default. Existing stored workspace IDs and user configuration are preserved.
 - Every API route is authenticated, requires an active workspace, and checks the corresponding settings/files permissions.
 - Fixed Dropbox HTTPS endpoints are used; redirects are disabled and TLS peer/host verification is mandatory.
 - Credentials and token responses are not returned to the browser or logged. Database rows are workspace-scoped.
