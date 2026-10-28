@@ -138,7 +138,12 @@ final class ProfileController extends BaseController
         }
 
         $input = $this->request()->allInput();
-        $preferences = $input['preferences'] ?? null;
+        if (array_key_exists('preferences', $input)) {
+            $preferences = $input['preferences'];
+        } else {
+            $preferences = $input;
+        }
+
         if (!is_array($preferences)) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
                 'preferences' => [$this->t('security/messages.preferences_object_expected')],
