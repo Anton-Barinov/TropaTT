@@ -9485,7 +9485,7 @@ window.CRM.br1 = (function () {
         try {
           await window.CRM.api.request('api/v1/profile/preferences', {
             method: 'PATCH',
-            body: { tasks_tabs_order: draftOrder }
+            body: { preferences: { tasks_tabs_order: draftOrder } }
           });
           notify('Порядок закладок сохранён в ваш профиль');
           applyTaskTabsOrder(draftOrder);
@@ -9525,9 +9525,10 @@ window.CRM.br1 = (function () {
         try {
           await window.CRM.api.request('api/v1/profile/preferences', {
             method: 'PATCH',
-            body: { tasks_tabs_order: null }
+            body: { preferences: { tasks_tabs_order: null } }
           });
-          draftOrder = DEFAULT_TASK_TABS_ORDER.slice();
+          var fallbackOrder = await loadTaskTabsOrder();
+          draftOrder = fallbackOrder.slice();
           applyTaskTabsOrder(draftOrder);
           renderModalList();
           notify('Порядок закладок сброшен к умолчанию');
