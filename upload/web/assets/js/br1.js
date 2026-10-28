@@ -8947,6 +8947,8 @@ window.CRM.br1 = (function () {
       var groups = data.groups || {};
 
       var groupDefs = [
+        { key: 'child_of', title: 'Родительская задача', icon: 'fa-solid fa-turn-up fa-rotate-90 text-secondary' },
+        { key: 'parent_of', title: 'Подзадачи', icon: 'fa-solid fa-diagram-project text-secondary' },
         { key: 'blocking', title: 'Блокирует', icon: 'fa-solid fa-arrow-right text-danger' },
         { key: 'blocked_by', title: 'Блокируется', icon: 'fa-solid fa-arrow-left text-warning' },
         { key: 'relates_to', title: 'Связана с', icon: 'fa-solid fa-link text-primary' },
@@ -8954,9 +8956,7 @@ window.CRM.br1 = (function () {
         { key: 'implements', title: 'Реализует', icon: 'fa-solid fa-check-double text-success' },
         { key: 'implemented_by', title: 'Реализуется в', icon: 'fa-solid fa-code text-info' },
         { key: 'causes', title: 'Причина для', icon: 'fa-solid fa-triangle-exclamation text-warning' },
-        { key: 'caused_by', title: 'Вызвана', icon: 'fa-solid fa-bug text-danger' },
-        { key: 'parent_of', title: 'Подзадачи', icon: 'fa-solid fa-diagram-project text-secondary' },
-        { key: 'child_of', title: 'Родительская задача', icon: 'fa-solid fa-turn-up fa-rotate-90 text-secondary' }
+        { key: 'caused_by', title: 'Вызвана', icon: 'fa-solid fa-bug text-danger' }
       ];
 
       var totalCount = 0;
@@ -8992,7 +8992,9 @@ window.CRM.br1 = (function () {
           if (assignee) {
             html += '<span class="small text-muted d-none d-sm-inline"><i class="fa-regular fa-user me-1"></i>' + assignee + '</span>';
           }
-          if (canEdit && relId) {
+          if (item.is_hierarchy) {
+            html += '<span class="badge text-bg-light border text-muted small" title="Связь из структуры подзадач"><i class="fa-solid fa-sitemap me-1"></i>иерархия</span>';
+          } else if (canEdit && relId) {
             html += '<button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" data-task-relation-delete="' + relId + '" title="Удалить связь" aria-label="Удалить связь"><i class="fa-regular fa-trash-can"></i></button>';
           }
           html += '</div>';
@@ -9033,6 +9035,215 @@ window.CRM.br1 = (function () {
       notify('Ошибка при удалении связи', 'error');
     }
   });
+
+  function initTaskLinkRelationModal(taskId, canEditTask) {
+    var openLinkBtn = document.getElementById('openLinkTaskBtn');
+    var modalEl = document.getElementById('taskLinkRelationModal');
+    if (!modalEl) return;
+
+    if (openLinkBtn && openLinkBtn.dataset.boundRel !== '1') {
+      openLinkBtn.dataset.boundRel = '1';
+      openLinkBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.bootstrap) {
+          window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+      });
+    }
+
+    if (modalEl.dataset.relBound === '1') return;
+    modalEl.dataset.relBound = '1';
+
+    var form = document.getElementById('taskLinkRelationForm');
+    var searchInput = document.getElementById('taskRelationSearchInput');
+    var resultsBox = document.getElementById('taskRelationSearchResults');
+    var targetTaskIdInput = document.getElementById('taskRelationTargetTaskId');
+    var previewBox = document.getElementById('taskRelationSelectedPreview');
+    var previewText = document.getElementById('taskRelationSelectedText');
+    var clearBtn = document.getElementById('taskRelationClearSelectionBtn');
+    var typeSelect = document.getElementById('taskRelationTypeSelect');
+    var noteInput = document.getElementById('taskRelationNote');
+    var submitBtn = document.getElementById('taskLinkRelationSubmitBtn');
+
+    function resetForm() {
+      if (searchInput) searchInput.value = '';
+      if (targetTaskIdInput) targetTaskIdInput.value = '';
+      if (noteInput) noteInput.value = '';
+      if (resultsBox) {
+        resultsBox.innerHTML = '';
+        resultsBox.style.display = 'none';
+      }
+      if (previewBox) previewBox.classList.add('d-none');
+      if (previewText) previewText.textContent = '';
+      if (typeSelect) typeSelect.value = 'relates_to';
+      if (submitBtn) submitBtn.disabled = false;
+    }
+
+    modalEl.addEventListener('show.bs.modal', function () {
+      resetForm();
+    });
+
+    modalEl.addEventListener('shown.bs.modal', function () {
+      if (searchInput) searchInput.focus();
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (targetTaskIdInput) targetTaskIdInput.value = '';
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
+        if (previewBox) previewBox.classList.add('d-none');
+        if (previewText) previewText.textContent = '';
+      });
+    }
+
+    var searchTimer = null;
+    if (searchInput && resultsBox) {
+      searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        var q = (this.value || '').trim();
+        if (targetTaskIdInput && targetTaskIdInput.value && previewText && !this.value.includes(previewText.textContent)) {
+          targetTaskIdInput.value = '';
+          if (previewBox) previewBox.classList.add('d-none');
+        }
+
+        if (q.length < 2) {
+          resultsBox.innerHTML = '';
+          resultsBox.style.display = 'none';
+          return;
+        }
+
+        resultsBox.innerHTML = '<div class="p-2 text-muted small"><i class="fa-solid fa-spinner fa-spin me-1"></i> Поиск задач...</div>';
+        resultsBox.style.display = 'block';
+
+        searchTimer = setTimeout(async function () {
+          try {
+            var res = await window.CRM.api.request('api/v1/task-relations/search-tasks', {
+              query: { q: q, limit: 10 },
+              silent: true
+            });
+            var items = (res && res.data && res.data.items) || [];
+            items = items.filter(function (it) {
+              return String(it.public_id || '') !== String(taskId);
+            });
+
+            if (items.length === 0) {
+              resultsBox.innerHTML = '<div class="p-2 text-muted small"><i class="fa-solid fa-circle-info me-1"></i> Задачи не найдены</div>';
+              return;
+            }
+
+            var html = '';
+            items.forEach(function (it) {
+              var pId = escapeHtml(String(it.public_id || ''));
+              var key = escapeHtml(String(it.task_key || pId));
+              var title = escapeHtml(String(it.title || 'Без названия'));
+              var sc = String(it.status_code || '');
+              var bg = statusColor(sc) || '#64748b';
+              var tc = statusTextColor(bg);
+              var sl = escapeHtml(statusLabel(sc));
+
+              html += '<button type="button" class="list-group-item list-group-item-action py-2 px-3 d-flex align-items-center justify-content-between gap-2" data-task-pid="' + pId + '" data-task-key="' + key + '" data-task-title="' + title + '">';
+              html += '<div class="text-truncate text-start"><strong class="me-1 text-primary">' + key + '</strong> ' + title + '</div>';
+              html += '<span class="crm-badge flex-shrink-0" style="background-color:' + bg + ';color:' + tc + ';border-color:' + bg + ';">' + sl + '</span>';
+              html += '</button>';
+            });
+
+            resultsBox.innerHTML = html;
+          } catch (e) {
+            resultsBox.innerHTML = '<div class="p-2 text-danger small">Ошибка поиска</div>';
+          }
+        }, 250);
+      });
+
+      resultsBox.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-task-pid]');
+        if (!btn) return;
+        e.preventDefault();
+        var pId = btn.getAttribute('data-task-pid');
+        var key = btn.getAttribute('data-task-key');
+        var title = btn.getAttribute('data-task-title');
+
+        if (targetTaskIdInput) targetTaskIdInput.value = pId;
+        if (searchInput) searchInput.value = key ? (key + ': ' + title) : title;
+        if (previewText) previewText.textContent = (key ? key + ' — ' : '') + title;
+        if (previewBox) previewBox.classList.remove('d-none');
+        resultsBox.innerHTML = '';
+        resultsBox.style.display = 'none';
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!modalEl.contains(e.target)) return;
+        if (e.target !== searchInput && !resultsBox.contains(e.target)) {
+          resultsBox.style.display = 'none';
+        }
+      });
+    }
+
+    if (form) {
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var targetPid = (targetTaskIdInput && targetTaskIdInput.value ? targetTaskIdInput.value.trim() : '');
+        var typedVal = (searchInput && searchInput.value ? searchInput.value.trim() : '');
+        var relType = (typeSelect && typeSelect.value ? typeSelect.value.trim() : 'relates_to');
+        var note = (noteInput && noteInput.value ? noteInput.value.trim() : '');
+
+        var body = {
+          relation_type: relType,
+          note: note
+        };
+
+        if (targetPid) {
+          body.target_task_public_id = targetPid;
+        } else if (typedVal) {
+          var keyMatch = typedVal.match(/^([A-Z0-9_\-]+-\d+)/i) || typedVal.match(/^(tsk_[a-z0-9]+)/i);
+          if (keyMatch) {
+            body.target_task_key = keyMatch[1];
+          } else {
+            body.target_task_key = typedVal;
+          }
+        } else {
+          notify('Выберите задачу для создания связи', 'warning');
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/relations', {
+            method: 'POST',
+            body: body
+          });
+
+          notify('Связь добавлена');
+          if (window.bootstrap) {
+            var inst = window.bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+          }
+
+          loadAndRenderTaskRelations(taskId, canEditTask);
+
+          if (relType === 'parent_of' || relType === 'child_of') {
+            loadInitialTaskDeliverables(taskId, true, canEditTask);
+          }
+        } catch (err) {
+          var msg = (err && (err.message || (err.error && err.error.message))) || 'Не удалось создать связь';
+          if (err && err.error && err.error.code === 'TASK_RELATION_ALREADY_EXISTS') {
+            msg = 'Эта связь уже существует';
+          } else if (err && err.error && err.error.code === 'TASK_RELATION_CYCLE_DETECTED') {
+            msg = 'Нельзя создать связь: обнаружен циклический граф зависимостей';
+          } else if (err && err.error && err.error.code === 'TASK_RELATION_SELF_LINK_FORBIDDEN') {
+            msg = 'Нельзя связать задачу с самой собой';
+          }
+          notify(msg, 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+  }
 
   async function loadInitialTaskDeliverables(taskId, canWorkTask, canEditTask) {
     try {
@@ -9425,24 +9636,7 @@ window.CRM.br1 = (function () {
       applyTaskTabsOrder(tabOrder);
       bindTaskTabsConfigModal(canManageTasks);
 
-      var openLinkBtn = document.getElementById('openLinkTaskBtn');
-      if (openLinkBtn && openLinkBtn.dataset.bound !== '1') {
-        openLinkBtn.dataset.bound = '1';
-        openLinkBtn.addEventListener('click', function () {
-          var depModal = document.getElementById('createDependencyModal');
-          if (depModal && window.bootstrap) {
-            window.bootstrap.Modal.getOrCreateInstance(depModal).show();
-          }
-        });
-      }
-
-      var depModal = document.getElementById('createDependencyModal');
-      if (depModal && depModal.dataset.relListenerBound !== '1') {
-        depModal.dataset.relListenerBound = '1';
-        depModal.addEventListener('hidden.bs.modal', function () {
-          loadAndRenderTaskRelations(taskId, canEditTask);
-        });
-      }
+      initTaskLinkRelationModal(taskId, canEditTask);
     }
 
     await loadTaskCollaborationState(taskId);

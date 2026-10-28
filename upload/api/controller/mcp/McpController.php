@@ -3023,12 +3023,14 @@ MD;
             $tools[] = $this->tool('crm_get_custom_field_values', 'Get custom field values for an entity.', [
                 'entity_type' => ['type' => 'string'],
                 'entity_public_id' => ['type' => 'string'],
-            ], ['entity_type', 'entity_public_id']);
+                'public_id' => ['type' => 'string', 'description' => 'Alias for entity_public_id.'],
+            ]);
             $tools[] = $this->tool('crm_set_custom_field_values', 'Set custom field values for an entity.', [
                 'entity_type' => ['type' => 'string'],
                 'entity_public_id' => ['type' => 'string'],
+                'public_id' => ['type' => 'string', 'description' => 'Alias for entity_public_id.'],
                 'values' => ['type' => 'object', 'additionalProperties' => true],
-            ], ['entity_type', 'entity_public_id', 'values']);
+            ], ['values']);
             $tools[] = $this->tool('crm_list_sla_policies', 'List SLA policies.', [
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 50, 'default' => 20],
                 'page' => ['type' => 'integer', 'minimum' => 1, 'default' => 1],
@@ -3873,7 +3875,7 @@ $tools[] = $this->tool(
                     'get_openapi_spec', 'list_api_endpoints',
                     'get_admin_summary_widget', 'get_admin_system_widget',
                 ]],
-                'public_id' => ['type' => 'string', 'description' => 'Record public_id for get/update/delete operations.'],
+                'public_id' => ['type' => 'string', 'description' => 'Record public_id for get/update/delete operations, or entity public_id for get_custom_field_values/set_custom_field_values.'],
                 'name' => ['type' => 'string', 'description' => 'Setting name, module code (for get_module/update_module), webhook URL, etc.'],
                 'refresh' => ['type' => 'boolean', 'description' => 'list_module_updates only: refresh Marketplace data instead of using its cache.'],
                 'value' => ['type' => 'string', 'description' => 'Setting value.'],
@@ -5200,6 +5202,25 @@ $tools[] = $this->tool(
         }
 
         $arguments = self::applyStatusAlias($arguments);
+
+        if ($toolName === 'crm_task') {
+            if (!empty($arguments['task_public_id']) && empty($arguments['public_id'])) {
+                $arguments['public_id'] = (string)$arguments['task_public_id'];
+            } elseif (!empty($arguments['public_id']) && empty($arguments['task_public_id'])) {
+                if (in_array($action, [
+                    'add_comment', 'list_comments', 'get_comment_draft', 'save_comment_draft', 'delete_comment_draft',
+                    'list_subtasks', 'create_subtask',
+                    'list_tags', 'attach_tag', 'detach_tag',
+                    'list_checklists', 'create_checklist',
+                    'list_dependencies', 'create_dependency',
+                    'list_relations', 'create_relation',
+                    'list_estimates', 'assign_estimate', 'remove_estimate',
+                    'activity', 'assign_sla'
+                ], true)) {
+                    $arguments['task_public_id'] = (string)$arguments['public_id'];
+                }
+            }
+        }
 
         $res = match ($toolName) {
             'crm_task' => $this->dispatchTaskMega($action, $arguments),
@@ -8260,10 +8281,11 @@ $tools[] = $this->tool(
         if ($contextError !== null) {
             return $contextError;
         }
-        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $publicId = trim((string)($arguments['public_id'] ?? $arguments['task_public_id'] ?? ''));
         if ($publicId === '') {
-            return ['error' => 'public_id is required.'];
+            return ['error' => 'public_id (or task_public_id) is required.'];
         }
+        $arguments['public_id'] = $publicId;
 
         /** @var TaskService $service */
         $service = $this->container->get('service.task');
@@ -8337,10 +8359,11 @@ $tools[] = $this->tool(
 
     private function crmUpdateTask(array $arguments): array
     {
-        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $publicId = trim((string)($arguments['public_id'] ?? $arguments['task_public_id'] ?? ''));
         if ($publicId === '') {
-            return ['error' => 'public_id is required.'];
+            return ['error' => 'public_id (or task_public_id) is required.'];
         }
+        $arguments['public_id'] = $publicId;
 
         // Support expected_row_version as alias for row_version (optimistic concurrency)
         if (isset($arguments['expected_row_version']) && !isset($arguments['row_version'])) {
@@ -8365,10 +8388,10 @@ $tools[] = $this->tool(
 
     private function crmAddTaskComment(array $arguments): array
     {
-        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? $arguments['public_id'] ?? ''));
         $body = trim((string)($arguments['body'] ?? ''));
         if ($taskPublicId === '' || $body === '') {
-            return ['error' => 'task_public_id and body are required.'];
+            return ['error' => 'task_public_id (or public_id) and body are required.'];
         }
         if (mb_strlen($body) > 8000) {
             return ['error' => 'Comment body is too long.'];
@@ -8402,10 +8425,11 @@ $tools[] = $this->tool(
 
     private function crmDeleteTask(array $arguments): array
     {
-        $publicId = trim((string)($arguments['public_id'] ?? ''));
+        $publicId = trim((string)($arguments['public_id'] ?? $arguments['task_public_id'] ?? ''));
         if ($publicId === '') {
-            return ['error' => 'public_id is required.'];
+            return ['error' => 'public_id (or task_public_id) is required.'];
         }
+        $arguments['public_id'] = $publicId;
 
         // The controller dispatches TASK_DELETED (module hooks + webhooks) and
         // invalidates the task caches; the service call alone skipped both.
@@ -8420,9 +8444,9 @@ $tools[] = $this->tool(
         if ($contextError !== null) {
             return $contextError;
         }
-        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? $arguments['public_id'] ?? ''));
         if ($taskPublicId === '') {
-            return ['error' => 'task_public_id is required.'];
+            return ['error' => 'task_public_id (or public_id) is required.'];
         }
         $actor = $this->organizationScopedActorForArguments($this->actor(), $arguments);
         /** @var TaskService $taskService */
@@ -8689,9 +8713,9 @@ $tools[] = $this->tool(
 
     private function crmListTaskActivity(array $arguments): array
     {
-        $taskPublicId = trim((string)($arguments['task_public_id'] ?? ''));
+        $taskPublicId = trim((string)($arguments['task_public_id'] ?? $arguments['public_id'] ?? ''));
         if ($taskPublicId === '') {
-            return ['error' => 'task_public_id is required.'];
+            return ['error' => 'task_public_id (or public_id) is required.'];
         }
 
         /** @var TaskActivityService $service */
@@ -13048,10 +13072,21 @@ $tools[] = $this->tool(
     }
     private function crmGetCustomFieldValues(array $arguments): array
     {
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? $arguments['public_id'] ?? ''));
         $entityType = trim((string)($arguments['entity_type'] ?? ''));
-        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if ($entityType === '' && $entityPublicId !== '') {
+            $entityType = match (true) {
+                str_starts_with($entityPublicId, 'tsk_') => 'task',
+                str_starts_with($entityPublicId, 'prj_') => 'project',
+                str_starts_with($entityPublicId, 'usr_') => 'user',
+                str_starts_with($entityPublicId, 'cnt_') => 'contact',
+                str_starts_with($entityPublicId, 'cmp_') => 'company',
+                str_starts_with($entityPublicId, 'cli_') => 'client',
+                default => '',
+            };
+        }
         if ($entityType === '' || $entityPublicId === '') {
-            return ['error' => 'entity_type and entity_public_id are required.'];
+            return ['error' => 'entity_type and entity_public_id (or public_id) are required.'];
         }
 
         /** @var CustomFieldService $service */
@@ -13066,8 +13101,19 @@ $tools[] = $this->tool(
 
     private function crmSetCustomFieldValues(array $arguments): array
     {
+        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? $arguments['public_id'] ?? ''));
         $entityType = trim((string)($arguments['entity_type'] ?? ''));
-        $entityPublicId = trim((string)($arguments['entity_public_id'] ?? ''));
+        if ($entityType === '' && $entityPublicId !== '') {
+            $entityType = match (true) {
+                str_starts_with($entityPublicId, 'tsk_') => 'task',
+                str_starts_with($entityPublicId, 'prj_') => 'project',
+                str_starts_with($entityPublicId, 'usr_') => 'user',
+                str_starts_with($entityPublicId, 'cnt_') => 'contact',
+                str_starts_with($entityPublicId, 'cmp_') => 'company',
+                str_starts_with($entityPublicId, 'cli_') => 'client',
+                default => '',
+            };
+        }
         $values = $arguments['values'] ?? null;
         if (is_string($values) && trim($values) !== '') {
             $decoded = json_decode($values, true);
@@ -13077,8 +13123,10 @@ $tools[] = $this->tool(
             }
         }
         if ($entityType === '' || $entityPublicId === '' || !is_array($values) || $values === []) {
-            return ['error' => 'entity_type, entity_public_id and non-empty values object are required.'];
+            return ['error' => 'entity_type, entity_public_id (or public_id) and non-empty values object are required.'];
         }
+        $arguments['entity_type'] = $entityType;
+        $arguments['entity_public_id'] = $entityPublicId;
 
         return $this->invokeControllerTool(CustomFieldController::class, 'setValues', $arguments, 'POST');
     }

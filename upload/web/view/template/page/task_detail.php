@@ -41,7 +41,7 @@
             <span id="taskLinkedCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span>
           </div>
           <?php if (empty($is_external_user)): ?>
-          <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="openLinkTaskBtn" data-open-modal="createDependencyModal">
+          <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="openLinkTaskBtn" data-open-modal="taskLinkRelationModal">
             <i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span data-i18n="task_detail.link_task_btn"><?= htmlspecialchars($t('task_detail.link_task_btn', 'Связать задачу'), ENT_QUOTES, 'UTF-8') ?></span>
           </button>
           <?php endif; ?>
@@ -733,7 +733,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" data-i18n="dependency.modal_task_label"><?= htmlspecialchars($t('dependency.modal_task_label', 'Задача'), ENT_QUOTES, 'UTF-8') ?></label>
-            <select id="depTargetTaskSelect" class="form-select" name="target_task_public_id">
+            <select id="depTargetTaskSelect" class="form-select d-none" name="target_task_public_id">
               <option value=""><?= htmlspecialchars($t('dependency.modal_task_placeholder', 'Поиск задачи по названию...'), ENT_QUOTES, 'UTF-8') ?></option>
             </select>
             <small class="text-muted" data-i18n="dependency.modal_same_project_hint"><?= htmlspecialchars($t('dependency.modal_same_project_hint', 'Показаны только задачи из того же проекта'), ENT_QUOTES, 'UTF-8') ?></small>
@@ -752,6 +752,57 @@
         <div class="modal-footer">
           <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="dependency.modal_cancel_btn"><?= htmlspecialchars($t('dependency.modal_cancel_btn', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
           <button class="btn crm-btn-primary" type="submit" data-i18n="dependency.modal_add_btn"><?= htmlspecialchars($t('dependency.modal_add_btn', 'Добавить'), ENT_QUOTES, 'UTF-8') ?></button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="taskLinkRelationModal" tabindex="-1" aria-labelledby="taskLinkRelationModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskLinkRelationModalTitle" data-i18n="task_relations.modal_title"><?= htmlspecialchars($t('task_relations.modal_title', 'Связать задачу'), ENT_QUOTES, 'UTF-8') ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="page.close"></button>
+      </div>
+      <form id="taskLinkRelationForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="taskRelationTypeSelect" data-i18n="task_relations.type_label"><?= htmlspecialchars($t('task_relations.type_label', 'Тип связи'), ENT_QUOTES, 'UTF-8') ?></label>
+            <select id="taskRelationTypeSelect" class="form-select" name="relation_type" required>
+              <option value="relates_to" selected data-i18n="task_relations.type_relates_to"><?= htmlspecialchars($t('task_relations.type_relates_to', 'Связана с'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="blocks" data-i18n="task_relations.type_blocks"><?= htmlspecialchars($t('task_relations.type_blocks', 'Блокирует'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="blocked_by" data-i18n="task_relations.type_blocked_by"><?= htmlspecialchars($t('task_relations.type_blocked_by', 'Блокируется'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="duplicates" data-i18n="task_relations.type_duplicates"><?= htmlspecialchars($t('task_relations.type_duplicates', 'Дублирует'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="implements" data-i18n="task_relations.type_implements"><?= htmlspecialchars($t('task_relations.type_implements', 'Реализует'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="causes" data-i18n="task_relations.type_causes"><?= htmlspecialchars($t('task_relations.type_causes', 'Причина для'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="caused_by" data-i18n="task_relations.type_caused_by"><?= htmlspecialchars($t('task_relations.type_caused_by', 'Вызвана'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="child_of" data-i18n="task_relations.type_child_of"><?= htmlspecialchars($t('task_relations.type_child_of', 'Родительская задача (сделать подзадачей)'), ENT_QUOTES, 'UTF-8') ?></option>
+              <option value="parent_of" data-i18n="task_relations.type_parent_of"><?= htmlspecialchars($t('task_relations.type_parent_of', 'Подзадача (добавить как подзадачу)'), ENT_QUOTES, 'UTF-8') ?></option>
+            </select>
+          </div>
+          <div class="mb-3 position-relative">
+            <label class="form-label fw-semibold" for="taskRelationSearchInput" data-i18n="task_relations.target_task_label"><?= htmlspecialchars($t('task_relations.target_task_label', 'Задача'), ENT_QUOTES, 'UTF-8') ?></label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="taskRelationSearchInput" class="form-control" placeholder="<?= htmlspecialchars($t('task_relations.search_placeholder', 'Введите ключ задачи (например PROJECT-12) или название...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_relations.search_placeholder" autocomplete="off" required>
+            </div>
+            <input type="hidden" id="taskRelationTargetTaskId" name="target_task_public_id" value="">
+            <div id="taskRelationSearchResults" class="list-group position-absolute w-100 shadow border mt-1" style="z-index: 1055; max-height: 220px; overflow-y: auto; display: none; background: #fff;"></div>
+            <div id="taskRelationSelectedPreview" class="small text-muted mt-1 d-none">
+              <i class="fa-solid fa-check text-success me-1"></i><span id="taskRelationSelectedText"></span>
+              <button type="button" class="btn btn-sm btn-link text-secondary p-0 ms-1" id="taskRelationClearSelectionBtn" title="<?= htmlspecialchars($t('page.clear', 'Очистить'), ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <small class="text-muted d-block mt-1" data-i18n="task_relations.search_hint"><?= htmlspecialchars($t('task_relations.search_hint', 'Начните вводить название или ключ задачи для быстрого поиска'), ENT_QUOTES, 'UTF-8') ?></small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="taskRelationNote" data-i18n="task_relations.note_label"><?= htmlspecialchars($t('task_relations.note_label', 'Примечание (необязательно)'), ENT_QUOTES, 'UTF-8') ?></label>
+            <input type="text" id="taskRelationNote" class="form-control" name="note" maxlength="200" placeholder="<?= htmlspecialchars($t('task_relations.note_placeholder', 'Краткий комментарий к связи...'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_relations.note_placeholder">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button>
+          <button type="submit" class="btn crm-btn-primary" id="taskLinkRelationSubmitBtn" data-i18n="task_relations.link_submit"><?= htmlspecialchars($t('task_relations.link_submit', 'Связать'), ENT_QUOTES, 'UTF-8') ?></button>
         </div>
       </form>
     </div>
