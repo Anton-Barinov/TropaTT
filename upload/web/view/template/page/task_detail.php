@@ -90,6 +90,73 @@
       </button>
       <?php endif; ?>
     </div>
+    <script nonce="<?= $csp_nonce ?>">
+    (function () {
+      try {
+        var raw = localStorage.getItem('crm_task_tabs_order');
+        if (!raw) return;
+        var order = JSON.parse(raw);
+        if (!Array.isArray(order) || order.length === 0) return;
+        var nav = document.getElementById('taskDetailTabsNav');
+        var moreDropdown = document.getElementById('taskTabsMoreDropdown');
+        var moreMenu = document.getElementById('taskTabsMoreMenu');
+        if (!nav || !moreDropdown || !moreMenu) return;
+
+        var tabNodes = {};
+        nav.querySelectorAll('[data-tab-code]').forEach(function (el) {
+          var code = el.getAttribute('data-tab-code');
+          if (code) tabNodes[code] = el;
+        });
+
+        var visibleCount = 0;
+        var VISIBLE_LIMIT = 4;
+        order.forEach(function (code) {
+          var node = tabNodes[code];
+          if (!node) return;
+          if (visibleCount < VISIBLE_LIMIT) {
+            node.className = 'nav-item';
+            var btn = node.querySelector('button');
+            if (btn) {
+              btn.className = 'nav-link' + (visibleCount === 0 ? ' active' : '');
+              btn.removeAttribute('data-task-overflow-tab');
+            }
+            nav.insertBefore(node, moreDropdown);
+            visibleCount++;
+          } else {
+            node.className = '';
+            var btn = node.querySelector('button');
+            if (btn) {
+              btn.className = 'dropdown-item';
+              btn.setAttribute('data-task-overflow-tab', '1');
+            }
+            moreMenu.appendChild(node);
+          }
+        });
+
+        var targets = {
+          subtasks: 'detailSubtasks',
+          checklists: 'detailChecklists',
+          comments: 'detailComments',
+          worklogs: 'detailWorklogs',
+          dependencies: 'detailDependencies',
+          files: 'detailFiles',
+          activity: 'detailActivity',
+          knowledge: 'detailKnowledge'
+        };
+        var firstValidCode = order.find(function (c) { return tabNodes[c]; });
+        if (firstValidCode && targets[firstValidCode]) {
+          var targetId = targets[firstValidCode];
+          document.querySelectorAll('.tab-content > .tab-pane').forEach(function (pane) {
+            if (pane.id === targetId) {
+              pane.classList.add('show', 'active');
+            } else {
+              pane.classList.remove('show', 'active');
+            }
+          });
+        }
+      } catch (e) {}
+    })();
+    </script>
 
     <div class="tab-content">
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>

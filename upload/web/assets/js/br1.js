@@ -3926,28 +3926,21 @@ window.CRM.br1 = (function () {
   }
 
   async function loadTaskReferenceData() {
-    try {
-      var usersEnvelope = await window.CRM.api.request('api/v1/users', { query: { limit: 100, is_active: 1 } });
-      availableUsers = window.CRM.api.items(usersEnvelope);
-    } catch (e) {
-      availableUsers = [];
-    }
+    var pUsers = window.CRM.api.request('api/v1/users', { query: { limit: 100, is_active: 1 } })
+      .then(function (res) { availableUsers = window.CRM.api.items(res); })
+      .catch(function () { availableUsers = []; });
 
-    try {
-      var tagsEnvelope = await window.CRM.api.request('api/v1/tags', { query: { limit: 100 } });
-      availableTags = window.CRM.api.items(tagsEnvelope);
-    } catch (e) {
-      availableTags = [];
-    }
+    var pTags = window.CRM.api.request('api/v1/tags', { query: { limit: 100 } })
+      .then(function (res) { availableTags = window.CRM.api.items(res); })
+      .catch(function () { availableTags = []; });
 
-    try {
-      var projectsEnvelope = await window.CRM.api.request('api/v1/projects', { query: { limit: 100 } });
-      availableProjects = window.CRM.api.items(projectsEnvelope);
-    } catch (e) {
-      availableProjects = [];
-    }
+    var pProjects = window.CRM.api.request('api/v1/projects', { query: { limit: 100 } })
+      .then(function (res) { availableProjects = window.CRM.api.items(res); })
+      .catch(function () { availableProjects = []; });
 
-    await loadTaskStatusesDictionary();
+    var pStatuses = loadTaskStatusesDictionary().catch(function () {});
+
+    await Promise.all([pUsers, pTags, pProjects, pStatuses]);
 
     renderCreateTaskProjectOptions();
   }
@@ -9297,35 +9290,57 @@ window.CRM.br1 = (function () {
   }
 
   async function loadTaskTabsOrder() {
+    var cached = null;
     try {
-      var prefEnv = await window.CRM.api.request('api/v1/profile/preferences', { silent: true });
+      var rawLocal = localStorage.getItem('crm_task_tabs_order');
+      if (rawLocal) {
+        var parsedLocal = JSON.parse(rawLocal);
+        if (Array.isArray(parsedLocal) && parsedLocal.length > 0) {
+          cached = normalizeTabsOrder(parsedLocal);
+        }
+      }
+    } catch (e) {}
+
+    try {
+      var pPref = window.CRM.api.request('api/v1/profile/preferences', { silent: true });
+      var pSet = window.CRM.api.request('api/v1/settings/public', { silent: true });
+      var results = await Promise.all([pPref, pSet]);
+      var prefEnv = results[0];
+      var setEnv = results[1];
+
       var prefs = (prefEnv && prefEnv.data && prefEnv.data.preferences) || {};
       if (prefs.tasks_tabs_order) {
         var raw = prefs.tasks_tabs_order;
         var parsed = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : null);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return normalizeTabsOrder(parsed);
+          var resolved = normalizeTabsOrder(parsed);
+          try { localStorage.setItem('crm_task_tabs_order', JSON.stringify(resolved)); } catch (e) {}
+          return resolved;
         }
       }
 
-      var setEnv = await window.CRM.api.request('api/v1/settings/public', { silent: true });
       var items = (setEnv && setEnv.data && setEnv.data.items) || [];
       var sysTabOrder = items.find(function (it) { return it.name === 'tasks.tabs_order'; });
       if (sysTabOrder && sysTabOrder.value) {
         var rawVal = sysTabOrder.value;
         var parsedVal = Array.isArray(rawVal) ? rawVal : (typeof rawVal === 'string' ? JSON.parse(rawVal) : null);
         if (Array.isArray(parsedVal) && parsedVal.length > 0) {
-          return normalizeTabsOrder(parsedVal);
+          var resolvedGlobal = normalizeTabsOrder(parsedVal);
+          try { localStorage.setItem('crm_task_tabs_order', JSON.stringify(resolvedGlobal)); } catch (e) {}
+          return resolvedGlobal;
         }
       }
     } catch (e) {
       // fallback
     }
+
+    if (cached) return cached;
     return DEFAULT_TASK_TABS_ORDER.slice();
   }
 
   function applyTaskTabsOrder(order) {
     currentTaskTabsOrder = order.slice();
+    try { localStorage.setItem('crm_task_tabs_order', JSON.stringify(order)); } catch (e) {}
     var nav = document.getElementById('taskDetailTabsNav');
     var moreDropdown = document.getElementById('taskTabsMoreDropdown');
     var moreMenu = document.getElementById('taskTabsMoreMenu');
@@ -9523,6 +9538,7 @@ window.CRM.br1 = (function () {
       resetBtn.addEventListener('click', async function () {
         resetBtn.disabled = true;
         try {
+          try { localStorage.removeItem('crm_task_tabs_order'); } catch (e) {}
           await window.CRM.api.request('api/v1/profile/preferences', {
             method: 'PATCH',
             body: { preferences: { tasks_tabs_order: null } }
@@ -9567,13 +9583,15 @@ window.CRM.br1 = (function () {
     var canEditTask = false;
     var canWorkTask = false;
 
-    await loadTaskReferenceData();
-    await loadTaskTags(taskId);
-    await loadProjectForTask();
+    var pRef = loadTaskReferenceData();
+    var pTags = loadTaskTags(taskId);
+    var pProj = loadProjectForTask();
+    var pCustom = (currentTask && (!currentTask.custom_fields || !Array.isArray(currentTask.custom_fields)))
+      ? loadAndRenderTaskCustomFields(taskId)
+      : Promise.resolve();
+    var pTabs = loadTaskTabsOrder();
 
-    if (currentTask && (!currentTask.custom_fields || !Array.isArray(currentTask.custom_fields))) {
-      await loadAndRenderTaskCustomFields(taskId);
-    }
+    await Promise.all([pRef, pTags, pProj, pCustom]);
 
     if (currentTask) {
       currentUserPublicId = getCurrentUserPublicId();
@@ -9633,7 +9651,7 @@ window.CRM.br1 = (function () {
       loadInitialTaskDeliverables(taskId, canWorkTask, canEditTask);
 
       // Configurable task tabs
-      var tabOrder = await loadTaskTabsOrder();
+      var tabOrder = await pTabs;
       applyTaskTabsOrder(tabOrder);
       bindTaskTabsConfigModal(canManageTasks);
 
