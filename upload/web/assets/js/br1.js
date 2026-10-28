@@ -9121,7 +9121,10 @@ window.CRM.br1 = (function () {
 
         searchTimer = setTimeout(async function () {
           try {
-            var res = await window.CRM.api.request('api/v1/task-relations/search-tasks?q=' + encodeURIComponent(q) + '&limit=10', { silent: true });
+            var res = await window.CRM.api.request('api/v1/task-relations/search-tasks', {
+              query: { q: q, limit: 10 },
+              silent: true
+            });
             var items = (res && res.data && res.data.items) || [];
             items = items.filter(function (it) {
               return String(it.public_id || '') !== String(taskId);

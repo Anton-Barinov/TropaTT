@@ -169,15 +169,25 @@ window.CRM.api = (function () {
 
   function buildUrl(route, query) {
     var url = new URL(getBaseUrl(), window.location.origin);
-    url.searchParams.set('route', route);
-
-    if (query && typeof query === 'object') {
-      Object.keys(query).forEach(function (key) {
-        var value = query[key];
-        if (value === undefined || value === null || value === '') return;
-        url.searchParams.set(key, String(value));
+    var cleanRoute = String(route || '');
+    var embeddedQuery = {};
+    var qIndex = cleanRoute.indexOf('?');
+    if (qIndex !== -1) {
+      var searchStr = cleanRoute.substring(qIndex + 1);
+      cleanRoute = cleanRoute.substring(0, qIndex);
+      var sp = new URLSearchParams(searchStr);
+      sp.forEach(function (v, k) {
+        embeddedQuery[k] = v;
       });
     }
+    url.searchParams.set('route', cleanRoute);
+
+    var mergedQuery = Object.assign({}, embeddedQuery, query && typeof query === 'object' ? query : {});
+    Object.keys(mergedQuery).forEach(function (key) {
+      var value = mergedQuery[key];
+      if (value === undefined || value === null || value === '') return;
+      url.searchParams.set(key, String(value));
+    });
 
     return url.toString();
   }
