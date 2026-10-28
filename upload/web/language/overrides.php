@@ -24,6 +24,10 @@ return array (
     array (
       'section_task_statuses' => 'Статусы задач',
       'section_project_statuses' => 'Статусы проектов',
+      'th_progress' => 'Прогресс %',
+      'field_progress_percent' => 'Прогресс в статус-баре (%)',
+      'placeholder_progress_percent' => 'Авторасчёт (оставьте пустым)',
+      'field_progress_percent_hint' => 'Фиксированный процент прогресса (0–100) при переходе задачи в этот статус. Если не указан, рассчитывается автоматически.',
     ),
     'client_detail' =>
     array (
@@ -284,6 +288,17 @@ return array (
     'task_detail' =>
     array (
       'sidebar_edit' => 'Настроить блоки',
+      'linked_tasks_title' => 'Связанные задачи',
+      'link_task_btn' => 'Связать задачу',
+      'linked_tasks_loading' => 'Загрузка связей...',
+      'config_tabs_tooltip' => 'Настроить порядок закладок',
+      'config_tabs' => 'Настроить закладки',
+      'progress_title' => 'Прогресс',
+      'tabs_config_title' => 'Порядок закладок в карточке задачи',
+      'tabs_config_hint' => 'Настройте порядок вкладок под себя. Первая вкладка будет открываться по умолчанию при входе в задачу.',
+      'tabs_config_reset' => 'Сбросить к умолчанию',
+      'tabs_config_save_global' => 'Сохранить для всех',
+      'tabs_config_save_personal' => 'Сохранить для себя',
     ),
     'knowledge' =>
     array (
@@ -357,6 +372,10 @@ return array (
     array (
       'section_task_statuses' => 'Task statuses',
       'section_project_statuses' => 'Project statuses',
+      'th_progress' => 'Progress %',
+      'field_progress_percent' => 'Progress in status bar (%)',
+      'placeholder_progress_percent' => 'Auto-calculate (leave empty)',
+      'field_progress_percent_hint' => 'Fixed progress percentage (0–100) when a task enters this status. If left empty, calculated automatically.',
     ),
     'client_detail' =>
     array (
@@ -573,6 +592,17 @@ return array (
     'task_detail' =>
     array (
       'sidebar_edit' => 'Customize blocks',
+      'linked_tasks_title' => 'Linked tasks',
+      'link_task_btn' => 'Link task',
+      'linked_tasks_loading' => 'Loading linked tasks...',
+      'config_tabs_tooltip' => 'Configure tabs order',
+      'config_tabs' => 'Configure tabs',
+      'progress_title' => 'Progress',
+      'tabs_config_title' => 'Task detail tabs order',
+      'tabs_config_hint' => 'Customize the tab order. The first tab will be selected by default when opening a task.',
+      'tabs_config_reset' => 'Reset to default',
+      'tabs_config_save_global' => 'Save for everyone',
+      'tabs_config_save_personal' => 'Save for myself',
     ),
     'knowledge' =>
     array (
@@ -836,6 +866,10 @@ return array (
     array (
       'section_task_statuses' => '任务状态',
       'section_project_statuses' => '项目状态',
+      'th_progress' => '进度 %',
+      'field_progress_percent' => '状态栏中的进度 (%)',
+      'placeholder_progress_percent' => '自动计算（留空）',
+      'field_progress_percent_hint' => '任务进入此状态时的固定进度百分比 (0–100)。如未指定，将自动计算。',
     ),
     'client_detail' =>
     array (
@@ -1097,6 +1131,17 @@ return array (
     'task_detail' =>
     array (
       'sidebar_edit' => '自定义模块',
+      'linked_tasks_title' => '关联任务',
+      'link_task_btn' => '关联任务',
+      'linked_tasks_loading' => '正在加载关联任务...',
+      'config_tabs_tooltip' => '配置标签页顺序',
+      'config_tabs' => '配置标签页',
+      'progress_title' => '进度',
+      'tabs_config_title' => '任务卡片标签页顺序',
+      'tabs_config_hint' => '根据个人偏好自定义标签页顺序。进入任务时将默认打开第一个标签页。',
+      'tabs_config_reset' => '重置为默认',
+      'tabs_config_save_global' => '保存为全局默认',
+      'tabs_config_save_personal' => '仅为自己保存',
     ),
     'module_wip_limit' =>
     array (

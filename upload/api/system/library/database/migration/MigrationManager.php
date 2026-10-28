@@ -124,6 +124,7 @@ final class MigrationManager
             new AiAgentNameCleanupMigration(),
             new InstallGranularPermissionsMigration(),
             new IdempotencyClaimHardeningMigration(),
+            new StatusProgressPercentMigration(),
         ];
     }
 
