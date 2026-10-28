@@ -86,7 +86,7 @@
       </ul>
       <?php if (empty($is_external_user)): ?>
       <button class="btn btn-sm btn-outline-secondary crm-btn-compact ms-2 flex-shrink-0" type="button" id="taskTabsConfigBtn" title="<?= htmlspecialchars($t('task_detail.config_tabs_tooltip', 'Настроить порядок закладок'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('task_detail.config_tabs_tooltip', 'Настроить порядок закладок'), ENT_QUOTES, 'UTF-8') ?>">
-        <i class="fa-solid fa-sliders me-1"></i><span class="d-none d-md-inline" data-i18n="task_detail.config_tabs"><?= htmlspecialchars($t('task_detail.config_tabs', 'Закладки'), ENT_QUOTES, 'UTF-8') ?></span>
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
       </button>
       <?php endif; ?>
     </div>

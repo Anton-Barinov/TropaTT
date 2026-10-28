@@ -29,6 +29,14 @@ final class TaskSidebarController extends BaseController
     private const SIDEBAR_POSITION = 'task.detail.sidebar';
 
     private const CORE_BLOCKS = [
+        'progress' => [
+            'label_key' => 'task_detail.progress_title',
+            'label' => 'Прогресс',
+            'description_key' => 'task_detail.progress_hint',
+            'description' => 'Статус-бар прогресса выполнения задачи.',
+            'permissions' => [],
+            'default_enabled' => true,
+        ],
         'estimates' => [
             'label_key' => 'task_detail.estimates_title',
             'label' => 'Оценки',
