@@ -2256,6 +2256,110 @@ window.CRM.br1 = (function () {
         return;
       }
 
+      var DRAFT_KEY = 'crm_draft_task_create';
+
+      function saveTaskCreateDraft() {
+        try {
+          var titleIn = form.querySelector('[name="title"]');
+          var descIn = form.querySelector('[name="description"]');
+          var projIn = form.querySelector('[name="project_public_id"]');
+          var clientIn = form.querySelector('[name="client_public_id"]');
+          var statusIn = form.querySelector('[name="status"]');
+          var priorIn = form.querySelector('[name="priority"]');
+          var assignIn = form.querySelector('[name="assignee_user_public_id"]');
+          var startIn = form.querySelector('[name="start_at"]');
+          var dueIn = form.querySelector('[name="due_at"]');
+
+          var titleVal = titleIn ? String(titleIn.value || '').trim() : '';
+          var descVal = descIn ? getVisualEditorTextareaValue(descIn).trim() : '';
+
+          if (!titleVal && !descVal) {
+            localStorage.removeItem(DRAFT_KEY);
+            return;
+          }
+
+          var draft = {
+            title: titleVal,
+            description: descVal,
+            project_public_id: projIn ? projIn.value : '',
+            client_public_id: clientIn ? clientIn.value : '',
+            status: statusIn ? statusIn.value : 'new',
+            priority: priorIn ? priorIn.value : 'normal',
+            assignee_user_public_id: assignIn ? assignIn.value : '',
+            start_at: startIn ? startIn.value : '',
+            due_at: dueIn ? dueIn.value : '',
+            updated_at: Date.now()
+          };
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        } catch (e) {
+          // ignore storage issues
+        }
+      }
+
+      var draftTimer = null;
+      function scheduleSaveTaskCreateDraft() {
+        if (draftTimer) clearTimeout(draftTimer);
+        draftTimer = setTimeout(saveTaskCreateDraft, 350);
+      }
+
+      form.addEventListener('input', scheduleSaveTaskCreateDraft);
+      form.addEventListener('change', scheduleSaveTaskCreateDraft);
+
+      function restoreTaskCreateDraft() {
+        try {
+          var raw = localStorage.getItem(DRAFT_KEY);
+          if (!raw) return false;
+          var draft = JSON.parse(raw);
+          if (!draft || (!draft.title && !draft.description)) return false;
+
+          var titleIn = form.querySelector('[name="title"]');
+          var descIn = form.querySelector('[name="description"]');
+          var projIn = form.querySelector('[name="project_public_id"]');
+          var clientIn = form.querySelector('[name="client_public_id"]');
+          var statusIn = form.querySelector('[name="status"]');
+          var priorIn = form.querySelector('[name="priority"]');
+          var assignIn = form.querySelector('[name="assignee_user_public_id"]');
+          var startIn = form.querySelector('[name="start_at"]');
+          var dueIn = form.querySelector('[name="due_at"]');
+
+          if (titleIn && !titleIn.value && draft.title) titleIn.value = draft.title;
+          if (descIn && draft.description) {
+            try {
+              setVisualEditorTextareaValue(descIn, draft.description);
+            } catch (err) {
+              descIn.value = draft.description;
+            }
+          }
+          if (projIn && draft.project_public_id && !projIn.value) projIn.value = draft.project_public_id;
+          if (clientIn && draft.client_public_id && !clientIn.value) clientIn.value = draft.client_public_id;
+          if (statusIn && draft.status) statusIn.value = draft.status;
+          if (priorIn && draft.priority) priorIn.value = draft.priority;
+          if (assignIn && draft.assignee_user_public_id && !assignIn.value) assignIn.value = draft.assignee_user_public_id;
+          if (startIn && draft.start_at) startIn.value = draft.start_at;
+          if (dueIn && draft.due_at) dueIn.value = draft.due_at;
+
+          var existingAlert = form.querySelector('#createTaskDraftAlert');
+          if (!existingAlert) {
+            var alertDiv = document.createElement('div');
+            alertDiv.id = 'createTaskDraftAlert';
+            alertDiv.className = 'alert alert-info py-1 px-2 d-flex justify-content-between align-items-center mb-2 small';
+            alertDiv.innerHTML = '<span><i class="fa-solid fa-clock-rotate-left me-1"></i> Восстановлен несохранённый черновик задачи</span><button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="discardTaskDraftBtn">Очистить</button>';
+            form.insertBefore(alertDiv, form.firstChild);
+            var discardBtn = alertDiv.querySelector('#discardTaskDraftBtn');
+            if (discardBtn) {
+              discardBtn.addEventListener('click', function () {
+                localStorage.removeItem(DRAFT_KEY);
+                alertDiv.remove();
+                primeCreateTaskDefaults();
+              });
+            }
+          }
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
       modal.addEventListener('show.bs.modal', async function () {
         await ensureCreateTaskDictionaries();
         primeCreateTaskDefaults();
@@ -2264,6 +2368,7 @@ window.CRM.br1 = (function () {
            the async dictionary load caused a render cycle that cleared it. */
         setTimeout(function () {
           applyCreateTaskPrefill();
+          restoreTaskCreateDraft();
         }, 150);
       });
 
@@ -2274,14 +2379,6 @@ window.CRM.br1 = (function () {
         primeCreateTaskDefaults();
       });
 
-      /* Late-open guard: the delegated [data-open-modal] click handler
-         (modals.js) opens the modal immediately, while this flow — and its
-         show.bs.modal dictionary loader — binds only after session hydration
-         finishes. A fast click therefore leaves an open modal with empty
-         project/assignee/status/tag selects. If the modal is already open at
-         bind time, hydrate the dictionaries now instead of waiting for a
-         show event that already fired. Only reset/prefill when the user has
-         not started typing, so an in-progress title is never wiped. */
       if (modal.classList.contains('show')) {
         ensureCreateTaskDictionaries().then(function () {
           var titleInput = form.querySelector('[name="title"]');
@@ -2291,6 +2388,7 @@ window.CRM.br1 = (function () {
             applyCreateTaskPrefill();
             setTimeout(function () {
               applyCreateTaskPrefill();
+              restoreTaskCreateDraft();
             }, 150);
           }
         });
@@ -2394,6 +2492,12 @@ window.CRM.br1 = (function () {
           }
 
           notify(window.CRM.i18n.t('js.br1.zadacha_sozdana', 'Задача создана'));
+          try {
+            localStorage.removeItem(DRAFT_KEY);
+            var notice = form.querySelector('#createTaskDraftAlert');
+            if (notice) notice.remove();
+          } catch (ignore) { void ignore; }
+
           if (window.bootstrap) {
             window.bootstrap.Modal.getOrCreateInstance(modal).hide();
           }
@@ -2404,7 +2508,14 @@ window.CRM.br1 = (function () {
           }
         } catch (error) {
           var envelope = error && error.envelope ? error.envelope : null;
-          notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_zadachu', 'Не удалось создать задачу'), 'error');
+          var is401 = (error && (error.status === 401 || error.code === 'UNAUTHORIZED'))
+            || (envelope && (envelope.code === 'UNAUTHORIZED' || envelope.status === 401));
+          if (is401) {
+            saveTaskCreateDraft();
+            notify('Сессия истекла! Ваш черновик надёжно сохранён. Откройте CRM в соседней вкладке и войдите снова — форма не сбросится.', 'error', 12000);
+          } else {
+            notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_zadachu', 'Не удалось создать задачу'), 'error');
+          }
         } finally {
           if (submitBtn) submitBtn.disabled = false;
         }
@@ -3029,30 +3140,129 @@ window.CRM.br1 = (function () {
     }
   }
 
-  function renderTaskProgressByStatus(statusCode) {
+  function calculateTaskDeliverables() {
+    var total = 0;
+    var completed = 0;
+
+    if (Array.isArray(currentTaskChecklists)) {
+      currentTaskChecklists.forEach(function (chk) {
+        var items = (chk && Array.isArray(chk.items)) ? chk.items : [];
+        items.forEach(function (it) {
+          total += 1;
+          if (Number(it && it.is_done) === 1) completed += 1;
+        });
+      });
+    }
+
+    if (Array.isArray(currentTaskSubtasks)) {
+      currentTaskSubtasks.forEach(function (sub) {
+        total += 1;
+        var subCode = String(sub && sub.status_code || '').toLowerCase();
+        if (subCode === 'done' || subCode === 'completed') completed += 1;
+      });
+    }
+
+    return { total: total, completed: completed };
+  }
+
+  function renderTaskProgress(task) {
     var progressBar = document.getElementById('taskProgressBar');
     var progressHint = document.getElementById('taskProgressHint');
+    var percentBadge = document.getElementById('taskProgressPercentBadge');
     if (!progressBar) return;
 
-    var code = String(statusCode || '').toLowerCase();
-    var statuses = orderedTaskStatuses(code);
+    var cur = task || currentTask || {};
+    var code = String(cur.status_code || '').toLowerCase();
+    var deliverables = calculateTaskDeliverables();
+    var total = deliverables.total;
+    var completed = deliverables.completed;
+
+    var isDone = (code === 'done' || code === 'completed');
+    var isCanceled = (code === 'canceled' || code === 'cancelled');
+    var isHold = (code === 'on_hold' || code === 'paused');
+    var isBlocked = (code === 'blocked');
+
+    var currentStatusObj = null;
+    if (availableTaskStatuses && availableTaskStatuses.length) {
+      currentStatusObj = availableTaskStatuses.find(function (s) {
+        return String(s.code || '').toLowerCase() === code;
+      });
+    }
+    if (currentStatusObj && Number(currentStatusObj.is_closed || 0) === 1) {
+      isDone = true;
+    }
+
     var percent = 0;
-    if (code === 'done' || code === 'completed') {
+    var hintText = '';
+
+    if (isDone) {
       percent = 100;
-    } else if (statuses.length > 1) {
-      var index = statuses.findIndex(function (item) { return String(item.code || '').toLowerCase() === code; });
-      if (index >= 0) {
-        percent = Math.round((index / (statuses.length - 1)) * 100);
+      hintText = (total > 0)
+        ? 'Задача выполнена (закрыто ' + completed + ' из ' + total + ' пунктов)'
+        : 'Задача выполнена (100%)';
+    } else if (isCanceled) {
+      percent = 0;
+      hintText = 'Задача отменена';
+    } else if (total > 0) {
+      // Deliverables-driven calculation
+      percent = Math.round((completed / total) * 100);
+      var stateSuffix = isHold ? ' · ⏸ На паузе' : (isBlocked ? ' · ⚠️ Блокирована' : '');
+      hintText = 'Чеклисты и подзадачи: ' + completed + ' из ' + total + ' (' + percent + '%)' + stateSuffix;
+    } else {
+      // Workflow status-driven calculation
+      if (currentStatusObj && currentStatusObj.progress_percent !== null && currentStatusObj.progress_percent !== undefined && currentStatusObj.progress_percent !== '') {
+        percent = Math.max(0, Math.min(100, Number(currentStatusObj.progress_percent)));
+        var stateSuffix = isHold ? ' · ⏸ На паузе' : (isBlocked ? ' · ⚠️ Блокирована' : '');
+        hintText = 'Статус «' + statusLabel(code) + '»: ' + percent + '%' + stateSuffix;
+      } else if (isHold) {
+        percent = 50;
+        hintText = '⏸ Задача на паузе';
+      } else if (isBlocked) {
+        percent = 30;
+        hintText = '⚠️ Задача заблокирована';
+      } else {
+        var all = orderedTaskStatuses(code);
+        var linear = all.filter(function (st) {
+          var c = String(st.code || '').toLowerCase();
+          return c !== 'on_hold' && c !== 'paused' && c !== 'blocked' && c !== 'canceled' && c !== 'cancelled';
+        });
+        if (linear.length > 1) {
+          var idx = linear.findIndex(function (st) { return String(st.code || '').toLowerCase() === code; });
+          if (idx >= 0) {
+            percent = Math.round((idx / (linear.length - 1)) * 100);
+          }
+        } else if (code) {
+          percent = 50;
+        }
+        hintText = 'Статус «' + statusLabel(code) + '»: ' + percent + '% воронки';
       }
-    } else if (statuses.length === 1 && code) {
-      percent = 50;
     }
 
     progressBar.style.width = percent + '%';
     progressBar.textContent = percent + '%';
-    if (progressHint) {
-      progressHint.textContent = window.CRM.i18n.t('js.br1.progress', 'Прогресс: ') + String(percent) + window.CRM.i18n.t('js.br1.pozitsiya_statusa', '% (позиция статуса «') + statusLabel(code) + window.CRM.i18n.t('js.br1.v_voronke_statusov', '» в воронке статусов).');
+    progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+    if (percent === 100 || isDone) {
+      progressBar.classList.add('bg-success');
+    } else if (isHold) {
+      progressBar.classList.add('bg-secondary');
+    } else if (isBlocked) {
+      progressBar.classList.add('bg-warning', 'text-dark');
+    } else {
+      progressBar.classList.add('bg-primary');
     }
+
+    if (progressHint) {
+      progressHint.textContent = hintText;
+    }
+    if (percentBadge) {
+      percentBadge.textContent = percent + '%';
+      percentBadge.className = 'badge fw-bold ' + (percent === 100 ? 'bg-success text-white' : (isHold ? 'bg-secondary text-white' : (isBlocked ? 'bg-warning text-dark' : 'bg-primary-subtle text-primary')));
+    }
+  }
+
+  function renderTaskProgressByStatus(statusCode) {
+    if (currentTask) currentTask.status_code = statusCode;
+    renderTaskProgress(currentTask);
   }
 
   function renderTaskRiskBanner() {
@@ -4392,6 +4602,7 @@ window.CRM.br1 = (function () {
       var envelope = await window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks');
       currentTaskSubtasks = window.CRM.api.items(envelope);
       renderSubtasks(currentTaskSubtasks, canWorkTask, canCreateTask);
+      renderTaskProgress(currentTask);
     } catch (e) {
       currentTaskSubtasks = [];
       renderSubtasks([], canWorkTask, canCreateTask);
@@ -4573,6 +4784,7 @@ window.CRM.br1 = (function () {
         }
       }
       renderChecklists(currentTaskChecklists, canEditTask);
+      renderTaskProgress(currentTask);
     } catch (e) {
       currentTaskChecklists = [];
       checklistActiveEditId = '';
@@ -8537,10 +8749,36 @@ window.CRM.br1 = (function () {
         + window.CRM.i18n.t('js.br1.dedlayn_6', ' · Дедлайн: ') + (currentTask.due_at ? formatDate(currentTask.due_at) : window.CRM.i18n.t('js.br1.ne_zadan_4', 'не задан'));
     }
 
+    // Problem 3: Parent task visibility in breadcrumbs & hero chips
+    var parentBreadcrumb = document.getElementById('taskParentBreadcrumb');
+    var parentBreadcrumbLink = document.getElementById('taskParentBreadcrumbLink');
+    var parentPill = document.getElementById('taskParentPill');
+    var parentPillText = document.getElementById('taskParentPillText');
+    if (currentTask.parent_task_public_id) {
+      var parentKey = currentTask.parent_task_key ? currentTask.parent_task_key + ' ' : '';
+      var parentTitle = currentTask.parent_task_title || window.CRM.i18n.t('js.br1.parent_task', 'Родительская задача');
+      var parentLabel = parentKey + parentTitle;
+      var parentUrl = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(currentTask.parent_task_public_id);
+      if (parentBreadcrumb && parentBreadcrumbLink) {
+        parentBreadcrumbLink.href = parentUrl;
+        parentBreadcrumbLink.textContent = parentLabel;
+        parentBreadcrumb.classList.remove('d-none');
+      }
+      if (parentPill && parentPillText) {
+        parentPill.href = parentUrl;
+        parentPillText.textContent = parentLabel;
+        parentPill.title = 'Родительская задача: ' + parentLabel;
+        parentPill.classList.remove('d-none');
+      }
+    } else {
+      if (parentBreadcrumb) parentBreadcrumb.classList.add('d-none');
+      if (parentPill) parentPill.classList.add('d-none');
+    }
+
     renderTaskMetaChips();
     renderTaskDescription(currentTask.description);
     renderTaskCustomFields(currentTask.custom_fields);
-    renderTaskProgressByStatus(currentTask.status_code);
+    renderTaskProgress(currentTask);
     renderTaskRiskBanner();
     window.CRM.currentTaskProjectId = currentTask.project_public_id || '';
     renderTaskSourceChat();
@@ -8698,6 +8936,400 @@ window.CRM.br1 = (function () {
     });
   }
 
+  async function loadAndRenderTaskRelations(taskId, canEdit) {
+    var container = document.getElementById('taskLinkedTasksList');
+    var counter = document.getElementById('taskLinkedCounter');
+    if (!container) return;
+
+    try {
+      var env = await window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/relations', { silent: true });
+      var data = (env && env.data) || {};
+      var groups = data.groups || {};
+
+      var groupDefs = [
+        { key: 'blocking', title: 'Блокирует', icon: 'fa-solid fa-arrow-right text-danger' },
+        { key: 'blocked_by', title: 'Блокируется', icon: 'fa-solid fa-arrow-left text-warning' },
+        { key: 'relates_to', title: 'Связана с', icon: 'fa-solid fa-link text-primary' },
+        { key: 'duplicates', title: 'Дублирует', icon: 'fa-regular fa-clone text-secondary' },
+        { key: 'implements', title: 'Реализует', icon: 'fa-solid fa-check-double text-success' },
+        { key: 'implemented_by', title: 'Реализуется в', icon: 'fa-solid fa-code text-info' },
+        { key: 'causes', title: 'Причина для', icon: 'fa-solid fa-triangle-exclamation text-warning' },
+        { key: 'caused_by', title: 'Вызвана', icon: 'fa-solid fa-bug text-danger' },
+        { key: 'parent_of', title: 'Подзадачи', icon: 'fa-solid fa-diagram-project text-secondary' },
+        { key: 'child_of', title: 'Родительская задача', icon: 'fa-solid fa-turn-up fa-rotate-90 text-secondary' }
+      ];
+
+      var totalCount = 0;
+      var html = '';
+
+      groupDefs.forEach(function (g) {
+        var items = groups[g.key];
+        if (!Array.isArray(items) || items.length === 0) return;
+        totalCount += items.length;
+
+        html += '<div class="crm-linked-group mb-3">';
+        html += '<div class="small fw-semibold text-muted text-uppercase mb-1 d-flex align-items-center gap-1"><i class="' + g.icon + '"></i> ' + escapeHtml(g.title) + ' <span class="badge text-bg-light border ms-1">' + items.length + '</span></div>';
+        html += '<div class="list-group list-group-flush border rounded-2">';
+
+        items.forEach(function (item) {
+          var relId = escapeHtml(String(item.relation_public_id || ''));
+          var itemTaskId = escapeHtml(String(item.task_public_id || ''));
+          var itemKey = escapeHtml(String(item.task_key || itemTaskId));
+          var itemTitle = escapeHtml(String(item.title || 'Без названия'));
+          var statusCode = String(item.status_code || '');
+          var bg = statusColor(statusCode) || '#64748b';
+          var textClr = statusTextColor(bg);
+          var assignee = escapeHtml(String(item.assignee_name || ''));
+
+          html += '<div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3 gap-2">';
+          html += '<div class="d-flex align-items-center gap-2 flex-grow-1 text-truncate">';
+          html += '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(itemTaskId) + '" class="fw-bold text-decoration-none text-nowrap">' + itemKey + '</a>';
+          html += '<a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(itemTaskId) + '" class="text-truncate text-body text-decoration-none">' + itemTitle + '</a>';
+          html += '</div>';
+
+          html += '<div class="d-flex align-items-center gap-2 flex-shrink-0">';
+          html += '<span class="crm-badge" style="background-color:' + bg + ';color:' + textClr + ';border-color:' + bg + ';">' + escapeHtml(statusLabel(statusCode)) + '</span>';
+          if (assignee) {
+            html += '<span class="small text-muted d-none d-sm-inline"><i class="fa-regular fa-user me-1"></i>' + assignee + '</span>';
+          }
+          if (canEdit && relId) {
+            html += '<button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" data-task-relation-delete="' + relId + '" title="Удалить связь" aria-label="Удалить связь"><i class="fa-regular fa-trash-can"></i></button>';
+          }
+          html += '</div>';
+          html += '</div>';
+        });
+
+        html += '</div></div>';
+      });
+
+      if (counter) {
+        counter.textContent = String(totalCount);
+        counter.classList.toggle('d-none', totalCount === 0);
+      }
+
+      if (totalCount === 0) {
+        container.innerHTML = '<div class="text-muted small py-1"><i class="fa-solid fa-link-slash me-1"></i> Связанных задач нет.</div>';
+      } else {
+        container.innerHTML = html;
+      }
+    } catch (e) {
+      container.innerHTML = '<div class="text-muted small py-1">Связи не загружены.</div>';
+    }
+  }
+
+  document.addEventListener('click', async function (e) {
+    var delBtn = e.target.closest('[data-task-relation-delete]');
+    if (!delBtn) return;
+    var relId = delBtn.getAttribute('data-task-relation-delete');
+    if (!relId) return;
+    if (!window.confirm('Удалить эту связь между задачами?')) return;
+    try {
+      await window.CRM.api.request('api/v1/task-relations/' + encodeURIComponent(relId), { method: 'DELETE' });
+      notify('Связь удалена');
+      if (currentTask && currentTask.public_id) {
+        loadAndRenderTaskRelations(currentTask.public_id, true);
+      }
+    } catch (err) {
+      notify('Ошибка при удалении связи', 'error');
+    }
+  });
+
+  async function loadInitialTaskDeliverables(taskId, canWorkTask, canEditTask) {
+    try {
+      var results = await Promise.all([
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks', { silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/checklists', { silent: true }).catch(function () { return null; })
+      ]);
+      if (results[0]) {
+        currentTaskSubtasks = window.CRM.api.items(results[0]);
+        setTaskTabCounter('detailSubtasksCounter', currentTaskSubtasks.length);
+      }
+      if (results[1]) {
+        currentTaskChecklists = window.CRM.api.items(results[1]);
+        setTaskTabCounter('detailChecklistsCounter', currentTaskChecklists.length);
+      }
+      renderTaskProgress(currentTask);
+    } catch (e) {
+      // silent
+    }
+  }
+
+  var TASK_TAB_DEFS = {
+    subtasks: { code: 'subtasks', title: 'Подзадачи', target: '#detailSubtasks', counterId: 'detailSubtasksCounter', internalOnly: true },
+    checklists: { code: 'checklists', title: 'Чеклисты', target: '#detailChecklists', counterId: 'detailChecklistsCounter', internalOnly: true },
+    comments: { code: 'comments', title: 'Комментарии', target: '#detailComments', counterId: 'detailCommentsCounter', internalOnly: false },
+    worklogs: { code: 'worklogs', title: 'Учет времени', target: '#detailWorklogs', internalOnly: false },
+    dependencies: { code: 'dependencies', title: 'Зависимости', target: '#detailDependencies', counterId: 'detailDependenciesCounter', internalOnly: true },
+    files: { code: 'files', title: 'Файлы', target: '#detailFiles', internalOnly: false },
+    activity: { code: 'activity', title: 'История', target: '#detailActivity', internalOnly: true },
+    knowledge: { code: 'knowledge', title: 'База знаний', target: '#detailKnowledge', internalOnly: true }
+  };
+  var DEFAULT_TASK_TABS_ORDER = ['subtasks', 'checklists', 'comments', 'worklogs', 'dependencies', 'files', 'activity', 'knowledge'];
+  var currentTaskTabsOrder = DEFAULT_TASK_TABS_ORDER.slice();
+
+  function normalizeTabsOrder(list) {
+    var valid = [];
+    var seen = {};
+    if (Array.isArray(list)) {
+      list.forEach(function (code) {
+        var c = String(code || '').trim();
+        if (TASK_TAB_DEFS[c] && !seen[c]) {
+          valid.push(c);
+          seen[c] = true;
+        }
+      });
+    }
+    DEFAULT_TASK_TABS_ORDER.forEach(function (c) {
+      if (!seen[c]) valid.push(c);
+    });
+    return valid;
+  }
+
+  async function loadTaskTabsOrder() {
+    try {
+      var prefEnv = await window.CRM.api.request('api/v1/profile/preferences', { silent: true });
+      var prefs = (prefEnv && prefEnv.data && prefEnv.data.preferences) || {};
+      if (prefs.tasks_tabs_order) {
+        var raw = prefs.tasks_tabs_order;
+        var parsed = Array.isArray(raw) ? raw : (typeof raw === 'string' ? JSON.parse(raw) : null);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return normalizeTabsOrder(parsed);
+        }
+      }
+
+      var setEnv = await window.CRM.api.request('api/v1/settings/public', { silent: true });
+      var items = (setEnv && setEnv.data && setEnv.data.items) || [];
+      var sysTabOrder = items.find(function (it) { return it.name === 'tasks.tabs_order'; });
+      if (sysTabOrder && sysTabOrder.value) {
+        var rawVal = sysTabOrder.value;
+        var parsedVal = Array.isArray(rawVal) ? rawVal : (typeof rawVal === 'string' ? JSON.parse(rawVal) : null);
+        if (Array.isArray(parsedVal) && parsedVal.length > 0) {
+          return normalizeTabsOrder(parsedVal);
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+    return DEFAULT_TASK_TABS_ORDER.slice();
+  }
+
+  function applyTaskTabsOrder(order) {
+    currentTaskTabsOrder = order.slice();
+    var nav = document.getElementById('taskDetailTabsNav');
+    var moreDropdown = document.getElementById('taskTabsMoreDropdown');
+    var moreMenu = document.getElementById('taskTabsMoreMenu');
+    if (!nav || !moreDropdown || !moreMenu) return;
+
+    var isExternalUser = Boolean(window.CRM.api && window.CRM.api.getUser() && window.CRM.api.getUser().is_external);
+
+    var tabNodes = {};
+    document.querySelectorAll('[data-tab-code]').forEach(function (el) {
+      var code = el.getAttribute('data-tab-code');
+      if (code) tabNodes[code] = el;
+    });
+
+    var visibleCount = 0;
+    var VISIBLE_LIMIT = 4;
+
+    var currentActiveBtn = nav.querySelector('.nav-link.active') || moreMenu.querySelector('.dropdown-item.active');
+    var currentActiveTarget = currentActiveBtn ? currentActiveBtn.getAttribute('data-bs-target') : null;
+
+    order.forEach(function (code) {
+      var node = tabNodes[code];
+      if (!node) return;
+      var def = TASK_TAB_DEFS[code];
+      if (isExternalUser && def && def.internalOnly) {
+        node.remove();
+        return;
+      }
+
+      var btn = node.querySelector('button');
+      if (visibleCount < VISIBLE_LIMIT) {
+        node.className = 'nav-item';
+        if (btn) {
+          btn.className = 'nav-link';
+          btn.removeAttribute('data-task-overflow-tab');
+        }
+        nav.insertBefore(node, moreDropdown);
+        visibleCount += 1;
+      } else {
+        node.className = '';
+        if (btn) {
+          btn.className = 'dropdown-item';
+          btn.setAttribute('data-task-overflow-tab', '1');
+        }
+        moreMenu.appendChild(node);
+      }
+    });
+
+    var targetToActivate = currentActiveTarget;
+    if (!targetToActivate) {
+      for (var i = 0; i < order.length; i += 1) {
+        var def = TASK_TAB_DEFS[order[i]];
+        if (!isExternalUser || !def.internalOnly) {
+          targetToActivate = def.target;
+          break;
+        }
+      }
+    }
+
+    if (targetToActivate) {
+      document.querySelectorAll('#taskDetailTabsNav .nav-link, #taskTabsMoreMenu .dropdown-item').forEach(function (b) {
+        b.classList.remove('active');
+      });
+      document.querySelectorAll('.crm-content .tab-pane').forEach(function (pane) {
+        pane.classList.remove('show', 'active');
+      });
+      var btnToActivate = document.querySelector('[data-bs-target="' + targetToActivate + '"]');
+      if (btnToActivate) {
+        btnToActivate.classList.add('active');
+        if (btnToActivate.hasAttribute('data-task-overflow-tab')) {
+          var moreBtn = document.getElementById('taskTabsMore');
+          if (moreBtn) moreBtn.classList.add('active');
+        }
+      }
+      var paneToActivate = document.querySelector(targetToActivate);
+      if (paneToActivate) {
+        paneToActivate.classList.add('show', 'active');
+      }
+    }
+  }
+
+  function bindTaskTabsConfigModal(canManageGlobal) {
+    var openBtn = document.getElementById('taskTabsConfigBtn');
+    var modalEl = document.getElementById('taskTabsConfigModal');
+    var listEl = document.getElementById('taskTabsOrderList');
+    var savePersonalBtn = document.getElementById('taskTabsSavePersonalBtn');
+    var saveGlobalBtn = document.getElementById('taskTabsSaveGlobalBtn');
+    var resetBtn = document.getElementById('taskTabsResetBtn');
+
+    if (!modalEl || !listEl) return;
+
+    if (saveGlobalBtn) {
+      saveGlobalBtn.classList.toggle('d-none', !canManageGlobal);
+    }
+
+    var draftOrder = currentTaskTabsOrder.slice();
+
+    function renderModalList() {
+      listEl.innerHTML = draftOrder.map(function (code, idx) {
+        var def = TASK_TAB_DEFS[code];
+        if (!def) return '';
+        var isFirst = idx === 0;
+        var isLast = idx === draftOrder.length - 1;
+        return '<li class="list-group-item d-flex align-items-center justify-content-between py-2 px-3" data-order-code="' + code + '">'
+          + '<div class="d-flex align-items-center gap-2">'
+          + '<span class="badge text-bg-secondary rounded-pill">' + (idx + 1) + '</span>'
+          + '<span class="fw-semibold">' + escapeHtml(def.title) + '</span>'
+          + (isFirst ? '<span class="badge bg-success-subtle text-success small ms-2">По умолчанию</span>' : '')
+          + '</div>'
+          + '<div class="d-flex align-items-center gap-1">'
+          + '<button type="button" class="btn btn-sm btn-light border py-0 px-2" data-move-tab="up" data-idx="' + idx + '"' + (isFirst ? ' disabled' : '') + ' title="Выше"><i class="fa-solid fa-arrow-up"></i></button>'
+          + '<button type="button" class="btn btn-sm btn-light border py-0 px-2" data-move-tab="down" data-idx="' + idx + '"' + (isLast ? ' disabled' : '') + ' title="Ниже"><i class="fa-solid fa-arrow-down"></i></button>'
+          + '</div>'
+          + '</li>';
+      }).join('');
+    }
+
+    if (openBtn && openBtn.dataset.bound !== '1') {
+      openBtn.dataset.bound = '1';
+      openBtn.addEventListener('click', function () {
+        draftOrder = currentTaskTabsOrder.slice();
+        renderModalList();
+        if (window.bootstrap) {
+          window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+      });
+    }
+
+    if (listEl.dataset.bound !== '1') {
+      listEl.dataset.bound = '1';
+      listEl.addEventListener('click', function (e) {
+        var moveUpBtn = e.target.closest('[data-move-tab="up"]');
+        var moveDownBtn = e.target.closest('[data-move-tab="down"]');
+        if (moveUpBtn) {
+          var idx = Number(moveUpBtn.getAttribute('data-idx'));
+          if (idx > 0) {
+            var temp = draftOrder[idx - 1];
+            draftOrder[idx - 1] = draftOrder[idx];
+            draftOrder[idx] = temp;
+            renderModalList();
+          }
+        } else if (moveDownBtn) {
+          var idx = Number(moveDownBtn.getAttribute('data-idx'));
+          if (idx < draftOrder.length - 1) {
+            var temp = draftOrder[idx + 1];
+            draftOrder[idx + 1] = draftOrder[idx];
+            draftOrder[idx] = temp;
+            renderModalList();
+          }
+        }
+      });
+    }
+
+    if (savePersonalBtn && savePersonalBtn.dataset.bound !== '1') {
+      savePersonalBtn.dataset.bound = '1';
+      savePersonalBtn.addEventListener('click', async function () {
+        savePersonalBtn.disabled = true;
+        try {
+          await window.CRM.api.request('api/v1/profile/preferences', {
+            method: 'PATCH',
+            body: { tasks_tabs_order: draftOrder }
+          });
+          notify('Порядок закладок сохранён в ваш профиль');
+          applyTaskTabsOrder(draftOrder);
+          if (window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        } catch (err) {
+          notify('Не удалось сохранить настройки', 'error');
+        } finally {
+          savePersonalBtn.disabled = false;
+        }
+      });
+    }
+
+    if (saveGlobalBtn && saveGlobalBtn.dataset.bound !== '1') {
+      saveGlobalBtn.dataset.bound = '1';
+      saveGlobalBtn.addEventListener('click', async function () {
+        saveGlobalBtn.disabled = true;
+        try {
+          await window.CRM.api.request('api/v1/settings/tasks.tabs_order', {
+            method: 'PATCH',
+            body: { value: draftOrder }
+          });
+          notify('Порядок закладок сохранён для всех пользователей');
+          applyTaskTabsOrder(draftOrder);
+          if (window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        } catch (err) {
+          notify('Не удалось сохранить глобальные настройки', 'error');
+        } finally {
+          saveGlobalBtn.disabled = false;
+        }
+      });
+    }
+
+    if (resetBtn && resetBtn.dataset.bound !== '1') {
+      resetBtn.dataset.bound = '1';
+      resetBtn.addEventListener('click', async function () {
+        resetBtn.disabled = true;
+        try {
+          await window.CRM.api.request('api/v1/profile/preferences', {
+            method: 'PATCH',
+            body: { tasks_tabs_order: null }
+          });
+          draftOrder = DEFAULT_TASK_TABS_ORDER.slice();
+          applyTaskTabsOrder(draftOrder);
+          renderModalList();
+          notify('Порядок закладок сброшен к умолчанию');
+          if (window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        } catch (err) {
+          notify('Не удалось сбросить настройки', 'error');
+        } finally {
+          resetBtn.disabled = false;
+        }
+      });
+    }
+  }
+
   async function initTaskDetailFlow() {
     var statusBadge = document.getElementById('taskStatusBadge');
     if (!statusBadge) return;
@@ -8748,13 +9380,15 @@ window.CRM.br1 = (function () {
         currentTask.project_manager_name = currentProject.manager_user_name || currentTask.project_manager_name;
       }
 
-      renderTaskDetailOverview();
       var userObj = window.CRM.api && typeof window.CRM.api.getUser === 'function' ? window.CRM.api.getUser() : null;
       var isRoot = !!(userObj && userObj.is_root);
-      // External guests (client portal) are never allowed to mutate a task:
-      // the PATCH/DELETE task routes are not external_ok, so even an
-      // author/assignee guest would get EXTERNAL_ACCESS_DENIED. Mirror that
-      // server rule here so the UI renders read-only for them.
+      var isAdmin = (window.CRM.api && typeof window.CRM.api.hasRole === 'function')
+        ? (window.CRM.api.hasRole('admin') || window.CRM.api.hasRole('superadmin'))
+        : (userObj && Array.isArray(userObj.roles) && (userObj.roles.indexOf('admin') !== -1 || userObj.roles.indexOf('superadmin') !== -1));
+      var hasTaskManage = (window.CRM.api && typeof window.CRM.api.hasPermission === 'function')
+        ? (window.CRM.api.hasPermission('task.manage') || window.CRM.api.hasPermission('system.manage'))
+        : false;
+      var canManageTasks = isRoot || isAdmin || hasTaskManage;
       var isExternalGuest = Boolean(userObj && userObj.is_external);
       var isAuthor = !isExternalGuest
         && currentUserPublicId !== ''
@@ -8764,8 +9398,8 @@ window.CRM.br1 = (function () {
         && currentUserPublicId !== ''
         && currentTask.assignee_user_public_id
         && currentUserPublicId === String(currentTask.assignee_user_public_id);
-      canEditTask = isAuthor || isRoot;
-      canWorkTask = isAuthor || isAssignee || isRoot;
+      canEditTask = isAuthor || canManageTasks;
+      canWorkTask = isAuthor || isAssignee || canManageTasks;
       currentTaskPermissions = {
         canEditIdentity: canEditTask,
         canEditWorkflow: canWorkTask,
@@ -8778,6 +9412,37 @@ window.CRM.br1 = (function () {
       applyTaskInlinePermissions(currentTaskPermissions);
       bindTaskInlineEditors(taskId);
 
+      renderTaskDetailOverview();
+
+      // Jira-style Linked Tasks
+      loadAndRenderTaskRelations(taskId, canEditTask);
+
+      // Initial lightweight background fetch of deliverables (subtasks and checklists)
+      loadInitialTaskDeliverables(taskId, canWorkTask, canEditTask);
+
+      // Configurable task tabs
+      var tabOrder = await loadTaskTabsOrder();
+      applyTaskTabsOrder(tabOrder);
+      bindTaskTabsConfigModal(canManageTasks);
+
+      var openLinkBtn = document.getElementById('openLinkTaskBtn');
+      if (openLinkBtn && openLinkBtn.dataset.bound !== '1') {
+        openLinkBtn.dataset.bound = '1';
+        openLinkBtn.addEventListener('click', function () {
+          var depModal = document.getElementById('createDependencyModal');
+          if (depModal && window.bootstrap) {
+            window.bootstrap.Modal.getOrCreateInstance(depModal).show();
+          }
+        });
+      }
+
+      var depModal = document.getElementById('createDependencyModal');
+      if (depModal && depModal.dataset.relListenerBound !== '1') {
+        depModal.dataset.relListenerBound = '1';
+        depModal.addEventListener('hidden.bs.modal', function () {
+          loadAndRenderTaskRelations(taskId, canEditTask);
+        });
+      }
     }
 
     await loadTaskCollaborationState(taskId);

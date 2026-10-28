@@ -92,6 +92,15 @@ final class StatusController extends BaseController
             ->maxLen($input, 'code', 64, $this->t('status/messages.max_64'))
             ->maxLen($input, 'title', 255, $this->t('status/messages.max_255'));
 
+        if (isset($input['progress_percent']) && $input['progress_percent'] !== '' && $input['progress_percent'] !== null) {
+            $pct = is_numeric($input['progress_percent']) ? (int)$input['progress_percent'] : -1;
+            if ($pct < 0 || $pct > 100) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'progress_percent' => ['Progress percent must be between 0 and 100'],
+                ]);
+            }
+        }
+
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
@@ -130,6 +139,15 @@ final class StatusController extends BaseController
         $v->maxLen($input, 'scope', 64, $this->t('status/messages.max_64'))
             ->maxLen($input, 'code', 64, $this->t('status/messages.max_64'))
             ->maxLen($input, 'title', 255, $this->t('status/messages.max_255'));
+
+        if (array_key_exists('progress_percent', $input) && $input['progress_percent'] !== '' && $input['progress_percent'] !== null) {
+            $pct = is_numeric($input['progress_percent']) ? (int)$input['progress_percent'] : -1;
+            if ($pct < 0 || $pct > 100) {
+                return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, [
+                    'progress_percent' => ['Progress percent must be between 0 and 100'],
+                ]);
+            }
+        }
 
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());

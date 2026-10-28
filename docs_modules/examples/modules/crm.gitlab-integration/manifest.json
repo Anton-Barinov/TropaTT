@@ -1,6 +1,6 @@
 {
     "name": "crm.gitlab-integration",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -39,5 +39,5 @@
         "push_back_comments": true,
         "push_back_status": true
     },
-    "signature": "47288ace84107ea9559efb539e801a4d65164d8e0dbb31e8f6947c42cef97c7d"
+    "signature": ""
 }

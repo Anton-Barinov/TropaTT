@@ -32,7 +32,10 @@ $title = htmlspecialchars($titleRaw, ENT_QUOTES, 'UTF-8');
                 <label class="form-check-label" for="mpagoSandboxMode">Тестовый режим</label>
             </div>
             <div>
-                <button class="btn crm-btn-primary" id="mpagoSaveBtn" type="submit">Сохранить настройки</button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn crm-btn-primary" id="mpagoSaveBtn" type="submit">Сохранить настройки</button>
+                    <button class="btn crm-btn-secondary" id="mpagoTestConnectionBtn" type="button" disabled>Проверить подключение</button>
+                </div>
                 <span class="small ms-2" id="mpagoMessage" role="status" aria-live="polite"></span>
             </div>
         </form>

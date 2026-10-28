@@ -72,6 +72,7 @@ final class StatusService
             'sort_order' => isset($input['sort_order']) ? (int)$input['sort_order'] : 100,
             'is_active' => isset($input['is_active']) ? (int)((string)$input['is_active'] === '1' || $input['is_active'] === true) : 1,
             'is_closed' => self::flag($input, 'is_closed', false),
+            'progress_percent' => isset($input['progress_percent']) && $input['progress_percent'] !== '' && $input['progress_percent'] !== null ? max(0, min(100, (int)$input['progress_percent'])) : null,
             'created_at' => $now,
             'updated_at' => $now,
         ];
@@ -120,6 +121,11 @@ final class StatusService
         }
         if (array_key_exists('is_closed', $input)) {
             $set['is_closed'] = self::flag($input, 'is_closed', false);
+        }
+        if (array_key_exists('progress_percent', $input)) {
+            $set['progress_percent'] = ($input['progress_percent'] !== '' && $input['progress_percent'] !== null)
+                ? max(0, min(100, (int)$input['progress_percent']))
+                : null;
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 

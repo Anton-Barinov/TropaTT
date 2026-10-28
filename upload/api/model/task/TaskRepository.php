@@ -162,6 +162,12 @@ final class TaskRepository
                     WHERE trp.child_task_id = t.id
                       AND trp.relation_type = 'subtask'
                     LIMIT 1) AS parent_task_title",
+                "(SELECT parent_task.task_key
+                    FROM task_relations trp
+                    INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id
+                    WHERE trp.child_task_id = t.id
+                      AND trp.relation_type = 'subtask'
+                    LIMIT 1) AS parent_task_key",
                 "(SELECT trp.sort_order
                     FROM task_relations trp
                     WHERE trp.child_task_id = t.id
@@ -311,6 +317,7 @@ final class TaskRepository
                     // the actor's scope. The Web client renders a safe state.
                     $row['parent_task_public_id'] = null;
                     $row['parent_task_title'] = null;
+                    $row['parent_task_key'] = null;
                     $row['parent_access_limited'] = 1;
                 }
                 $byId[(string)($row['public_id'] ?? '')] = $row;
@@ -449,6 +456,12 @@ final class TaskRepository
                     WHERE trp.child_task_id = t.id
                       AND trp.relation_type = 'subtask'
                     LIMIT 1) AS parent_task_title",
+                "(SELECT parent_task.task_key
+                    FROM task_relations trp
+                    INNER JOIN tasks parent_task ON parent_task.id = trp.parent_task_id
+                    WHERE trp.child_task_id = t.id
+                      AND trp.relation_type = 'subtask'
+                    LIMIT 1) AS parent_task_key",
                 "(SELECT trp.sort_order
                     FROM task_relations trp
                     WHERE trp.child_task_id = t.id

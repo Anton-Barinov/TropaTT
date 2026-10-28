@@ -10,6 +10,7 @@ return array (
       'statuses_empty_tasks' => 'Статусы задач не найдены.',
       'status_closed_yes' => 'Да',
       'status_closed_no' => 'Нет',
+      'status_progress_auto' => 'Авто (по воронке)',
     ),
     'admin_settings' =>
     array (
@@ -181,6 +182,7 @@ return array (
         'quick_client_no_perm' => 'Недостаточно прав для создания клиента',
         'taymer_tochnoe_vremya' => 'Точное время: ',
         'vvedite_nazvanie_klienta' => 'Введите название клиента',
+        'parent_task' => 'Родительская задача',
       ),
       'modal' =>
       array (
@@ -497,6 +499,7 @@ return array (
       'statuses_empty_tasks' => 'No task statuses found.',
       'status_closed_yes' => 'Yes',
       'status_closed_no' => 'No',
+      'status_progress_auto' => 'Auto (funnel)',
     ),
     'admin_settings' =>
     array (
@@ -668,6 +671,7 @@ return array (
         'quick_client_no_perm' => 'You do not have permission to create clients',
         'taymer_tochnoe_vremya' => 'Exact time: ',
         'vvedite_nazvanie_klienta' => 'Enter a client name',
+        'parent_task' => 'Parent task',
       ),
       'modal' =>
       array (
@@ -989,6 +993,7 @@ return array (
       'statuses_empty_tasks' => '未找到任务状态。',
       'status_closed_yes' => '是',
       'status_closed_no' => '否',
+      'status_progress_auto' => '自动（漏斗）',
     ),
     'admin_settings' =>
     array (
@@ -1427,6 +1432,7 @@ return array (
         'quick_client_no_perm' => '您没有创建客户的权限',
         'taymer_tochnoe_vremya' => '精确时间：',
         'vvedite_nazvanie_klienta' => '请输入客户名称',
+        'parent_task' => '父任务',
       ),
     ),
     'my_day' =>

@@ -15474,14 +15474,17 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     function renderStatusRows(tbody, scopeItems, emptyText) {
       if (!tbody) return;
       if (!envelope.success) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-danger">' + safeText(tp('admin.statuses_load_fail_prefix', 'Failed to load statuses: ')) + safeText(envelope.message || envelope.code || 'UNKNOWN_ERROR') + '</td></tr>';
       } else if (!scopeItems.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">' + safeText(emptyText) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted">' + safeText(emptyText) + '</td></tr>';
       } else {
         tbody.innerHTML = scopeItems.map(function (item) {
           var statusId = statusIdOf(item);
           var disabled = statusId ? '' : ' disabled';
           var badgeTextColor = contrastTextColor(item.color || '');
+          var pctVal = (item.progress_percent !== null && item.progress_percent !== undefined && item.progress_percent !== '')
+            ? '<span class="badge bg-primary-subtle text-primary">' + safeText(item.progress_percent) + '%</span>'
+            : '<span class="text-muted small">' + safeText(tp('admin.status_progress_auto', 'Авто')) + '</span>';
           var closedBadge = Number(item.is_closed || 0) === 1
             ? '<span class="crm-badge active">' + safeText(tp('admin.status_closed_yes', 'Yes')) + '</span>'
             : '<span class="text-muted">' + safeText(tp('admin.status_closed_no', 'No')) + '</span>';
@@ -15489,6 +15492,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             + '<td>' + safeText(item.title || item.code) + '<div class="small text-muted">' + safeText(item.code || '—') + '</div></td>'
             + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
+            + '<td>' + pctVal + '</td>'
             + '<td>' + closedBadge + '</td>'
             + '<td><div class="d-flex gap-1"><button class="btn btn-sm crm-btn-secondary" data-status-edit="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.edit', 'Edit')) + '</button><button class="btn btn-sm crm-btn-danger" data-status-delete="' + safeText(statusId) + '"' + disabled + '>' + safeText(tp('common.delete', 'Delete')) + '</button></div></td>'
             + '</tr>';
@@ -15581,6 +15585,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           scope: String((createForm.querySelector('[name="scope"]') || {}).value || 'task').trim(),
           color: String((createForm.querySelector('[name="color"]') || {}).value || '#64748b').trim(),
           sort_order: Number((createForm.querySelector('[name="sort_order"]') || {}).value || 100),
+          progress_percent: ((createForm.querySelector('[name="progress_percent"]') || {}).value !== '' && (createForm.querySelector('[name="progress_percent"]') || {}).value !== undefined && (createForm.querySelector('[name="progress_percent"]') || {}).value !== null) ? Number((createForm.querySelector('[name="progress_percent"]') || {}).value) : null,
           is_closed: (createForm.querySelector('[name="is_closed"]') || {}).checked ? 1 : 0
         };
         if (!body.title || !body.code || !body.scope) {
@@ -15624,6 +15629,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           scope: String((editForm.querySelector('[name="scope"]') || {}).value || 'task').trim(),
           color: String((editForm.querySelector('[name="color"]') || {}).value || '#64748b').trim(),
           sort_order: Number((editForm.querySelector('[name="sort_order"]') || {}).value || 100),
+          progress_percent: ((editForm.querySelector('[name="progress_percent"]') || {}).value !== '' && (editForm.querySelector('[name="progress_percent"]') || {}).value !== undefined && (editForm.querySelector('[name="progress_percent"]') || {}).value !== null) ? Number((editForm.querySelector('[name="progress_percent"]') || {}).value) : null,
           is_closed: (editForm.querySelector('[name="is_closed"]') || {}).checked ? 1 : 0
         };
         try {
@@ -15678,6 +15684,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         (editForm.querySelector('[name="scope"]') || {}).value = String(status.scope || 'task');
         (editForm.querySelector('[name="color"]') || {}).value = String(status.color || '#64748b');
         (editForm.querySelector('[name="sort_order"]') || {}).value = String(status.sort_order || 100);
+        (editForm.querySelector('[name="progress_percent"]') || {}).value = (status.progress_percent !== null && status.progress_percent !== undefined) ? String(status.progress_percent) : '';
         var editClosed = editForm.querySelector('[name="is_closed"]');
         if (editClosed) editClosed.checked = Number(status.is_closed || 0) === 1;
         refreshEditColor(String(status.color || '#64748b'));

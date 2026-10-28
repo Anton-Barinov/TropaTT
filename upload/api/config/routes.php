@@ -201,10 +201,10 @@ return [
     ['methods' => ['GET'], 'pattern' => '/api/v1/projects/{public_id}/workload', 'controller' => Api\Controller\Project\ProjectController::class, 'action' => 'workloadSummary', 'auth' => true, 'required_permissions' => ['project.manage']],
 
     // task relations v2
-    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['DELETE'], 'pattern' => '/api/v1/task-relations/{public_id}', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => ['task.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/task-relations/search-tasks', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'searchTasks', 'auth' => true, 'required_permissions' => ['task.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => [], 'authz_note' => 'task access scoped via TaskService::get()'],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/tasks/{public_id}/relations', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'create', 'auth' => true, 'required_permissions' => [], 'authz_note' => 'task mutation access scoped via TaskService::get()'],
+    ['methods' => ['DELETE'], 'pattern' => '/api/v1/task-relations/{public_id}', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'delete', 'auth' => true, 'required_permissions' => [], 'authz_note' => 'relation deletion scoped via task ownership in TaskRelationService::delete()'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/task-relations/search-tasks', 'controller' => Api\Controller\Task\TaskRelationController::class, 'action' => 'searchTasks', 'auth' => true, 'required_permissions' => [], 'authz_note' => 'task search scoped via TaskService::list()'],
 
     // work cycles
     ['methods' => ['GET'], 'pattern' => '/api/v1/cycles', 'controller' => Api\Controller\Cycle\WorkCycleController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['task.manage']],
@@ -589,7 +589,7 @@ return [
     // etc.). Only a hardcoded allowlist of non-sensitive names is ever returned
     // (SettingController::publicList) — never the full internal list, which
     // includes finance.* and cache tuning and must stay settings.manage-only.
-    ['methods' => ['GET'], 'pattern' => '/api/v1/settings/public', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'publicList', 'auth' => true, 'required_permissions' => ['task.manage'], 'external_executor_ok' => true, 'authz_note' => 'external executors may read only the whitelisted public settings (time_rounding_minutes); controller enforces the allowlist'],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/settings/public', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'publicList', 'auth' => true, 'required_permissions' => [], 'external_executor_ok' => true, 'authz_note' => 'whitelisted public settings safe for any authenticated actor; controller enforces the allowlist'],
     ['methods' => ['GET'], 'pattern' => '/api/v1/settings', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage', 'settings.view']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/settings/branding/logo', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'uploadLogo', 'auth' => true, 'required_permissions' => ['settings.manage'], 'authz_note' => 'admin-only multipart upload of the sidebar/login logo (raster images only, ≤2 MiB, stored outside the web root)'],
     ['methods' => ['DELETE'], 'pattern' => '/api/v1/settings/branding/logo', 'controller' => Api\Controller\Setting\SettingController::class, 'action' => 'resetLogo', 'auth' => true, 'required_permissions' => ['settings.manage'], 'authz_note' => 'admin-only removal of the custom logo (falls back to the default product mark)'],

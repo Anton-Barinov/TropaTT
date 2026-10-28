@@ -87,6 +87,11 @@ final class ActorPermission
             return true;
         }
 
+        $roles = (array)($actor['roles'] ?? []);
+        if (in_array('admin', $roles, true) || in_array('superadmin', $roles, true)) {
+            return true;
+        }
+
         $codes = $actor['permission_codes'] ?? null;
         if (!is_array($codes)) {
             return false;

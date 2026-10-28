@@ -22,6 +22,7 @@
   const money = (amount, currency) => `${String(amount)} ${String(currency)}`;
   let pendingCheckoutKey = '';
   let pendingCheckoutFingerprint = '';
+  let connectionVerified = false;
   const checkoutIdempotencyKey = async payload => {
     const canonical = JSON.stringify(payload);
     let fingerprint = canonical;
@@ -29,7 +30,10 @@
       const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
       fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
     }
-    if (!pendingCheckoutKey || pendingCheckoutFingerprint !== fingerprint) {
+    if (pendingCheckoutKey && pendingCheckoutFingerprint !== fingerprint) {
+      throw new Error('Сначала сверьте незавершённую попытку оплаты. Нельзя менять сумму или реквизиты до разрешения результата.');
+    }
+    if (!pendingCheckoutKey) {
       pendingCheckoutKey = window.crypto && typeof window.crypto.randomUUID === 'function'
         ? window.crypto.randomUUID().replace(/-/g, '')
         : Array.from(window.crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -42,20 +46,22 @@
   const loadStatus = async () => {
     try {
       const data = await api('/status');
-      const connected = data.connected === true;
-      $('moduleSetupState').textContent = connected ? 'Mercado Pago настроен' : 'Mercado Pago не подключён';
-      $('mpagoStatusMeta').textContent = connected
-        ? (data.sandbox_mode ? 'Активен тестовый режим. Реальные списания не выполняются.' : 'Активен рабочий режим Mercado Pago.')
+      const configured = data.configured === true;
+      $('moduleSetupState').textContent = configured ? (connectionVerified ? 'Подключение Mercado Pago проверено' : 'Ключ сохранён · соединение не проверено') : 'Mercado Pago не настроен';
+      $('mpagoStatusMeta').textContent = configured
+        ? (connectionVerified ? (data.sandbox_mode ? 'Проверено в тестовом режиме. Реальные списания не выполняются.' : 'Проверен рабочий режим Mercado Pago.') : 'Проверьте токен кнопкой «Проверить подключение» перед созданием ссылки.')
         : 'Добавьте access token, чтобы создавать платёжные ссылки.';
-      $('mpagoStatusBox').className = 'alert mb-3 ' + (connected ? 'alert-success' : 'alert-warning');
+      $('mpagoStatusBox').className = 'alert mb-3 ' + (connectionVerified ? 'alert-success' : 'alert-warning');
       $('mpagoSandboxMode').checked = data.sandbox_mode !== false;
       $('mpagoPublicKey').value = data.public_key || '';
-      $('mpagoCreatePaymentBtn').disabled = !connected;
-      return connected;
+      $('mpagoTestConnectionBtn').disabled = !configured;
+      $('mpagoCreatePaymentBtn').disabled = !configured || !connectionVerified;
+      return configured;
     } catch (_) {
       $('moduleSetupState').textContent = 'Не удалось загрузить состояние';
       $('mpagoStatusMeta').textContent = 'Проверьте права доступа и активное рабочее пространство.';
       $('mpagoCreatePaymentBtn').disabled = true;
+      $('mpagoTestConnectionBtn').disabled = true;
       return false;
     }
   };
@@ -149,12 +155,30 @@
           sandbox_mode: $('mpagoSandboxMode').checked
         }});
         $('mpagoAccessToken').value = '';
-        showMessage('mpagoMessage', 'Настройки сохранены.');
+        connectionVerified = false;
+        showMessage('mpagoMessage', 'Настройки сохранены. Проверьте подключение перед созданием ссылки.');
         await loadStatus();
         await loadPayments();
       } catch (_) {
         showMessage('mpagoMessage', 'Не удалось сохранить настройки. Проверьте ввод, права и APP_KEY.', true);
       } finally { button.disabled = false; }
+    });
+    $('mpagoTestConnectionBtn').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      connectionVerified = false;
+      $('mpagoCreatePaymentBtn').disabled = true;
+      showMessage('mpagoMessage', 'Проверяем токен через Mercado Pago…');
+      try {
+        await api('/connection/test', {method:'POST', body:{}});
+        connectionVerified = true;
+        showMessage('mpagoMessage', 'Mercado Pago подтвердил сохранённый токен.');
+      } catch (_) {
+        showMessage('mpagoMessage', 'Mercado Pago не подтвердил токен. Проверьте режим, токен и доступ к API.', true);
+      } finally {
+        button.disabled = false;
+        await loadStatus();
+      }
     });
     try {
       const saved = JSON.parse(sessionStorage.getItem('mp_checkout_retry') || 'null');
@@ -189,9 +213,9 @@
         pendingCheckoutFingerprint = '';
         try { sessionStorage.removeItem('mp_checkout_retry'); } catch (_) {}
         await loadPayments();
-      } catch (_) {
-        showMessage('mpagoPaymentMessage', 'Не удалось подтвердить результат. Повторите запрос с тем же ключом; не создавайте новую ссылку до сверки с Mercado Pago.', true);
-      } finally { button.disabled = !(await loadStatus()); }
+      } catch (error) {
+        showMessage('mpagoPaymentMessage', error?.message || 'Не удалось подтвердить результат. Повторите запрос с тем же ключом; не создавайте новую ссылку до сверки с Mercado Pago.', true);
+      } finally { await loadStatus(); }
     });
     $('mpagoReloadPaymentsBtn').addEventListener('click', loadPayments);
     loadStatus().then(loadPayments);

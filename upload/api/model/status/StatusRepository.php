@@ -22,7 +22,7 @@ final class StatusRepository
 
         $total = $this->buildListQuery($filters)->count();
         $items = $this->buildListQuery($filters)
-            ->select(['public_id', 'scope', 'code', 'title', 'color', 'sort_order', 'is_active', 'is_closed', 'created_at', 'updated_at'])
+            ->select(['public_id', 'scope', 'code', 'title', 'color', 'sort_order', 'is_active', 'is_closed', 'progress_percent', 'created_at', 'updated_at'])
             ->orderBy('sort_order', 'ASC')
             ->orderBy('created_at', 'ASC')
             ->limit($limit)
