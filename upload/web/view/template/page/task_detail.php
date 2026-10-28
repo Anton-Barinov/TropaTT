@@ -5,22 +5,13 @@
 </nav></aside>
 <div class="crm-main-wrap"><header class="crm-topbar py-2"><div class="container-fluid d-flex align-items-center gap-2"><button class="btn crm-btn-secondary d-xl-none" id="sidebarToggle" aria-label="<?= htmlspecialchars($t('task_detail.sidebar_toggle_aria', 'Открыть меню'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.sidebar_toggle_aria"></button><div class="input-group crm-field-w-420" data-global-search><span class="input-group-text"></span><input id="taskDetailGlobalSearchInput" class="form-control" placeholder="<?= htmlspecialchars($t('task_detail.global_search_placeholder', 'Поиск'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('task_detail.global_search_aria', 'Глобальный поиск'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-placeholder="task_detail.global_search_placeholder" data-i18n-aria-label="task_detail.global_search_aria"></div><div class="ms-auto d-flex gap-2" data-global-actions="1"></div></div></header>
 <main class="crm-content crm-task-detail-page">
-<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks" data-i18n="task_detail.breadcrumb_tasks"><?= htmlspecialchars($t('task_detail.breadcrumb_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item active" data-i18n="task_detail.breadcrumb_current"><?= htmlspecialchars($t('task_detail.breadcrumb_current', 'Карточка задачи'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="task_detail.loading_title"><?= htmlspecialchars($t('task_detail.loading_title', 'Загрузка задачи...'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="task_detail.loading_subtitle"><?= htmlspecialchars($t('task_detail.loading_subtitle', 'Загрузка параметров задачи...'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions crm-task-page-actions"><?php if (empty($is_external_user)): // client portal: internal-only control ?><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal" data-i18n="task_detail.btn_edit"><?= htmlspecialchars($t('task_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-secondary d-inline-flex align-items-center gap-2" id="taskSidebarEditToggleBtn" type="button" data-task-sidebar-edit-toggle><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span data-i18n="task_detail.sidebar_edit"><?= htmlspecialchars($t('task_detail.sidebar_edit', 'Настроить колонку'), ENT_QUOTES, 'UTF-8') ?></span></button><div class="dropdown" data-task-actions-menu><button class="btn crm-btn-secondary crm-task-actions-menu" type="button" id="taskActionsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('common.more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.more"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="taskActionsMenuBtn"><li><button class="dropdown-item text-danger" type="button" data-confirm-delete data-i18n="task_detail.btn_delete"><?= htmlspecialchars($t('task_detail.btn_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></li></ul></div><?php endif; ?></div></div>
+<div class="crm-page-head crm-task-page-head"><div><ol class="breadcrumb mb-1"><li class="breadcrumb-item"><a href="index.php?route=tasks" data-i18n="task_detail.breadcrumb_tasks"><?= htmlspecialchars($t('task_detail.breadcrumb_tasks', 'Задачи'), ENT_QUOTES, 'UTF-8') ?></a></li><li class="breadcrumb-item d-none" id="taskParentBreadcrumb"><a href="#" id="taskParentBreadcrumbLink"></a></li><li class="breadcrumb-item active" data-i18n="task_detail.breadcrumb_current"><?= htmlspecialchars($t('task_detail.breadcrumb_current', 'Карточка задачи'), ENT_QUOTES, 'UTF-8') ?></li></ol><h1 class="crm-page-title" data-i18n="task_detail.loading_title"><?= htmlspecialchars($t('task_detail.loading_title', 'Загрузка задачи...'), ENT_QUOTES, 'UTF-8') ?></h1><p class="crm-subtitle" data-i18n="task_detail.loading_subtitle"><?= htmlspecialchars($t('task_detail.loading_subtitle', 'Загрузка параметров задачи...'), ENT_QUOTES, 'UTF-8') ?></p></div><div class="crm-page-actions crm-task-page-actions"><?php if (empty($is_external_user)): // client portal: internal-only control ?><button class="btn crm-btn-primary d-none" id="taskEditBtn" type="button" data-open-modal="editTaskModal" data-i18n="task_detail.btn_edit"><?= htmlspecialchars($t('task_detail.btn_edit', 'Редактировать'), ENT_QUOTES, 'UTF-8') ?></button><button class="btn crm-btn-secondary d-inline-flex align-items-center gap-2" id="taskSidebarEditToggleBtn" type="button" data-task-sidebar-edit-toggle><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span data-i18n="task_detail.sidebar_edit"><?= htmlspecialchars($t('task_detail.sidebar_edit', 'Настроить колонку'), ENT_QUOTES, 'UTF-8') ?></span></button><div class="dropdown" data-task-actions-menu><button class="btn crm-btn-secondary crm-task-actions-menu" type="button" id="taskActionsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($t('common.more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="common.more"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><ul class="dropdown-menu dropdown-menu-end" aria-labelledby="taskActionsMenuBtn"><li><button class="dropdown-item text-danger" type="button" data-confirm-delete data-i18n="task_detail.btn_delete"><?= htmlspecialchars($t('task_detail.btn_delete', 'Удалить'), ENT_QUOTES, 'UTF-8') ?></button></li></ul></div><?php endif; ?></div></div>
 
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="crm-card mb-3 crm-task-hero">
       <div class="crm-task-hero-top">
-        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue" data-i18n="task_detail.status_overdue"><?= htmlspecialchars($t('task_detail.status_overdue', 'Просрочено'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-chip" id="taskPriorityChip" data-i18n="task_detail.priority_normal"><?= htmlspecialchars($t('task_detail.priority_normal', 'Обычный'), ENT_QUOTES, 'UTF-8') ?></span></div>
-      </div>
-      <div class="crm-task-hero-progress-wrap">
-        <div class="crm-task-hero-progress-head">
-          <div>
-            <div class="crm-task-eyebrow" data-i18n="task_detail.progress_label"><?= htmlspecialchars($t('task_detail.progress_label', 'Прогресс выполнения'), ENT_QUOTES, 'UTF-8') ?></div>
-            <div class="crm-task-progress-copy" id="taskProgressHint" data-i18n="task_detail.progress_hint"><?= htmlspecialchars($t('task_detail.progress_hint', 'Прогресс рассчитывается по текущему статусу.'), ENT_QUOTES, 'UTF-8') ?></div>
-          </div>
-        </div>
-        <div class="progress mb-0 crm-task-progress" role="progressbar" aria-label="<?= htmlspecialchars($t('task_detail.progress_aria', 'Прогресс'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.progress_aria"><div class="progress-bar" id="taskProgressBar" style="width: 0%">0%</div></div>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="taskMetaChips"><span id="taskStatusBadge" class="crm-badge overdue" data-i18n="task_detail.status_overdue"><?= htmlspecialchars($t('task_detail.status_overdue', 'Просрочено'), ENT_QUOTES, 'UTF-8') ?></span><span class="crm-chip" id="taskPriorityChip" data-i18n="task_detail.priority_normal"><?= htmlspecialchars($t('task_detail.priority_normal', 'Обычный'), ENT_QUOTES, 'UTF-8') ?></span><a href="#" class="crm-chip crm-chip-parent d-none text-decoration-none" id="taskParentPill"><i class="fa-solid fa-turn-up fa-rotate-90 me-1"></i><span id="taskParentPillText"></span></a></div>
       </div>
       <section class="crm-task-description-summary" aria-labelledby="taskDescriptionSummaryTitle">
         <div class="crm-task-description-summary-head">
@@ -40,6 +31,25 @@
         </div>
         <div id="taskCustomFieldsList" class="crm-task-custom-fields-list d-flex flex-column gap-3"></div>
       </section>
+      <section class="crm-task-linked-summary mt-3 pt-3 border-top" id="taskLinkedTasksSection" aria-labelledby="taskLinkedTasksTitle">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <h2 class="h6 mb-0 d-flex align-items-center gap-2" id="taskLinkedTasksTitle">
+              <i class="fa-solid fa-link text-muted" aria-hidden="true"></i>
+              <span data-i18n="task_detail.linked_tasks_title"><?= htmlspecialchars($t('task_detail.linked_tasks_title', 'Связанные задачи'), ENT_QUOTES, 'UTF-8') ?></span>
+            </h2>
+            <span id="taskLinkedCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span>
+          </div>
+          <?php if (empty($is_external_user)): ?>
+          <button type="button" class="btn btn-sm crm-btn-secondary crm-btn-compact" id="openLinkTaskBtn" data-open-modal="createDependencyModal">
+            <i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span data-i18n="task_detail.link_task_btn"><?= htmlspecialchars($t('task_detail.link_task_btn', 'Связать задачу'), ENT_QUOTES, 'UTF-8') ?></span>
+          </button>
+          <?php endif; ?>
+        </div>
+        <div id="taskLinkedTasksList" class="crm-task-linked-list">
+          <div class="text-muted small py-2" data-i18n="task_detail.linked_tasks_loading"><?= htmlspecialchars($t('task_detail.linked_tasks_loading', 'Связи загружаются...'), ENT_QUOTES, 'UTF-8') ?></div>
+        </div>
+      </section>
       <section class="crm-task-source-chat d-none" id="taskSourceChatSection" aria-labelledby="taskSourceChatTitle">
         <h2 class="h6 mb-1" id="taskSourceChatTitle" data-i18n="task_detail.chat_source_title"><?= htmlspecialchars($t('task_detail.chat_source_title', 'Создано из обсуждения'), ENT_QUOTES, 'UTF-8') ?></h2>
         <p class="small text-muted mb-2" id="taskSourceChatText" data-i18n="task_detail.chat_source_text"><?= htmlspecialchars($t('task_detail.chat_source_text', 'Задача создана из сообщения в чате. Перейдите к диалогу, чтобы увидеть контекст.'), ENT_QUOTES, 'UTF-8') ?></p>
@@ -58,21 +68,28 @@
       <div class="alert alert-info mb-0 crm-task-risk-alert" id="taskRiskAlert"><strong data-i18n="task_detail.risk_label"><?= htmlspecialchars($t('task_detail.risk_label', 'Риск:'), ENT_QUOTES, 'UTF-8') ?></strong> <span data-i18n="task_detail.risk_loading"><?= htmlspecialchars($t('task_detail.risk_loading', 'оценка риска загружается...'), ENT_QUOTES, 'UTF-8') ?></span></div>
     </div>
 
-    <ul class="nav nav-tabs mb-3 crm-task-tabs-nav" role="tablist">
-      <?php if (empty($is_external_user)): // client portal: internal-only control ?><li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
-      <?php if (empty($is_external_user)): // client portal: internal-only control ?><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
-      <li class="nav-item"><button class="nav-link<?= empty($is_external_user) ? '' : ' active' ?>" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-      <?php if (empty($is_external_user) || $external_role === 'executor'): // client portal: worklog logging is executor-only ?><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
-      <li class="nav-item dropdown crm-task-tabs-overflow">
-        <button class="nav-link dropdown-toggle" id="taskTabsMore" data-bs-toggle="dropdown" type="button" aria-expanded="false" data-i18n="task_detail.tab_more"><?= htmlspecialchars($t('task_detail.tab_more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?></button>
-        <ul class="dropdown-menu" aria-labelledby="taskTabsMore">
-          <?php if (empty($is_external_user)): // client portal: internal-only control ?><li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_dependencies"><?= htmlspecialchars($t('task_detail.tab_dependencies', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?> <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
-          <li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></button></li>
-          <?php if (empty($is_external_user)): // client portal: internal-only control ?><li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
-          <?php if (empty($is_external_user)): // client portal: internal-only control ?><li><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
-        </ul>
-      </li>
-    </ul>
+    <div class="d-flex justify-content-between align-items-center mb-3 crm-task-tabs-head">
+      <ul class="nav nav-tabs crm-task-tabs-nav flex-grow-1" id="taskDetailTabsNav" role="tablist">
+        <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="subtasks"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
+        <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="checklists"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
+        <li class="nav-item" data-tab-code="comments"><button class="nav-link<?= empty($is_external_user) ? '' : ' active' ?>" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+        <?php if (empty($is_external_user) || $external_role === 'executor'): ?><li class="nav-item" data-tab-code="worklogs"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+        <li class="nav-item dropdown crm-task-tabs-overflow" id="taskTabsMoreDropdown">
+          <button class="nav-link dropdown-toggle" id="taskTabsMore" data-bs-toggle="dropdown" type="button" aria-expanded="false" data-i18n="task_detail.tab_more"><?= htmlspecialchars($t('task_detail.tab_more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?></button>
+          <ul class="dropdown-menu" id="taskTabsMoreMenu" aria-labelledby="taskTabsMore">
+            <?php if (empty($is_external_user)): ?><li data-tab-code="dependencies"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_dependencies"><?= htmlspecialchars($t('task_detail.tab_dependencies', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?> <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
+            <li data-tab-code="files"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></button></li>
+            <?php if (empty($is_external_user)): ?><li data-tab-code="activity"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+            <?php if (empty($is_external_user)): ?><li data-tab-code="knowledge"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+          </ul>
+        </li>
+      </ul>
+      <?php if (empty($is_external_user)): ?>
+      <button class="btn btn-sm btn-outline-secondary crm-btn-compact ms-2 flex-shrink-0" type="button" id="taskTabsConfigBtn" title="<?= htmlspecialchars($t('task_detail.config_tabs_tooltip', 'Настроить порядок закладок'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($t('task_detail.config_tabs_tooltip', 'Настроить порядок закладок'), ENT_QUOTES, 'UTF-8') ?>">
+        <i class="fa-solid fa-sliders me-1"></i><span class="d-none d-md-inline" data-i18n="task_detail.config_tabs"><?= htmlspecialchars($t('task_detail.config_tabs', 'Закладки'), ENT_QUOTES, 'UTF-8') ?></span>
+      </button>
+      <?php endif; ?>
+    </div>
 
     <div class="tab-content">
 <?php if (empty($is_external_user)): // client portal: internal-only block ?>
@@ -252,6 +269,19 @@
     </div>
     <div class="crm-task-side-rail" data-task-sidebar-rail>
     <?= module_position('task.detail.sidebar', ['route' => $route ?? 'task-detail', 'task_public_id' => (string)($_GET['task_public_id'] ?? '')]) ?>
+    <div class="crm-card mb-3 crm-task-progress-card" id="taskProgressPanel" data-task-sidebar-block="progress">
+      <div class="crm-side-card-head mb-2">
+        <div>
+          <div class="crm-task-eyebrow" data-i18n="task_detail.progress_label"><?= htmlspecialchars($t('task_detail.progress_label', 'Прогресс выполнения'), ENT_QUOTES, 'UTF-8') ?></div>
+          <h2 class="h6 mb-0" id="taskProgressTitle"><?= htmlspecialchars($t('task_detail.progress_title', 'Статус-бар'), ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
+        <span class="badge bg-primary-subtle text-primary fw-bold" id="taskProgressPercentBadge">0%</span>
+      </div>
+      <div class="progress mb-2 crm-task-progress" role="progressbar" aria-label="<?= htmlspecialchars($t('task_detail.progress_aria', 'Прогресс'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="task_detail.progress_aria">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="taskProgressBar" style="width: 0%">0%</div>
+      </div>
+      <div class="small text-muted" id="taskProgressHint" data-i18n="task_detail.progress_hint"><?= htmlspecialchars($t('task_detail.progress_hint', 'Прогресс рассчитывается по текущему статусу.'), ENT_QUOTES, 'UTF-8') ?></div>
+    </div>
     <?php if (empty($is_external_user)): // client portal: estimates are internal-only ?>
     <div class="crm-card mb-3" id="taskEstimatesPanel" data-task-sidebar-block="estimates">
       <div class="crm-side-card-head">
@@ -774,6 +804,41 @@
         <div id="taskKnowledgeAttachResults"><div class="text-muted small" data-i18n="task_detail.attach_knowledge_loading"><?= htmlspecialchars($t('task_detail.attach_knowledge_loading', 'Загрузка статей...'), ENT_QUOTES, 'UTF-8') ?></div></div>
       </div>
       <div class="modal-footer"><button type="button" class="btn crm-btn-secondary" data-bs-dismiss="modal" data-i18n="page.cancel"><?= htmlspecialchars($t('page.cancel', 'Отмена'), ENT_QUOTES, 'UTF-8') ?></button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="taskTabsConfigModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title d-flex align-items-center gap-2">
+          <i class="fa-solid fa-sliders text-muted"></i>
+          <span data-i18n="task_detail.tabs_config_title"><?= htmlspecialchars($t('task_detail.tabs_config_title', 'Порядок закладок в карточке задачи'), ENT_QUOTES, 'UTF-8') ?></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars($t('page.close', 'Закрыть'), ENT_QUOTES, 'UTF-8') ?>"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3" data-i18n="task_detail.tabs_config_hint">
+          <?= htmlspecialchars($t('task_detail.tabs_config_hint', 'Настройте порядок вкладок под себя. Первая вкладка будет открываться по умолчанию при входе в задачу.'), ENT_QUOTES, 'UTF-8') ?>
+        </p>
+        <ul class="list-group crm-task-tabs-order-list" id="taskTabsOrderList">
+          <!-- Populated by JS -->
+        </ul>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-sm crm-btn-secondary" id="taskTabsResetBtn" data-i18n="task_detail.tabs_config_reset">
+          <?= htmlspecialchars($t('task_detail.tabs_config_reset', 'Сбросить к умолчанию'), ENT_QUOTES, 'UTF-8') ?>
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm crm-btn-outline d-none" id="taskTabsSaveGlobalBtn" data-i18n="task_detail.tabs_config_save_global">
+            <?= htmlspecialchars($t('task_detail.tabs_config_save_global', 'Сохранить для всех'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+          <button type="button" class="btn btn-sm crm-btn-primary" id="taskTabsSavePersonalBtn" data-i18n="task_detail.tabs_config_save_personal">
+            <?= htmlspecialchars($t('task_detail.tabs_config_save_personal', 'Сохранить для себя'), ENT_QUOTES, 'UTF-8') ?>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

@@ -386,6 +386,44 @@
     });
 
     bindLoginFallback();
+    initSessionKeepalive();
+  }
+
+  function initSessionKeepalive() {
+    var lastActivityTime = Date.now();
+    var lastPingTime = Date.now();
+    var PING_INTERVAL = 4 * 60 * 1000;
+    var INACTIVITY_LIMIT = 25 * 60 * 1000;
+
+    function onActivity() {
+      lastActivityTime = Date.now();
+      if (Date.now() - lastPingTime > PING_INTERVAL) {
+        doPing();
+      }
+    }
+
+    window.addEventListener('keydown', onActivity, { passive: true });
+    window.addEventListener('mousedown', onActivity, { passive: true });
+    window.addEventListener('touchstart', onActivity, { passive: true });
+
+    function doPing() {
+      lastPingTime = Date.now();
+      if (!window.CRM || !window.CRM.api || typeof window.CRM.api.getUser !== 'function' || !window.CRM.api.getUser()) {
+        return;
+      }
+      if (Date.now() - lastActivityTime > INACTIVITY_LIMIT) {
+        return;
+      }
+      if (typeof window.CRM.api.request === 'function') {
+        window.CRM.api.request('api/v1/auth/me', { method: 'GET', silent: true }).catch(function () {});
+      }
+    }
+
+    setInterval(function () {
+      if (Date.now() - lastPingTime >= PING_INTERVAL) {
+        doPing();
+      }
+    }, 60 * 1000);
   }
 
   document.addEventListener('DOMContentLoaded', init);

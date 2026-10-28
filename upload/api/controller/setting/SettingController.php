@@ -82,6 +82,7 @@ final class SettingController extends BaseController
             'time_rounding_minutes',
             'tasks.worklog_policy',
             'tasks.allow_assignee_edit_identity',
+            'tasks.tabs_order',
         ];
         // L-3: scope must not come from the request. User settings live in
         // 'user:<public_id>' scopes; accepting a caller-supplied scope would
@@ -255,6 +256,7 @@ final class SettingController extends BaseController
             'finance.auto_close.lag_days' => 5,
             'tasks.worklog_policy' => 'all_project_members',
             'tasks.allow_assignee_edit_identity' => false,
+            'tasks.tabs_order' => ['subtasks', 'checklists', 'comments', 'worklogs', 'dependencies', 'files', 'activity', 'knowledge'],
             'branding.name' => '',
             'branding.logo' => '',
         ];
@@ -325,6 +327,18 @@ final class SettingController extends BaseController
         if ($name === 'tasks.allow_assignee_edit_identity') {
             if (!is_bool($value) && $value !== 0 && $value !== 1 && $value !== '0' && $value !== '1' && $value !== 'true' && $value !== 'false') {
                 return $this->t('setting/messages.invalid_boolean');
+            }
+            return null;
+        }
+
+        if ($name === 'tasks.tabs_order') {
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (!is_array($decoded)) {
+                    return 'Invalid tabs order format';
+                }
+            } elseif (!is_array($value)) {
+                return 'Invalid tabs order format';
             }
             return null;
         }
