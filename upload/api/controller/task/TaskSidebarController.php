@@ -115,7 +115,10 @@ final class TaskSidebarController extends BaseController
 
         /** @var \Api\System\Library\Service\SettingService $settingService */
         $settingService = $this->container->get('service.setting');
-        $settingService->set(self::PREF_SCOPE_PREFIX . $userPublicId, self::PREF_NAME, $active);
+        $settingService->set(self::PREF_SCOPE_PREFIX . $userPublicId, self::PREF_NAME, [
+            'v' => 2,
+            'active' => $active,
+        ]);
 
         return $this->success('TASK_SIDEBAR_SAVED', $this->t('task/messages.sidebar_saved'), [
             'catalog' => $this->buildCatalog($user),
@@ -137,7 +140,23 @@ final class TaskSidebarController extends BaseController
                 return [];
             }
             $value = $setting['value'] ?? [];
-            return is_array($value) ? $value : [];
+            if (!is_array($value)) {
+                return [];
+            }
+
+            // Versioned layout (v2+): user explicitly saved in the new version.
+            if (isset($value['v']) && (int)$value['v'] >= 2 && isset($value['active']) && is_array($value['active'])) {
+                return $value['active'];
+            }
+
+            // Legacy unversioned flat list: user configured blocks before 'progress' was added to sidebar.
+            // Seamless upgrade: auto-prepend 'progress' so existing users do not lose their task progress bar.
+            $activeList = isset($value['active']) && is_array($value['active']) ? $value['active'] : $value;
+            if ($activeList !== [] && !in_array('progress', $activeList, true)) {
+                array_unshift($activeList, 'progress');
+            }
+
+            return $activeList;
         } catch (\Throwable $e) {
             AppLog::error('[TaskSidebarController::loadPreference] ' . $e->getMessage());
             return [];
