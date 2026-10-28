@@ -332,4 +332,86 @@ final class TaskRelationRepository
 
         return $qb->get();
     }
+
+    /**
+     * List subtasks for a parent task from the intrinsic hierarchy table (task_relations).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function listHierarchySubtasks(int $parentTaskId): array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('task_relations tr')
+            ->join('tasks t', 't.id', '=', 'tr.child_task_id')
+            ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
+            ->select([
+                't.id',
+                't.public_id',
+                't.task_key',
+                't.title',
+                't.status_code',
+                't.priority_code',
+                'u.full_name AS assignee_name',
+                'u.public_id AS assignee_user_public_id',
+                't.created_at',
+                'tr.public_id AS relation_public_id',
+            ])
+            ->where('tr.parent_task_id', '=', $parentTaskId)
+            ->where('tr.relation_type', '=', 'subtask')
+            ->whereNull('t.deleted_at')
+            ->orderBy('tr.sort_order', 'ASC')
+            ->orderBy('t.created_at', 'ASC')
+            ->get();
+    }
+
+    /**
+     * Find parent task for a subtask from the intrinsic hierarchy table (task_relations).
+     *
+     * @return array<string,mixed>|null
+     */
+    public function findHierarchyParent(int $childTaskId): ?array
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('task_relations tr')
+            ->join('tasks t', 't.id', '=', 'tr.parent_task_id')
+            ->leftJoin('users u', 'u.id', '=', 't.assignee_user_id')
+            ->select([
+                't.id',
+                't.public_id',
+                't.task_key',
+                't.title',
+                't.status_code',
+                't.priority_code',
+                'u.full_name AS assignee_name',
+                'u.public_id AS assignee_user_public_id',
+                't.created_at',
+                'tr.public_id AS relation_public_id',
+            ])
+            ->where('tr.child_task_id', '=', $childTaskId)
+            ->where('tr.relation_type', '=', 'subtask')
+            ->whereNull('t.deleted_at')
+            ->first();
+
+        return $row ?? null;
+    }
+
+    /**
+     * Insert a parent-child hierarchy link into task_relations if not present.
+     */
+    public function createHierarchyRelation(int $parentId, int $childId, ?int $orgId = null): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        (new QueryBuilder($this->pdo))
+            ->from('task_relations')
+            ->insert([
+                'public_id' => Ulid::generate('trl'),
+                'parent_task_id' => $parentId,
+                'child_task_id' => $childId,
+                'relation_type' => 'subtask',
+                'sort_order' => 100,
+                'created_at' => $now,
+                'updated_at' => $now,
+                'organization_id' => $orgId,
+            ]);
+    }
 }

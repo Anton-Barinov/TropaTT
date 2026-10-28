@@ -68,7 +68,9 @@ final class TaskRelationService
 
         $rows = $this->relations->listForTaskId($taskId);
 
-        return $this->buildGroupedResponse($rows, $taskId, $actor);
+        $result = $this->buildGroupedResponse($rows, $taskId, $actor);
+
+        return $this->includeHierarchyRelations($result, $taskId, $actor);
     }
 
     /**
@@ -168,6 +170,14 @@ final class TaskRelationService
 
         $created = $this->relations->create($payload);
         if (is_array($created)) {
+            if ($normalized === 'parent_of' && $this->relations->findHierarchyParent($targetId) === null) {
+                try {
+                    $orgId = (int)($actor['organization_id'] ?? 0);
+                    $this->relations->createHierarchyRelation($sourceId, $targetId, $orgId > 0 ? $orgId : null);
+                } catch (\Throwable) {
+                    // Non-fatal if already present or constraint
+                }
+            }
             $sourceKey = (string)($sourceTask['task_key'] ?? $sourceTaskPublicId);
             $targetKey = (string)($targetTask['task_key'] ?? $targetPublicId);
             $this->activity?->recordRelationEvent($sourceTask, 'task.relation_added', [
@@ -464,5 +474,83 @@ final class TaskRelationService
             'parent_of' => 'child_of',
             default => null,
         };
+    }
+
+    /**
+     * Automatically discover and include parent and subtask hierarchy relations.
+     *
+     * @param array<string,mixed> $result
+     * @param int $taskId
+     * @param array<string,mixed> $actor
+     * @return array<string,mixed>
+     */
+    private function includeHierarchyRelations(array $result, int $taskId, array $actor): array
+    {
+        // 1. Parent task: if current task is a subtask of another task
+        $parentRow = $this->relations->findHierarchyParent($taskId);
+        if ($parentRow !== null) {
+            $parentPublicId = (string)($parentRow['public_id'] ?? '');
+            $existingChildOfPids = array_column($result['groups']['child_of'] ?? [], 'task_public_id');
+            if ($parentPublicId !== '' && !in_array($parentPublicId, $existingChildOfPids, true)) {
+                $parentTask = $this->tasks->get($parentPublicId, $actor);
+                if ($parentTask !== null) {
+                    $result['groups']['child_of'][] = [
+                        'relation_public_id' => (string)($parentRow['relation_public_id'] ?? 'hierarchy_parent'),
+                        'task_public_id' => $parentPublicId,
+                        'task_key' => (string)($parentTask['task_key'] ?? $parentRow['task_key'] ?? ''),
+                        'title' => (string)($parentTask['title'] ?? $parentRow['title'] ?? ''),
+                        'status_code' => (string)($parentTask['status_code'] ?? $parentRow['status_code'] ?? ''),
+                        'assignee_name' => (string)($parentTask['assignee_name'] ?? $parentRow['assignee_name'] ?? ''),
+                        'assignee_user_public_id' => (string)($parentTask['assignee_user_public_id'] ?? $parentRow['assignee_user_public_id'] ?? ''),
+                        'priority' => (string)($parentTask['priority'] ?? $parentRow['priority_code'] ?? 'normal'),
+                        'relation_type' => 'child_of',
+                        'note' => '',
+                        'created_at' => (string)($parentRow['created_at'] ?? ''),
+                        'is_hierarchy' => true,
+                    ];
+                }
+            }
+        }
+
+        // 2. Subtasks: if current task has subtasks
+        $subtaskRows = $this->relations->listHierarchySubtasks($taskId);
+        if ($subtaskRows !== []) {
+            $existingParentOfPids = array_column($result['groups']['parent_of'] ?? [], 'task_public_id');
+            foreach ($subtaskRows as $subRow) {
+                $subPublicId = (string)($subRow['public_id'] ?? '');
+                if ($subPublicId === '' || in_array($subPublicId, $existingParentOfPids, true)) {
+                    continue;
+                }
+                $subTask = $this->tasks->get($subPublicId, $actor);
+                if ($subTask === null) {
+                    continue;
+                }
+                $result['groups']['parent_of'][] = [
+                    'relation_public_id' => (string)($subRow['relation_public_id'] ?? 'hierarchy_sub_' . $subPublicId),
+                    'task_public_id' => $subPublicId,
+                    'task_key' => (string)($subTask['task_key'] ?? $subRow['task_key'] ?? ''),
+                    'title' => (string)($subTask['title'] ?? $subRow['title'] ?? ''),
+                    'status_code' => (string)($subTask['status_code'] ?? $subRow['status_code'] ?? ''),
+                    'assignee_name' => (string)($subTask['assignee_name'] ?? $subRow['assignee_name'] ?? ''),
+                    'assignee_user_public_id' => (string)($subTask['assignee_user_public_id'] ?? $subRow['assignee_user_public_id'] ?? ''),
+                    'priority' => (string)($subTask['priority'] ?? $subRow['priority_code'] ?? 'normal'),
+                    'relation_type' => 'parent_of',
+                    'note' => '',
+                    'created_at' => (string)($subRow['created_at'] ?? ''),
+                    'is_hierarchy' => true,
+                ];
+            }
+        }
+
+        // 3. Update metadata counts
+        $totalCount = 0;
+        foreach ($result['groups'] as $items) {
+            $totalCount += count($items);
+        }
+        $result['meta']['total_count'] = $totalCount;
+        $result['meta']['parent_count'] = count($result['groups']['child_of'] ?? []);
+        $result['meta']['subtasks_count'] = count($result['groups']['parent_of'] ?? []);
+
+        return $result;
     }
 }
