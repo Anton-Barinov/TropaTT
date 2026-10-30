@@ -6553,6 +6553,7 @@ window.CRM.br1 = (function () {
     var timerCancelBtn = document.getElementById('taskTimerLogCancelBtn');
     if (!startBtn || !stopBtn || !timerForm) return;
 
+    var hoursInput = timerForm.querySelector('[name="hours_spent"]');
     var minutesInput = timerForm.querySelector('[name="minutes_spent"]');
     var noteInput = timerForm.querySelector('[name="note"]');
     var activityInput = timerForm.querySelector('[name="activity_code"]');
@@ -6575,6 +6576,7 @@ window.CRM.br1 = (function () {
 
       startTaskTimer(taskId);
       pendingLogPayload = null;
+      if (hoursInput) hoursInput.value = '';
       if (minutesInput) minutesInput.value = '';
       if (noteInput) noteInput.value = '';
       timerForm.classList.add('d-none');
@@ -6605,7 +6607,7 @@ window.CRM.br1 = (function () {
       var roundedMinutes = Math.max(1, Math.round(seconds / 60));
       loadTimeRoundingSetting().then(function (rounding) {
         if (rounding > 0) roundedMinutes = applyTimeRounding(roundedMinutes);
-        if (minutesInput) minutesInput.value = String(roundedMinutes);
+        setWorklogDurationInputs(timerForm, roundedMinutes);
       });
       pendingLogPayload = {
         seconds: seconds,
@@ -6638,16 +6640,16 @@ window.CRM.br1 = (function () {
         return;
       }
 
-      var minutes = Number(minutesInput ? minutesInput.value : 0);
+      var minutes = readWorklogDurationMinutes(timerForm);
       var note = String(noteInput ? noteInput.value : '').trim();
       var activityCode = String(activityInput ? activityInput.value : '').trim();
 
       await loadTimeRoundingSetting();
       minutes = applyTimeRounding(minutes);
-      if (minutesInput) minutesInput.value = String(minutes);
+      setWorklogDurationInputs(timerForm, minutes);
 
       if (minutes <= 0) {
-        notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya', 'Укажите количество минут больше нуля'), 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_zatrachennoe_vremya', 'Укажите затраченное время больше нуля'), 'warning');
         return;
       }
 
@@ -6671,6 +6673,7 @@ window.CRM.br1 = (function () {
 
         pendingLogPayload = null;
         timerForm.classList.add('d-none');
+        if (hoursInput) hoursInput.value = '';
         if (minutesInput) minutesInput.value = '';
         if (noteInput) noteInput.value = '';
         await loadTaskWorklogs(taskId);
@@ -7901,10 +7904,29 @@ window.CRM.br1 = (function () {
     return Math.ceil(minutes / n) * n;
   }
 
+  function readWorklogDurationMinutes(scope) {
+    if (!scope) return 0;
+    var hoursInput = scope.querySelector('[name="hours_spent"]');
+    var minutesInput = scope.querySelector('[name="minutes_spent"]');
+    var hours = Math.max(0, parseInt(String((hoursInput && hoursInput.value) || '').trim(), 10) || 0);
+    var minutes = Math.max(0, parseInt(String((minutesInput && minutesInput.value) || '').trim(), 10) || 0);
+    return (hours * 60) + minutes;
+  }
+
+  function setWorklogDurationInputs(scope, totalMinutes) {
+    if (!scope) return;
+    var total = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+    var hoursInput = scope.querySelector('[name="hours_spent"]');
+    var minutesInput = scope.querySelector('[name="minutes_spent"]');
+    if (hoursInput) hoursInput.value = String(Math.floor(total / 60));
+    if (minutesInput) minutesInput.value = String(total % 60);
+  }
+
   function getDefaultWorklogDraft() {
     var now = new Date();
     return {
-      minutes_spent: '60',
+      hours_spent: '1',
+      minutes_spent: '0',
       logged_at: new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16),
       note: '',
       activity_code: ''
@@ -7912,8 +7934,10 @@ window.CRM.br1 = (function () {
   }
 
   function getWorklogDraftFromItem(item) {
+    var total = Math.max(0, Math.floor(Number(item && item.minutes_spent ? item.minutes_spent : 0) || 0));
     return {
-      minutes_spent: String(item && item.minutes_spent ? item.minutes_spent : ''),
+      hours_spent: String(Math.floor(total / 60)),
+      minutes_spent: String(total % 60),
       logged_at: toLocalDatetimeValue(item && item.logged_at ? item.logged_at : ''),
       note: String(item && item.note ? item.note : ''),
       activity_code: String(item && item.activity_code ? item.activity_code : '')
@@ -7968,9 +7992,11 @@ window.CRM.br1 = (function () {
       if (!worklogCreateDraft) worklogCreateDraft = getDefaultWorklogDraft();
       createForm.classList.toggle('d-none', !worklogAddOpen);
       if (worklogAddOpen) {
+        var createHoursInput = createForm.querySelector('[name="hours_spent"]');
         var createMinutesInput = createForm.querySelector('[name="minutes_spent"]');
         var createLoggedAtInput = createForm.querySelector('[name="logged_at"]');
         var createNoteInput = createForm.querySelector('[name="note"]');
+        if (createHoursInput) createHoursInput.value = worklogCreateDraft.hours_spent;
         if (createMinutesInput) createMinutesInput.value = worklogCreateDraft.minutes_spent;
         if (createLoggedAtInput) createLoggedAtInput.value = worklogCreateDraft.logged_at;
         if (createNoteInput) createNoteInput.value = worklogCreateDraft.note;
@@ -8013,7 +8039,12 @@ window.CRM.br1 = (function () {
       return '<article class="crm-worklog-card is-editing" data-worklog-id="' + escapeHtml(worklogId) + '">'
         + window.CRM.i18n.t('js.br1.div_class_crm_worklog_edit_badge_rezhim_redaktirovaniya', '<div class="crm-worklog-edit-badge">Режим редактирования</div>')
         + '<form class="row g-2" data-worklog-update-form="' + escapeHtml(worklogId) + '">'
-        + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_minuty_label', '<div class="col-md-3"><label class="form-label">Минуты</label><input class="form-control" type="number" min="1" step="1" name="minutes_spent" value="') + escapeHtml(draft.minutes_spent) + '" required></div>'
+        + '<div class="col-md-3"><label class="form-label">' + window.CRM.i18n.t('task_detail.worklog_time_spent_label', 'Затраченное время') + '</label><div class="input-group">'
+        + '<input class="form-control" type="number" min="0" step="1" name="hours_spent" value="' + escapeHtml(draft.hours_spent || '0') + '" aria-label="Часы">'
+        + '<span class="input-group-text">ч</span>'
+        + '<input class="form-control" type="number" min="0" max="59" step="1" name="minutes_spent" value="' + escapeHtml(draft.minutes_spent || '0') + '" aria-label="Минуты">'
+        + '<span class="input-group-text">мин</span>'
+        + '</div></div>'
         + window.CRM.i18n.t('js.br1.div_class_col_md_3_label_class_form_label_data_vremya_l', '<div class="col-md-3"><label class="form-label">Дата/время</label><input class="form-control" type="datetime-local" name="logged_at" value="') + escapeHtml(draft.logged_at) + '" required></div>'
         + '<div class="col-md-6"><label class="form-label">' + window.CRM.i18n.t('js.br1.worklog_activity_label', 'Вид работ') + '</label><select class="form-select" name="activity_code">' + worklogActivityOptionsHtml(draft.activity_code) + '</select></div>'
         + window.CRM.i18n.t('js.br1.div_class_col_md_6_label_class_form_label_kommentariy_l', '<div class="col-md-6"><label class="form-label">Комментарий</label><input class="form-control" name="note" maxlength="8000" value="') + escapeHtml(draft.note) + '"></div>'
@@ -8134,8 +8165,7 @@ window.CRM.br1 = (function () {
 
       createForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var minutesRaw = String((createForm.querySelector('[name="minutes_spent"]') || {}).value || '').trim();
-        var minutes = Number(minutesRaw || 0);
+        var minutes = readWorklogDurationMinutes(createForm);
         var note = String((createForm.querySelector('[name="note"]') || {}).value || '').trim();
         var activityCode = String((createForm.querySelector('[name="activity_code"]') || {}).value || '').trim();
         var loggedAtRaw = String((createForm.querySelector('[name="logged_at"]') || {}).value || '').trim();
@@ -8145,7 +8175,7 @@ window.CRM.br1 = (function () {
         minutes = applyTimeRounding(minutes);
 
         if (minutes <= 0) {
-          notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_2', 'Укажите количество минут больше нуля'), 'warning');
+          notify(window.CRM.i18n.t('js.br1.ukazhite_zatrachennoe_vremya', 'Укажите затраченное время больше нуля'), 'warning');
           return;
         }
         if (!loggedAtRaw) {
@@ -8199,8 +8229,7 @@ window.CRM.br1 = (function () {
       var worklogId = String(form.getAttribute('data-worklog-update-form') || '');
       if (!worklogId) return;
 
-      var minutesRaw = String((form.querySelector('[name="minutes_spent"]') || {}).value || '').trim();
-      var minutes = Number(minutesRaw || 0);
+      var minutes = readWorklogDurationMinutes(form);
       var note = String((form.querySelector('[name="note"]') || {}).value || '').trim();
       var activityCode = String((form.querySelector('[name="activity_code"]') || {}).value || '').trim();
       var loggedAtRaw = String((form.querySelector('[name="logged_at"]') || {}).value || '').trim();
@@ -8210,7 +8239,7 @@ window.CRM.br1 = (function () {
       minutes = applyTimeRounding(minutes);
 
       if (minutes <= 0) {
-        notify(window.CRM.i18n.t('js.br1.ukazhite_kolichestvo_minut_bolshe_nulya_3', 'Укажите количество минут больше нуля'), 'warning');
+        notify(window.CRM.i18n.t('js.br1.ukazhite_zatrachennoe_vremya', 'Укажите затраченное время больше нуля'), 'warning');
         return;
       }
       if (!loggedAtRaw) {
@@ -8948,8 +8977,8 @@ window.CRM.br1 = (function () {
       toggle.click();
     }
 
-    var minutes = form.querySelector('input[name="minutes_spent"]');
-    if (minutes && typeof minutes.focus === 'function') minutes.focus();
+    var hours = form.querySelector('input[name="hours_spent"]');
+    if (hours && typeof hours.focus === 'function') hours.focus();
   }
 
   function openWorklogTabFromQuery(tabsNav, loadForTab) {
