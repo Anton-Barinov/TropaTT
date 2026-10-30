@@ -236,8 +236,13 @@
         </div>
         <form id="worklogCreateForm" class="row g-3 mb-3 crm-task-create-form crm-worklog-create-form d-none">
           <div class="col-lg-3">
-            <label class="form-label" data-i18n="task_detail.worklog_minutes_label"><?= htmlspecialchars($t('task_detail.worklog_minutes_label', 'Минуты'), ENT_QUOTES, 'UTF-8') ?></label>
-            <input class="form-control" name="minutes_spent" type="number" min="1" step="1" placeholder="60" required>
+            <label class="form-label" data-i18n="task_detail.worklog_time_spent_label"><?= htmlspecialchars($t('task_detail.worklog_time_spent_label', 'Затраченное время'), ENT_QUOTES, 'UTF-8') ?></label>
+            <div class="input-group">
+              <input class="form-control" name="hours_spent" type="number" min="0" step="1" placeholder="0" aria-label="Часы">
+              <span class="input-group-text">ч</span>
+              <input class="form-control" name="minutes_spent" type="number" min="0" max="59" step="1" placeholder="0" aria-label="Минуты">
+              <span class="input-group-text">мин</span>
+            </div>
           </div>
           <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_date_label"><?= htmlspecialchars($t('task_detail.worklog_date_label', 'Дата/время'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -391,8 +396,13 @@
       </div>
       <form id="taskTimerLogForm" class="row g-2 mt-3 d-none">
         <div class="col-12">
-          <label class="form-label" data-i18n="task_detail.timer_log_minutes_label"><?= htmlspecialchars($t('task_detail.timer_log_minutes_label', 'Затрачено (мин)'), ENT_QUOTES, 'UTF-8') ?></label>
-          <input class="form-control" type="number" min="1" step="1" name="minutes_spent" required>
+          <label class="form-label" data-i18n="task_detail.worklog_time_spent_label"><?= htmlspecialchars($t('task_detail.worklog_time_spent_label', 'Затраченное время'), ENT_QUOTES, 'UTF-8') ?></label>
+          <div class="input-group">
+            <input class="form-control" name="hours_spent" type="number" min="0" step="1" placeholder="0" aria-label="Часы">
+            <span class="input-group-text">ч</span>
+            <input class="form-control" name="minutes_spent" type="number" min="0" max="59" step="1" placeholder="0" aria-label="Минуты">
+            <span class="input-group-text">мин</span>
+          </div>
           <div id="taskTimerLogElapsedHint" class="small text-muted mt-1 d-none"></div>
         </div>
         <div class="col-12">
