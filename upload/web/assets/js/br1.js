@@ -8039,7 +8039,7 @@ window.CRM.br1 = (function () {
       return '<article class="crm-worklog-card is-editing" data-worklog-id="' + escapeHtml(worklogId) + '">'
         + window.CRM.i18n.t('js.br1.div_class_crm_worklog_edit_badge_rezhim_redaktirovaniya', '<div class="crm-worklog-edit-badge">Режим редактирования</div>')
         + '<form class="row g-2" data-worklog-update-form="' + escapeHtml(worklogId) + '">'
-        + '<div class="col-md-3"><label class="form-label">' + window.CRM.i18n.t('task_detail.worklog_time_spent_label', 'Затраченное время') + '</label><div class="input-group">'
+        + '<div class="col-md-3"><label class="form-label">' + window.CRM.i18n.t('task_detail.worklog_time_spent_label', 'Затраченное время') + '</label><div class="input-group crm-duration-group">'
         + '<input class="form-control" type="number" min="0" step="1" name="hours_spent" value="' + escapeHtml(draft.hours_spent || '0') + '" aria-label="Часы">'
         + '<span class="input-group-text">ч</span>'
         + '<input class="form-control" type="number" min="0" max="59" step="1" name="minutes_spent" value="' + escapeHtml(draft.minutes_spent || '0') + '" aria-label="Минуты">'
