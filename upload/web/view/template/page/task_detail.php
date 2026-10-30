@@ -237,7 +237,7 @@
         <form id="worklogCreateForm" class="row g-3 mb-3 crm-task-create-form crm-worklog-create-form d-none">
           <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_time_spent_label"><?= htmlspecialchars($t('task_detail.worklog_time_spent_label', 'Затраченное время'), ENT_QUOTES, 'UTF-8') ?></label>
-            <div class="input-group">
+            <div class="input-group crm-duration-group">
               <input class="form-control" name="hours_spent" type="number" min="0" step="1" placeholder="0" aria-label="Часы">
               <span class="input-group-text">ч</span>
               <input class="form-control" name="minutes_spent" type="number" min="0" max="59" step="1" placeholder="0" aria-label="Минуты">
@@ -397,7 +397,7 @@
       <form id="taskTimerLogForm" class="row g-2 mt-3 d-none">
         <div class="col-12">
           <label class="form-label" data-i18n="task_detail.worklog_time_spent_label"><?= htmlspecialchars($t('task_detail.worklog_time_spent_label', 'Затраченное время'), ENT_QUOTES, 'UTF-8') ?></label>
-          <div class="input-group">
+          <div class="input-group crm-duration-group">
             <input class="form-control" name="hours_spent" type="number" min="0" step="1" placeholder="0" aria-label="Часы">
             <span class="input-group-text">ч</span>
             <input class="form-control" name="minutes_spent" type="number" min="0" max="59" step="1" placeholder="0" aria-label="Минуты">

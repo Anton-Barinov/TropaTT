@@ -6763,6 +6763,74 @@ body.modal-open {
   background: transparent;
 }
 
+/* Hours + minutes entered as one seamless duration field */
+.crm-task-detail-page .crm-duration-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: auto;
+  max-width: 100%;
+  gap: 0.12rem;
+  min-height: var(--crm-control-height);
+  padding: 0.15rem 0.7rem 0.15rem 0.2rem;
+  border: 1px solid var(--crm-border);
+  border-radius: 12px;
+  background: var(--crm-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-task-detail-page .crm-duration-group:focus-within {
+  border-color: color-mix(in srgb, var(--crm-primary) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crm-primary) 12%, transparent);
+}
+
+.crm-task-detail-page .crm-duration-group > .form-control {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  min-height: calc(var(--crm-control-height) - 0.6rem);
+  height: auto;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--crm-text);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.crm-task-detail-page .crm-duration-group > .form-control::-webkit-outer-spin-button,
+.crm-task-detail-page .crm-duration-group > .form-control::-webkit-inner-spin-button {
+  width: 0;
+  height: 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.crm-task-detail-page .crm-duration-group > .form-control:focus {
+  background: color-mix(in srgb, var(--crm-primary) 7%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.crm-task-detail-page .crm-duration-group > .input-group-text {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0 0.25rem;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--crm-text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
 .crm-task-detail-page .crm-worklog-create-actions {
   display: flex;
   justify-content: flex-end;

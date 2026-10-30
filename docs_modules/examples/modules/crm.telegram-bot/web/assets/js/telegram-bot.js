@@ -118,18 +118,41 @@
   const showAlert = (message, type = 'success') => {
     const el = $('tgAlertContainer');
     if (!el) return;
+    const allowedTypes = ['success', 'danger', 'warning', 'info'];
+    const alertType = allowedTypes.includes(type) ? type : 'info';
+    const alertGeneration = String((Number(el.dataset.alertGeneration) || 0) + 1);
+    el.dataset.alertGeneration = alertGeneration;
+    const icons = {
+      success: 'circle-check',
+      danger: 'circle-exclamation',
+      warning: 'triangle-exclamation',
+      info: 'circle-info',
+    };
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${alertType} alert-dismissible fade show d-flex align-items-center mb-0`;
+    alert.setAttribute('role', 'alert');
+    const icon = document.createElement('i');
+    icon.className = `fa-solid fa-${icons[alertType]} me-2`;
+    icon.setAttribute('aria-hidden', 'true');
+    const content = document.createElement('div');
+    content.className = 'flex-grow-1';
+    content.textContent = String(message ?? '');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn-close';
+    close.setAttribute('data-bs-dismiss', 'alert');
+    close.setAttribute('aria-label', 'Закрыть');
+    alert.append(icon, content, close);
     el.style.display = 'block';
-    el.innerHTML = `
-      <div class="alert alert-${type} alert-dismissible fade show d-flex align-items-center mb-0" role="alert">
-        <i class="fa-solid fa-${type === 'success' ? 'circle-check' : (type === 'danger' ? 'circle-exclamation' : 'circle-info')} me-2" aria-hidden="true"></i>
-        <div class="flex-grow-1">${message}</div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
-      </div>
-    `;
+    el.replaceChildren(alert);
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     setTimeout(() => {
-      if (el && el.firstElementChild) {
+      if (el && el.dataset.alertGeneration === alertGeneration && el.firstElementChild) {
         el.style.display = 'none';
-        el.innerHTML = '';
+        el.replaceChildren();
       }
     }, 6000);
   };
@@ -611,7 +634,7 @@
           organization_id: currentOrgId,
         },
       });
-      showAlert(`Статус диалога изменен на «${esc(newStatus)}»`, 'success');
+      showAlert(`Статус диалога изменен на «${newStatus}»`, 'success');
       loadDialogs();
     } catch (err) {
       showAlert(err.message || 'Ошибка обновления статуса', 'danger');
@@ -666,7 +689,7 @@
         }
       }
 
-      showAlert(`Задача успешно создана в CRM: <strong>#${esc(res.task_id || '')}</strong>!`, 'success');
+      showAlert(`Задача успешно создана в CRM: #${res.task_id || ''}!`, 'success');
       await selectDialog(currentActiveDialogId);
       loadDialogs();
       loadLogs();
@@ -1067,13 +1090,17 @@
 
         const bot = res.bot || {};
         const username = bot.username ? '@' + bot.username : (bot.first_name || 'Бот');
-        showAlert(`Связь с Telegram API подтверждена! Бот: <strong>${esc(username)}</strong> (ID: ${esc(bot.id)})`, 'success');
+        showAlert(`Связь с Telegram API подтверждена! Бот: ${username} (ID: ${bot.id})`, 'success');
         if (bot.username && $('tgBotUsername')) {
           $('tgBotUsername').value = '@' + bot.username;
         }
         await loadStatus();
       } catch (err) {
-        showAlert(err.message || 'Не удалось связаться с Telegram API', 'danger');
+        const errorMessage = String(err.message || '');
+        const friendlyMessage = errorMessage === 'TELEGRAM_CONNECT_FAILED'
+          ? 'Не удалось проверить соединение с Telegram. Проверьте Bot Token, доступ к Telegram API и настройки прокси.'
+          : (errorMessage || 'Не удалось связаться с Telegram API');
+        showAlert(friendlyMessage, 'danger');
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -1098,7 +1125,7 @@
           method: 'POST',
           body: { webhook_url: webhookUrl, webhook_secret_token: secret, organization_id: currentOrgId },
         });
-        showAlert(`Вебхук успешно установлен в Telegram! Ответ: ${esc(res.description || 'OK')}`, 'success');
+        showAlert(`Вебхук успешно установлен в Telegram! Ответ: ${res.description || 'OK'}`, 'success');
         await loadStatus();
       } catch (err) {
         showAlert(err.message || 'Ошибка установки вебхука', 'danger');
@@ -1123,7 +1150,7 @@
           method: 'POST',
           body: { organization_id: currentOrgId },
         });
-        showAlert(`Вебхук удалён. Бот переведён в режим ручного опроса (Polling). Ответ: ${esc(res.description || 'OK')}`, 'info');
+        showAlert(`Вебхук удалён. Бот переведён в режим ручного опроса (Polling). Ответ: ${res.description || 'OK'}`, 'info');
         await loadStatus();
       } catch (err) {
         showAlert(err.message || 'Ошибка удаления вебхука', 'danger');
@@ -1183,7 +1210,7 @@
             $('tgOpenBotLink').href = `https://t.me/${encodeURIComponent(currentBotUsername.replace('@', ''))}`;
           }
         }
-        showAlert(`Код привязки сгенерирован: <strong>${esc(code)}</strong>. Отправьте боту команду <code>/bind ${esc(code)}</code>`, 'info');
+        showAlert(`Код привязки сгенерирован: ${code}. Отправьте боту команду /bind ${code}`, 'info');
         loadBindings();
       } catch (err) {
         showAlert(err.message || 'Ошибка генерации кода привязки', 'danger');
@@ -1261,7 +1288,7 @@
           method: 'POST',
           body: { chat_id: chatId, text, organization_id: currentOrgId },
         });
-        showAlert(`Сообщение успешно доставлено в чат <code>${esc(chatId)}</code>!`, 'success');
+        showAlert(`Сообщение успешно доставлено в чат ${chatId}!`, 'success');
         if (statusEl) statusEl.innerHTML = '<span class="text-success">✓ Отправлено</span>';
       } catch (err) {
         showAlert(err.message || 'Ошибка отправки сообщения', 'danger');
