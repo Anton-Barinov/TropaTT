@@ -100,6 +100,7 @@ use Api\System\Library\Service\NotificationService;
 use Api\System\Library\Service\OrganizationService;
 use Api\System\Library\Service\OpenAiCompatibleProviderClient;
 use Api\System\Library\Service\PasswordResetService;
+use Api\System\Library\Service\EmailDeliveryService;
 use Api\System\Library\Service\PermissionService;
 use Api\System\Library\Service\PriorityService;
 use Api\System\Library\Service\ProjectAiContextBuilder;
@@ -819,6 +820,7 @@ final class App
             'install',
             'api',
             'ai',
+            'integrations',
             'feature_flags',
             'logging',
             'update',
@@ -1594,6 +1596,10 @@ final class App
             $c->get('repository.password_reset'),
             (string)$this->config->get('default.storage.avatars', dirname($this->basePath) . '/storage_api/avatars')
         ));
+        $this->container->factory('service.email_delivery', fn(Container $c) => new EmailDeliveryService(
+            (array)$this->config->get('integrations.email', []),
+            $c->get('logger')
+        ));
         $this->container->factory('service.invitation', fn(Container $c) => new InvitationService(
             $c->get('repository.invitation'),
             $c->get('repository.user'),
@@ -1603,7 +1609,9 @@ final class App
             $c->get('security.token'),
             $c->get('logger'),
             $c->get('service.rate_limiter'),
-            $c->get('repository.organization')
+            $c->get('repository.organization'),
+            $c->get('service.email_delivery'),
+            (string)$this->config->get('integrations.email.public_url', '')
         ));
         $this->container->factory('service.password_reset', fn(Container $c) => new PasswordResetService(
             $c->get('repository.password_reset'),
@@ -1613,7 +1621,9 @@ final class App
             $c->get('security.hasher'),
             $c->get('security.token'),
             $c->get('logger'),
-            $c->get('service.rate_limiter')
+            $c->get('service.rate_limiter'),
+            $c->get('service.email_delivery'),
+            (string)$this->config->get('integrations.email.public_url', '')
         ));
         $this->container->factory('service.two_factor', fn(Container $c) => new TwoFactorService(
             $c->get('repository.two_factor'),
