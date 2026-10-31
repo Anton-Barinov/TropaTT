@@ -112,6 +112,7 @@ final class InvitationRepository
         return $this->buildDetailsQuery()
             ->where('i.token_hash', '=', $tokenHash)
             ->whereNull('i.accepted_at')
+            ->whereNull('i.revoked_at')
             ->first();
     }
 
