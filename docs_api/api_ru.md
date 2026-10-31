@@ -1171,6 +1171,7 @@ TropaTT реализует унифицированный протокол ве�
 | GET | `/api/v1/security/sessions` 🔄 | Список сессий | Да | — | — |
 | DELETE | `/api/v1/security/sessions/{public_id}` 🔄 | Отзыв сессии | Да | — | — |
 | POST | `/api/v1/security/sessions/revoke-others` 🔄 | Отзыв других сессий | Да | — | — |
+| POST | `/api/v1/security/sessions/revoke-all` | Отзыв всех сессий, включая текущую | Да | — | После запроса потребуется войти снова |
 | POST | `/api/v1/security/sessions/revoke-device` 🔄 | Отзыв по устройству | Да | — | — |
 | GET | `/api/v1/security/invitations` 🔄 | Список приглашений | Да | `user.manage` | — |
 | POST | `/api/v1/security/invitations` 🔄 | Создание приглашения | Да | `user.manage` | — |

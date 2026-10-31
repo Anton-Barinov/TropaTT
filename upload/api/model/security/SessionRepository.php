@@ -9,7 +9,10 @@ use Api\System\Library\Support\LikeEscaper;
 
 final class SessionRepository
 {
-    public function __construct(private readonly PDO $pdo)
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly int $maxSessionLifetimeSeconds = 2592000
+    )
     {
     }
 
@@ -19,8 +22,16 @@ final class SessionRepository
         $limit = min(100, max(1, $limit));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListByUserQuery($userId)->count();
+        $createdAfter = gmdate('Y-m-d H:i:s', time() - max(86400, $this->maxSessionLifetimeSeconds));
+        $query = $this->buildListByUserQuery($userId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', gmdate('Y-m-d H:i:s'))
+            ->where('created_at', '>', $createdAfter);
+        $total = $query->count();
         $items = $this->buildListByUserQuery($userId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', gmdate('Y-m-d H:i:s'))
+            ->where('created_at', '>', $createdAfter)
             ->select(['public_id', 'ip', 'user_agent', 'device_fingerprint', 'device_name', 'expires_at', 'revoked_at', 'created_at'])
             ->orderBy('created_at', 'DESC')
             ->limit($limit)

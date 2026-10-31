@@ -1199,7 +1199,10 @@ final class App
         $this->container->factory('repository.client_cabinet', fn(Container $c) => new \Api\Model\Client\ClientCabinetRepository($c->get('db.pdo')));
         $this->container->factory('repository.contact', fn(Container $c) => new \Api\Model\Contact\ContactRepository($c->get('db.pdo')));
         $this->container->factory('repository.setting', fn(Container $c) => new \Api\Model\Setting\SettingRepository($c->get('db.pdo')));
-        $this->container->factory('repository.session', fn(Container $c) => new \Api\Model\Security\SessionRepository($c->get('db.pdo')));
+        $this->container->factory('repository.session', fn(Container $c) => new \Api\Model\Security\SessionRepository(
+            $c->get('db.pdo'),
+            (int)$this->config->get('security.auth.max_session_lifetime', 2592000)
+        ));
         $this->container->factory('repository.notification', fn(Container $c) => new \Api\Model\Notification\NotificationRepository($c->get('db.pdo')));
         $this->container->factory('repository.notification_push_subscription', fn(Container $c) => new \Api\Model\Notification\PushSubscriptionRepository($c->get('db.pdo')));
         $this->container->factory('repository.notification_push_queue', fn(Container $c) => new \Api\Model\Notification\PushDispatchQueueRepository($c->get('db.pdo')));

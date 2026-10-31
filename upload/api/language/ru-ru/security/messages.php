@@ -3,6 +3,7 @@ return [
     'session_list' => 'Список сессий',
     'session_revoked' => 'Сессия отозвана',
     'session_revoke_others' => 'Остальные сессии отозваны',
+    'session_revoke_all' => 'Все сессии отозваны; войдите снова',
     'session_revoke_device' => 'Сессии устройства отозваны',
     'device_fingerprint_required' => 'Поле device_fingerprint обязательно',
     'user_not_found' => 'Пользователь не найден',

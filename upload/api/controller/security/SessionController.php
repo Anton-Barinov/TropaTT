@@ -65,6 +65,22 @@ final class SessionController extends BaseController
         ]);
     }
 
+    public function revokeAll(): \Api\System\Library\Http\JsonResponse
+    {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+
+        /** @var SessionService $service */
+        $service = $this->container->get('service.session');
+        $count = $service->revokeAll($auth['user']);
+
+        return $this->success('SESSION_REVOKE_ALL', $this->t('security/messages.session_revoke_all'), [
+            'revoked_count' => $count,
+        ]);
+    }
+
     public function revokeDevice(): \Api\System\Library\Http\JsonResponse
     {
         $auth = $this->user();
