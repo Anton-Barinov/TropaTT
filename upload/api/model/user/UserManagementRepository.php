@@ -50,6 +50,22 @@ final class UserManagementRepository
     }
 
     /**
+     * Read only the password hash for a self-service password verification.
+     * Keep it out of findById(), whose result is used for profile/API payloads.
+     */
+    public function findPasswordHashById(int $id): ?string
+    {
+        $row = (new QueryBuilder($this->pdo))
+            ->from('users')
+            ->select(['password_hash'])
+            ->where('id', '=', $id)
+            ->first();
+
+        $hash = $row['password_hash'] ?? null;
+        return is_string($hash) && $hash !== '' ? $hash : null;
+    }
+
+    /**
      * Avatar columns for one user.
      *
      * Queried separately from findById()/findByPublicId() on purpose: their
