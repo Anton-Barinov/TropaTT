@@ -3,6 +3,7 @@ return [
     'session_list' => '会话列表',
     'session_revoked' => '会话已吊销',
     'session_revoke_others' => '其他会话已吊销',
+    'session_revoke_all' => '所有会话已吊销，请重新登录',
     'session_revoke_device' => '设备会话已吊销',
     'device_fingerprint_required' => 'device_fingerprint 字段为必填项',
     'user_not_found' => '用户未找到',

@@ -13847,6 +13847,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       ? preferencesData.preferences
       : {};
     var sessions = mapItems(results[2]);
+    var sessionPagination = results[2] && results[2].meta && results[2].meta.pagination
+      ? results[2].meta.pagination
+      : {};
+    var activeSessionCount = Number(sessionPagination.total);
+    if (!Number.isFinite(activeSessionCount)) activeSessionCount = sessions.length;
     var twoFactorData = results[3] && results[3].data ? results[3].data : {};
     var twoFactorEnabled = !!(twoFactorData.enabled || (twoFactorData.two_factor && twoFactorData.two_factor.enabled));
     var securityLogs = mapItems(results[4]);
@@ -14060,7 +14065,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       lastLoginTile.textContent = tp('profile.last_login_prefix', 'Last login: ') + safeText(profile && profile.last_login_at ? formatDate(profile.last_login_at) : '—');
     }
     if (sessionsTile) {
-      sessionsTile.textContent = tp('profile.active_devices_prefix', 'Active devices: ') + safeText(String(sessions.length));
+      sessionsTile.textContent = tp('profile.active_devices_prefix', 'Active devices: ') + safeText(String(activeSessionCount));
     }
     if (twoFactorTile) {
       twoFactorTile.textContent = twoFactorEnabled
@@ -14237,16 +14242,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     if (revokeButton && revokeButton.dataset.bound !== '1') {
       revokeButton.addEventListener('click', async function () {
         var confirmed = await confirmProfileAction({
-          title: tp('profile.revoke_sessions_title', 'End other sessions?'),
-          message: tp('profile.revoke_sessions_message', 'All devices except the current one will be signed out.'),
+          title: tp('profile.revoke_sessions_title', 'Sign out on all devices?'),
+          message: tp('profile.revoke_sessions_message', 'This will sign out this device too. You will need to sign in again.'),
           actionText: tp('profile.revoke_sessions_action', 'End sessions'),
           actionClass: 'crm-btn-danger-soft'
         });
         if (!confirmed) return;
         try {
-          await request('api/v1/security/sessions/revoke-others', { method: 'POST', body: {} });
-          notify(tp('profile.sessions_revoked', 'Other sessions ended'));
-          await renderProfilePage();
+          await request('api/v1/security/sessions/revoke-all', { method: 'POST', body: {} });
+          if (window.CRM.api && typeof window.CRM.api.clearAuth === 'function') window.CRM.api.clearAuth();
+          window.location.href = 'index.php?route=login';
         } catch (error) {
           var envelopeError = error && error.envelope ? error.envelope : null;
           notify((envelopeError && envelopeError.message) || tp('profile.sessions_revoke_fail', 'Failed to end sessions'), 'error');

@@ -1137,6 +1137,7 @@ TropaTT 为 CRM 出站事件与外部电商 CMS 连接器（OpenCart 1.5–4.x, 
 | GET | `/api/v1/security/sessions` 🔄 | 会话列表 | 是 | — | — |
 | DELETE | `/api/v1/security/sessions/{public_id}` 🔄 | 撤销会话 | 是 | — | — |
 | POST | `/api/v1/security/sessions/revoke-others` 🔄 | 撤销其他会话 | 是 | — | — |
+| POST | `/api/v1/security/sessions/revoke-all` | 撤销所有会话，包括当前会话 | 是 | — | 请求后需要重新登录 |
 | POST | `/api/v1/security/sessions/revoke-device` 🔄 | 撤销设备会话 | 是 | — | — |
 | GET | `/api/v1/security/invitations` 🔄 | 邀请列表 | 是 | `user.manage` | — |
 | POST | `/api/v1/security/invitations` 🔄 | 创建邀请 | 是 | `user.manage` | — |
