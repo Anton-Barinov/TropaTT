@@ -23,7 +23,9 @@ final class PasswordResetService
         private readonly PasswordHasher $hasher,
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
-        private readonly RateLimitService $rateLimiter
+        private readonly RateLimitService $rateLimiter,
+        private readonly ?EmailDeliveryService $emailDelivery = null,
+        private readonly string $publicUrl = ''
     ) {
     }
 
@@ -115,7 +117,12 @@ final class PasswordResetService
             'ip' => $ip,
         ]);
 
-        // Reset token is NOT logged: delivery must happen out-of-band via email/SMS.
+        $email = trim((string)($user['email'] ?? ''));
+        if ($this->emailDelivery !== null && $this->publicUrl !== '' && $email !== '') {
+            $url = $this->publicUrl . '/web/index.php?route=password-reset-confirm&token=' . rawurlencode($plainToken);
+            $this->emailDelivery->send($email, 'Сброс пароля', "Чтобы задать новый пароль, откройте ссылку:\n\n" . $url . "\n\nСсылка действует 2 часа. Если вы не запрашивали сброс пароля, проигнорируйте это письмо.");
+        }
+
         // Plaintext tokens in logs are a security risk (SEC-002).
         return [
             'ok' => true,

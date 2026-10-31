@@ -25,7 +25,9 @@ final class InvitationService
         private readonly TokenManager $tokens,
         private readonly JsonLogger $logger,
         private readonly RateLimitService $rateLimiter,
-        private readonly OrganizationRepository $organizations
+        private readonly OrganizationRepository $organizations,
+        private readonly ?EmailDeliveryService $emailDelivery = null,
+        private readonly string $publicUrl = ''
     ) {
     }
 
@@ -80,6 +82,7 @@ final class InvitationService
         ]);
 
         $item = $this->invitations->findByPublicId($publicId);
+        $this->sendInvitationEmail($email, $plainToken);
 
         return [
             'ok' => true,
@@ -125,6 +128,7 @@ final class InvitationService
         $expiresAt = gmdate('Y-m-d H:i:s', time() + 86400 * max(1, min(30, (int)($input['expires_in_days'] ?? 7))));
         $this->invitations->create(['public_id' => $publicId, 'email' => $email, 'invited_by_user_id' => (int)($actor['id'] ?? 0), 'token_hash' => $this->tokens->hash($plainToken), 'expires_at' => $expiresAt, 'accepted_at' => null, 'created_at' => $now, 'organization_id' => (int)$organization['id'], 'role_code' => $role, 'revoked_at' => null]);
         $this->logger->audit(['action' => 'organization_invitation_create', 'actor_public_id' => $actor['public_id'] ?? null, 'entity_type' => 'organization_invitation', 'entity_public_id' => $publicId, 'organization_public_id' => $organizationPublicId, 'email' => $email, 'role_code' => $role]);
+        $this->sendInvitationEmail($email, $plainToken);
         return ['ok' => true, 'invitation' => $this->normalizeInvitation($this->invitations->findByPublicId($publicId) ?: ['public_id' => $publicId, 'email' => $email, 'expires_at' => $expiresAt, 'role_code' => $role]), 'accept_token' => $plainToken];
     }
 
@@ -145,6 +149,7 @@ final class InvitationService
         $expiresAt = gmdate('Y-m-d H:i:s', time() + 86400 * 7);
         if (!$this->invitations->refreshForOrganization($invitationPublicId, $organizationPublicId, $this->tokens->hash($plainToken), $expiresAt)) return ['ok' => false, 'code' => 'ORGANIZATION_INVITATION_RESEND_FAILED'];
         $this->logger->audit(['action' => 'organization_invitation_resend', 'actor_public_id' => $actor['public_id'] ?? null, 'entity_type' => 'organization_invitation', 'entity_public_id' => $invitationPublicId, 'organization_public_id' => $organizationPublicId]);
+        $this->sendInvitationEmail((string)($item['email'] ?? ''), $plainToken);
         return ['ok' => true, 'invitation' => $this->normalizeInvitation($this->invitations->findByPublicId($invitationPublicId) ?: $item), 'accept_token' => $plainToken];
     }
 
@@ -256,6 +261,15 @@ final class InvitationService
         }
 
         return (int)($invitation['invited_by_user_id'] ?? 0) === (int)($actor['id'] ?? 0);
+    }
+
+    private function sendInvitationEmail(string $email, string $token): void
+    {
+        if ($this->emailDelivery === null || $this->publicUrl === '') {
+            return;
+        }
+        $url = $this->publicUrl . '/web/index.php?route=invitation-accept&token=' . rawurlencode($token);
+        $this->emailDelivery->send($email, 'Приглашение в TropaTT CRM', "Вас пригласили в TropaTT CRM. Чтобы создать учетную запись, откройте ссылку:\n\n" . $url . "\n\nЕсли вы не ожидали приглашение, проигнорируйте это письмо.");
     }
 
     // ── File-based rate limit engine ──

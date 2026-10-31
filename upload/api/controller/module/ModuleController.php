@@ -229,8 +229,6 @@ final class ModuleController
 
     public function activate(array $params = []): JsonResponse
     {
-        $denial = $this->requireRoot();
-        if ($denial !== null) { return $denial; }
         $name = trim((string)($params['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
             return $this->activateUnlocked($params);
@@ -241,7 +239,6 @@ final class ModuleController
     private function activateUnlocked(array $params = []): JsonResponse
     {
         try {
-            if ($this->requireRoot() !== null) { return $this->requireRoot(); }
             $name = $params['name'] ?? '';
             if ($name === '') {
                 return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
@@ -668,6 +665,10 @@ final class ModuleController
     {
         $input = $this->request()->allInput();
         $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
+        $verifySignature = filter_var($input['verify_signature'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($verifySignature === null) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
         if ($url === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.url_required'), 400);
         }
@@ -685,7 +686,7 @@ final class ModuleController
 
         try {
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
-            $name = $installer->installFromUrl($url, true);
+            $name = $installer->installFromUrl($url, $verifySignature);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_url'), ['name' => $name]);
         } catch (ModuleSigningKeyMissingException $e) {
             AppLog::error('[ModuleController::installFromUrl] ' . $e->getMessage());
@@ -700,6 +701,10 @@ final class ModuleController
     {
         $input = $this->request()->allInput();
         $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
+        $verifySignature = filter_var($input['verify_signature'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($verifySignature === null) {
+            return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
+        }
         if ($fileData === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('module/messages.file_data_required'), 400);
         }
@@ -735,7 +740,7 @@ final class ModuleController
             $mm = $this->container->get('module.migrations');
 
             $installer = new ModuleRemoteInstaller($pm, $mc, $mm, $projectRoot);
-            $name = $installer->installFromFile($archivePath, true);
+            $name = $installer->installFromFile($archivePath, $verifySignature);
             return JsonResponse::success('MODULE_INSTALLED', $this->t('module/messages.installed_from_file'), ['name' => $name]);
         } catch (ModuleSigningKeyMissingException $e) {
             AppLog::error('[ModuleController::installFromFile] ' . $e->getMessage());

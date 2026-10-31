@@ -32,6 +32,10 @@
           <input type="file" class="form-control crm-file-input" id="moduleFile" name="moduleFile" accept=".zip" required>
           <div class="form-text" data-i18n="admin_modules_install.hint_file_size"><?= htmlspecialchars($t('admin_modules_install.hint_file_size', 'Максимальный размер: 50 MB'), ENT_QUOTES, 'UTF-8') ?></div>
         </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="verifyFileSignature" name="verifyFileSignature" checked>
+          <label class="form-check-label" for="verifyFileSignature" data-i18n="admin_modules_install.label_verify_file"><?= htmlspecialchars($t('admin_modules_install.label_verify_file', 'Проверять подпись ZIP (снимите флажок только для архива, которому доверяете)'), ENT_QUOTES, 'UTF-8') ?></label>
+        </div>
         <button type="submit" class="btn crm-btn-primary" id="fileInstallBtn" data-i18n="admin_modules_install.btn_install_file"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i> <?= htmlspecialchars($t('admin_modules_install.btn_install_file', 'Установить из файла'), ENT_QUOTES, 'UTF-8') ?></button>
         <div id="fileInstallStatus" class="mt-3" style="display:none;"></div>
       </form>
@@ -80,6 +84,8 @@
         if (!moduleApiAvailable()) { setStatus(urlStatus, 'error', window.CRM.i18n.t('admin_modules_install.error_api_unavailable', 'API недоступен. Обновите страницу.')); return; }
         var url = document.getElementById('moduleUrl').value.trim();
         if (!url) { setStatus(urlStatus, 'error', window.CRM.i18n.t('admin_modules_install.error_no_url', 'Введите URL модуля')); return; }
+        var verifyUrlSignature = document.getElementById('verifySignature').checked;
+        if (!verifyUrlSignature && !window.confirm(window.CRM.i18n.t('admin_modules_install.unsigned_confirm', 'Без проверки подписи архив может выполнить произвольный код. Продолжить только если вы доверяете источнику?'))) return;
 
         setBtnLoading(urlBtn, true);
         urlStatus.style.display = 'none';
@@ -87,7 +93,7 @@
         window.CRM.api.request('api/v1/modules/install-from-url', {
             method: 'POST',
             timeoutMs: 120000,
-            body: { url: url }
+            body: { url: url, verify_signature: verifyUrlSignature }
         })
         .then(function () {
             setBtnLoading(urlBtn, false);
@@ -106,6 +112,8 @@
         var file = fileInput.files && fileInput.files[0];
         if (!file) { setStatus(fileStatus, 'error', window.CRM.i18n.t('admin_modules_install.error_no_file', 'Выберите файл модуля')); return; }
         if (file.size > 52428800) { setStatus(fileStatus, 'error', window.CRM.i18n.t('admin_modules_install.error_file_too_large', 'Файл слишком большой. Максимум 50 MB')); return; }
+        var verifyFileSignature = document.getElementById('verifyFileSignature').checked;
+        if (!verifyFileSignature && !window.confirm(window.CRM.i18n.t('admin_modules_install.unsigned_confirm', 'Без проверки подписи архив может выполнить произвольный код. Продолжить только если вы доверяете источнику?'))) return;
 
         setBtnLoading(fileBtn, true);
         fileStatus.style.display = 'none';
@@ -116,7 +124,7 @@
             window.CRM.api.request('api/v1/modules/install-from-file', {
                 method: 'POST',
                 timeoutMs: 120000,
-                body: { file_data: base64, file_name: file.name }
+                body: { file_data: base64, file_name: file.name, verify_signature: verifyFileSignature }
             })
             .then(function () {
                 setBtnLoading(fileBtn, false);
