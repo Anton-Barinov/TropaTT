@@ -284,7 +284,8 @@ final class UserProfileService
             return ['ok' => false, 'code' => 'USER_NOT_FOUND'];
         }
 
-        if (!$this->hasher->verify($currentPassword, (string)($user['password_hash'] ?? ''))) {
+        $passwordHash = $this->users->findPasswordHashById((int)$user['id']);
+        if ($passwordHash === null || !$this->hasher->verify($currentPassword, $passwordHash)) {
             $this->logger->security([
                 'event_type' => 'profile_change_password_failed',
                 'actor_public_id' => $user['public_id'] ?? null,
