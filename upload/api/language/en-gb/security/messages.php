@@ -3,6 +3,7 @@ return [
     'session_list' => 'Session list',
     'session_revoked' => 'Session revoked',
     'session_revoke_others' => 'Other sessions revoked',
+    'session_revoke_all' => 'All sessions revoked; sign in again',
     'session_revoke_device' => 'Device sessions revoked',
     'device_fingerprint_required' => 'device_fingerprint is required',
     'user_not_found' => 'User not found',

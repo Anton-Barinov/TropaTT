@@ -1175,6 +1175,7 @@ TropaTT implements a unified webhook protocol for outbound CRM events and extern
 | GET | `/api/v1/security/sessions` 🔄 | List sessions | Yes | — | — |
 | DELETE | `/api/v1/security/sessions/{public_id}` 🔄 | Revoke session | Yes | — | — |
 | POST | `/api/v1/security/sessions/revoke-others` 🔄 | Revoke other sessions | Yes | — | — |
+| POST | `/api/v1/security/sessions/revoke-all` | Revoke all sessions, including the current one | Yes | — | Sign in again after the request |
 | POST | `/api/v1/security/sessions/revoke-device` 🔄 | Revoke device sessions | Yes | — | — |
 | GET | `/api/v1/security/invitations` 🔄 | List invitations | Yes | `user.manage` | — |
 | POST | `/api/v1/security/invitations` 🔄 | Create invitation | Yes | `user.manage` | — |

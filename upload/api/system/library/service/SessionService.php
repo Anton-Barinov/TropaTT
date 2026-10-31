@@ -74,6 +74,20 @@ final class SessionService
         return $count;
     }
 
+    public function revokeAll(array $actor): int
+    {
+        $userId = (int)($actor['id'] ?? 0);
+        $count = $this->sessions->revokeAllByUserId($userId, gmdate('Y-m-d H:i:s'));
+
+        $this->logger->security([
+            'event_type' => 'session_revoke_all',
+            'actor_public_id' => $actor['public_id'] ?? null,
+            'revoked_count' => $count,
+        ]);
+
+        return $count;
+    }
+
     public function revokeDevice(array $actor, string $deviceFingerprint, string $currentSessionPublicId): int
     {
         $userId = (int)($actor['id'] ?? 0);
