@@ -66,6 +66,9 @@ final class WebhookService
         }
 
         $organizationId = $this->organizationId($actor);
+        if ($organizationId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $this->repository->createSubscription([
 
             'public_id' => $publicId,
@@ -102,6 +105,9 @@ final class WebhookService
         }
 
         $organizationId = $this->organizationId($actor);
+        if ($organizationId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $current = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$current) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
@@ -150,6 +156,9 @@ final class WebhookService
         }
 
         $organizationId = $this->organizationId($actor);
+        if ($organizationId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $existing = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$existing) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
@@ -194,6 +203,9 @@ final class WebhookService
         }
 
         $organizationId = $this->organizationId($actor);
+        if ($organizationId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $webhook = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$webhook) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
@@ -307,6 +319,9 @@ final class WebhookService
         }
 
         $organizationId = $this->organizationId($actor);
+        if ($organizationId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $webhook = $this->repository->findSubscriptionByPublicId($publicId, $organizationId);
         if (!$webhook) {
             return ['ok' => false, 'code' => 'WEBHOOK_NOT_FOUND'];
@@ -704,7 +719,18 @@ final class WebhookService
     private function organizationId(array $actor): ?int
     {
         $id = (int)($actor['organization_id'] ?? 0);
-        return $id > 0 ? $id : null;
+        if ($id > 0) {
+            return $id;
+        }
+
+        if (!class_exists(\Api\System\Library\Security\ActorPermission::class, false)) {
+            require_once __DIR__ . '/../security/ActorPermission.php';
+        }
+        if (\Api\System\Library\Security\ActorPermission::isPrivileged($actor)) {
+            return null;
+        }
+
+        return -1;
     }
 
     private function canManageWebhooks(array $actor): bool

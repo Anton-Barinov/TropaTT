@@ -266,7 +266,7 @@ final class WebhookRepository
             );
         }
 
-        if ((int)($filters['organization_id'] ?? 0) > 0) {
+        if (isset($filters['organization_id'])) {
             $query->where('organization_id', '=', (int)$filters['organization_id']);
         }
 
@@ -291,7 +291,7 @@ final class WebhookRepository
             $query->where('w.public_id', '=', trim((string)$filters['webhook_public_id']));
         }
 
-        if ((int)($filters['organization_id'] ?? 0) > 0) {
+        if (isset($filters['organization_id'])) {
             $query->where('d.organization_id', '=', (int)$filters['organization_id']);
         }
 
