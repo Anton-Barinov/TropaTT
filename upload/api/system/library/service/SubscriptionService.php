@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Subscription\SubscriptionRepository;
+use Api\System\Library\Security\ActorPermission;
 
 final class SubscriptionService
 {
@@ -11,6 +12,23 @@ final class SubscriptionService
         private readonly SubscriptionRepository $subscriptions,
         private readonly EntityAccessService $entities
     ) {
+    }
+
+    private function organizationId(array $actor): ?int
+    {
+        $orgId = (int)($actor['organization_id'] ?? 0);
+        if ($orgId > 0) {
+            return $orgId;
+        }
+
+        if (!class_exists(ActorPermission::class, false)) {
+            require_once __DIR__ . '/../security/ActorPermission.php';
+        }
+        if (ActorPermission::isPrivileged($actor)) {
+            return null;
+        }
+
+        return -1;
     }
 
     public function list(array $filters, array $actor): array|string
@@ -21,10 +39,16 @@ final class SubscriptionService
             }
         }
 
+        $orgId = $this->organizationId($actor);
+        $filterOrg = $filters;
+        if ($orgId !== null) {
+            $filterOrg['organization_id'] = $orgId;
+        }
+
         [$items, $total, $page, $limit] = $this->subscriptions->list(
-            $filters + ((int)($actor['organization_id'] ?? 0) > 0 ? ['organization_id' => (int)$actor['organization_id']] : []),
+            $filterOrg,
             (int)($actor['id'] ?? 0),
-            ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)
+            $orgId === null
         );
 
         return [
@@ -49,7 +73,12 @@ final class SubscriptionService
             return 'FORBIDDEN';
         }
 
-        return $this->subscriptions->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0), (int)($actor['organization_id'] ?? 0));
+        $orgId = $this->organizationId($actor);
+        if ($orgId === -1) {
+            return 'FORBIDDEN';
+        }
+
+        return $this->subscriptions->create($entityType, $entityPublicId, (int)($actor['id'] ?? 0), (int)($orgId ?? 0));
     }
 
     public function delete(string $publicId, array $actor): bool|string
@@ -59,8 +88,16 @@ final class SubscriptionService
             return false;
         }
 
-        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
-        if (!$isRoot && (int)($item['user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
+        $orgId = $this->organizationId($actor);
+        if ($orgId !== null) {
+            $itemOrgId = (int)($item['organization_id'] ?? 0);
+            if ($itemOrgId > 0 && $itemOrgId !== $orgId) {
+                return 'FORBIDDEN';
+            }
+        }
+
+        $isPrivileged = ($orgId === null);
+        if (!$isPrivileged && (int)($item['user_id'] ?? 0) !== (int)($actor['id'] ?? 0)) {
             return 'FORBIDDEN';
         }
 

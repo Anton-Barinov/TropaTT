@@ -31,11 +31,14 @@ final class ExternalUserController extends BaseController
         // Normalize: accept both 'executor' and 'external_executor'
         $role = ($role === 'executor' || $role === 'external_executor') ? 'executor' : 'observer';
         $authUser = $this->user();
-
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         if ($contactPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('external_users.contact_id_required'), 422, [
@@ -129,7 +132,11 @@ final class ExternalUserController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var \Api\System\Library\Service\ExternalUserService $service */
         $service = $this->container->get('service.external_user');
@@ -153,7 +160,11 @@ final class ExternalUserController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') {
@@ -193,7 +204,11 @@ final class ExternalUserController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $publicId = (string)($params['public_id'] ?? '');
         if ($publicId === '') {
@@ -231,7 +246,11 @@ final class ExternalUserController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $publicId = (string)($params['public_id'] ?? '');
         $projectPublicId = trim((string)($this->request()->allInput()['project_public_id'] ?? ''));
@@ -271,7 +290,11 @@ final class ExternalUserController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('security/messages.unauthorized'), 401);
         }
-        $actor = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $publicId = (string)($params['public_id'] ?? '');
         $projectPublicId = (string)($params['project_public_id'] ?? '');

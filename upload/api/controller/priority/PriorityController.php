@@ -12,10 +12,15 @@ final class PriorityController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -38,6 +43,16 @@ final class PriorityController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
+
         /** @var PriorityService $service */
         $service = $this->container->get('service.priority');
         $item = $service->get((string)$params['public_id']);
@@ -52,6 +67,16 @@ final class PriorityController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
+
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->require($input, 'code', $this->t('common/messages.field_required'))
@@ -86,6 +111,16 @@ final class PriorityController extends BaseController
 
     public function update(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
+
         $input = $this->request()->allInput();
         $v = new Validator();
         $v->maxLen($input, 'code', 64, $this->t('priority/messages.max_64'))
@@ -123,6 +158,16 @@ final class PriorityController extends BaseController
 
     public function delete(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $authUser = $this->user();
+        if (!$authUser) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
+
         /** @var PriorityService $service */
         $service = $this->container->get('service.priority');
         $ok = $service->delete((string)$params['public_id']);
@@ -135,7 +180,7 @@ final class PriorityController extends BaseController
 
         $this->dispatchModuleHook(ModuleEvents::PRIORITY_DELETED, [
             'priority_public_id' => (string)$params['public_id'],
-            'actor_id' => (int)($this->user()['user']['id'] ?? 0),
+            'actor_id' => (int)($authUser['user']['id'] ?? 0),
         ]);
 
         $this->invalidateCache('priority');

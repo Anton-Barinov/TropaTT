@@ -39,6 +39,11 @@ final class UploadController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $files = $this->request()->files;
         if (empty($files['file']) || $files['file']['error'] !== UPLOAD_ERR_OK) {

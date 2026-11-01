@@ -10,6 +10,16 @@ final class WidgetController extends BaseController
 {
     public function summary(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AdminWidgetService $service */
         $service = $this->container->get('service.admin_widget');
 
@@ -24,6 +34,11 @@ final class WidgetController extends BaseController
         if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AdminWidgetService $service */
         $service = $this->container->get('service.admin_widget');

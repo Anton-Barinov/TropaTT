@@ -10,6 +10,16 @@ final class RoleMatrixController extends BaseController
 {
     public function get(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AdminRoleMatrixService $service */
         $service = $this->container->get('service.admin_role_matrix');
 
@@ -22,6 +32,11 @@ final class RoleMatrixController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $roles = $this->request()->input('roles', []);
         if (!is_array($roles)) {
