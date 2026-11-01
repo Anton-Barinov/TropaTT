@@ -22,6 +22,18 @@ final class EventsController extends BaseController
             ];
         }
 
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return [
+                'event' => 'error',
+                'data' => [
+                    'type' => 'error',
+                    'code' => 'FORBIDDEN',
+                    'message' => $this->t('common/messages.forbidden', 'Forbidden'),
+                ],
+            ];
+        }
+
         $actor = $this->organizationScopedActor($auth['user']);
         $userId = (int)($actor['id'] ?? 0);
         $organizationId = (int)($actor['organization_id'] ?? 0) ?: null;

@@ -59,7 +59,7 @@ final class SubscriptionRepository
         if (!empty($filters['user_public_id'])) {
             $query->where('u.public_id', '=', (string)$filters['user_public_id']);
         }
-        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn()) {
+        if (isset($filters['organization_id']) && $this->hasOrganizationColumn()) {
             $query->where('s.organization_id', '=', (int)$filters['organization_id']);
         }
 
@@ -77,6 +77,7 @@ final class SubscriptionRepository
                 's.entity_public_id',
                 's.created_at',
                 's.user_id',
+                's.organization_id',
                 'u.public_id AS user_public_id',
                 'u.login AS user_login',
                 'u.full_name AS user_name',
