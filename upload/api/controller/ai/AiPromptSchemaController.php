@@ -10,6 +10,16 @@ final class AiPromptSchemaController extends BaseController
 {
     public function listPrompts(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');
         $result = $service->listPrompts($this->request()->allInput());
@@ -23,6 +33,11 @@ final class AiPromptSchemaController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiPromptSchemaService $service */
@@ -43,6 +58,11 @@ final class AiPromptSchemaController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');
@@ -62,6 +82,16 @@ final class AiPromptSchemaController extends BaseController
 
     public function listSchemas(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');
         $result = $service->listSchemas($this->request()->allInput());
@@ -75,6 +105,11 @@ final class AiPromptSchemaController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiPromptSchemaService $service */
@@ -95,6 +130,11 @@ final class AiPromptSchemaController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiPromptSchemaService $service */
         $service = $this->container->get('service.ai_prompt_schema');

@@ -14,6 +14,11 @@ final class AiPreferenceController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiPreferenceService $service */
         $service = $this->container->get('service.ai_preference');
@@ -29,6 +34,11 @@ final class AiPreferenceController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiPreferenceService $service */

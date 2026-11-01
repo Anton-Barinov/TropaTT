@@ -14,6 +14,11 @@ final class AiJobController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canViewAiJobs($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.view_cron_results'],
@@ -35,6 +40,11 @@ final class AiJobController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canViewAiJobs($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.view_cron_results'],
@@ -61,6 +71,11 @@ final class AiJobController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canManageAiJobs($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.manage_cron_jobs'],
@@ -102,6 +117,11 @@ final class AiJobController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canManageAiJobs($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.manage_cron_jobs'],
@@ -142,6 +162,11 @@ final class AiJobController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canManageAiJobs($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.manage_cron_jobs'],

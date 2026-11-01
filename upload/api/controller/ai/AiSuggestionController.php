@@ -14,6 +14,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $taskPublicId = trim((string)($params['task_public_id'] ?? ''));
         if ($taskPublicId === '') {
@@ -125,6 +130,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -190,6 +200,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -225,6 +240,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -260,6 +280,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -295,6 +320,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiSuggestionService $service */
         $service = $this->container->get('service.ai_suggestion');
@@ -311,6 +341,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiSuggestionService $service */
         $service = $this->container->get('service.ai_suggestion');
@@ -332,6 +367,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($params, $auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -357,6 +397,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiSuggestionService $service */
         $service = $this->container->get('service.ai_suggestion');
@@ -381,6 +426,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($params, $auth): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */
@@ -414,6 +464,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $taskPublicId = trim((string)($params['task_public_id'] ?? ''));
         if ($taskPublicId === '') {
@@ -460,6 +515,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $publicId = trim((string)($params[$paramName] ?? ''));
         if ($publicId === '') {
@@ -503,6 +563,11 @@ final class AiSuggestionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         return $this->withIdempotency(function () use ($auth, $serviceMethod): \Api\System\Library\Http\JsonResponse {
             /** @var AiSuggestionService $service */

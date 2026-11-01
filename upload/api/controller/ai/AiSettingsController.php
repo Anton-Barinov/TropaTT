@@ -14,6 +14,11 @@ final class AiSettingsController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canManageSettings($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.admin'],
@@ -33,6 +38,11 @@ final class AiSettingsController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
         if (!$this->canManageSettings($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.admin'],

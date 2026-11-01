@@ -12,6 +12,16 @@ final class AiProviderController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
         $result = $service->list($this->request()->allInput());
@@ -21,6 +31,16 @@ final class AiProviderController extends BaseController
 
     public function get(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
         $result = $service->get((string)$params['public_id']);
@@ -39,6 +59,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -77,6 +102,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
@@ -105,6 +135,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
@@ -125,6 +160,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $secret = trim((string)$this->request()->input('secret', ''));
         if ($secret === '') {
@@ -154,6 +194,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
@@ -170,6 +215,16 @@ final class AiProviderController extends BaseController
 
     public function retentionList(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiRetentionPolicyService $service */
         $service = $this->container->get('service.ai_retention');
         return $this->success('AI_RETENTION_LIST', $this->t('ai/messages.retention_list'), [
@@ -183,6 +238,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $days = (int)$this->request()->input('days', 0);
         /** @var AiRetentionPolicyService $service */
@@ -207,6 +267,11 @@ final class AiProviderController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var AiProviderService $service */
         $service = $this->container->get('service.ai_provider');
@@ -234,6 +299,16 @@ final class AiProviderController extends BaseController
 
     public function models(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         $providerPublicId = trim((string)$this->request()->input('provider_public_id', ''));
 
         /** @var AiProviderService $service */
@@ -263,6 +338,16 @@ final class AiProviderController extends BaseController
 
     public function syncModels(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         $providerPublicId = trim((string)$this->request()->input('provider_public_id', ''));
 
         /** @var AiProviderService $service */

@@ -11,6 +11,21 @@ final class AiIntentController extends BaseController
 {
     public function list(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
+
         /** @var AiIntentSettingService $service */
         $service = $this->container->get('service.ai_intent_settings');
         $result = $service->list($this->request()->allInput());
@@ -26,6 +41,11 @@ final class AiIntentController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
