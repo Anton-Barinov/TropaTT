@@ -52,11 +52,10 @@ final class MenuController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
-        if (!is_array($user)) {
-            $user = [];
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var AuthzService $authz */
         $authz = $this->container->get('service.authz');
@@ -272,8 +271,10 @@ final class MenuController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         $userInternalId = (int)($user['id'] ?? 0);
 
@@ -292,8 +293,10 @@ final class MenuController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         if ($userPublicId === '') {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -322,10 +325,23 @@ final class MenuController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
 
         $targetPublicId = (string)($params['public_id'] ?? '');
         if ($targetPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('service.user')) {
+            /** @var \Api\System\Library\Service\UserService $userService */
+            $userService = $this->container->get('service.user');
+            $targetUser = $userService->get($targetPublicId, $actor);
+            if (!$targetUser) {
+                return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404);
+            }
         }
 
         $preferences = $this->loadUserPreferences($targetPublicId);
@@ -341,10 +357,23 @@ final class MenuController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
 
         $targetPublicId = (string)($params['public_id'] ?? '');
         if ($targetPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('service.user')) {
+            /** @var \Api\System\Library\Service\UserService $userService */
+            $userService = $this->container->get('service.user');
+            $targetUser = $userService->get($targetPublicId, $actor);
+            if (!$targetUser) {
+                return $this->error('USER_NOT_FOUND', $this->t('user/messages.not_found'), 404);
+            }
         }
 
         $items = $this->request()->input('items');
@@ -366,9 +395,27 @@ final class MenuController extends BaseController
 
     public function getTeamTemplate(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+
         $teamPublicId = (string)($params['public_id'] ?? '');
         if ($teamPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('service.team')) {
+            /** @var \Api\System\Library\Service\TeamService $teamService */
+            $teamService = $this->container->get('service.team');
+            $team = $teamService->get($teamPublicId, $actor);
+            if (!$team) {
+                return $this->error('TEAM_NOT_FOUND', $this->t('team/messages.not_found'), 404);
+            }
         }
 
         $template = $this->loadTeamTemplateByPublicId($teamPublicId);
@@ -380,9 +427,27 @@ final class MenuController extends BaseController
 
     public function saveTeamTemplate(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+
         $teamPublicId = (string)($params['public_id'] ?? '');
         if ($teamPublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('service.team')) {
+            /** @var \Api\System\Library\Service\TeamService $teamService */
+            $teamService = $this->container->get('service.team');
+            $team = $teamService->get($teamPublicId, $actor);
+            if (!$team) {
+                return $this->error('TEAM_NOT_FOUND', $this->t('team/messages.not_found'), 404);
+            }
         }
 
         $items = $this->request()->input('items');
@@ -673,9 +738,26 @@ final class MenuController extends BaseController
 
     public function getRoleTemplate(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+
         $rolePublicId = (string)($params['public_id'] ?? '');
         if ($rolePublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('repository.role')) {
+            /** @var \Api\Model\Role\RoleRepository $roleRepo */
+            $roleRepo = $this->container->get('repository.role');
+            if (!$roleRepo->findByPublicId($rolePublicId)) {
+                return $this->error('ROLE_NOT_FOUND', $this->t('role/messages.not_found'), 404);
+            }
         }
 
         if (!$this->container->has('service.setting')) {
@@ -705,9 +787,26 @@ final class MenuController extends BaseController
 
     public function saveRoleTemplate(array $params): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) {
+            return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+
         $rolePublicId = (string)($params['public_id'] ?? '');
         if ($rolePublicId === '') {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.invalid_request'), 422);
+        }
+
+        if ($this->container->has('repository.role')) {
+            /** @var \Api\Model\Role\RoleRepository $roleRepo */
+            $roleRepo = $this->container->get('repository.role');
+            if (!$roleRepo->findByPublicId($rolePublicId)) {
+                return $this->error('ROLE_NOT_FOUND', $this->t('role/messages.not_found'), 404);
+            }
         }
 
         $items = $this->request()->input('items');
