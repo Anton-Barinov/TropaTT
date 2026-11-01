@@ -25,14 +25,12 @@ final class ApiClientRepository
      */
     private function organizationScope(?int $organizationId, string $alias = 'api_clients'): array
     {
-        if ($organizationId === null || $organizationId <= 0) {
+        if ($organizationId === null) {
             return [null, []];
         }
-        // NOTE: QueryBuilder::whereRaw() only substitutes positional '?'
-        // placeholders with its own internal binding names — a named
-        // ":placeholder" here is written into the SQL verbatim without a
-        // matching PDO binding and breaks prepare() (see also TROPATTCRM-607,
-        // which hit the identical bug in SavedViewRepository).
+        if ($organizationId <= 0) {
+            return ['0 = 1', []];
+        }
         return [$alias . '.organization_id = ?', [$organizationId]];
     }
 
@@ -132,16 +130,22 @@ final class ApiClientRepository
             ->insert($payload);
     }
 
-    public function updateClientByPublicId(string $publicId, array $set): bool
+    public function updateClientByPublicId(string $publicId, array $set, ?int $organizationId = null): bool
     {
         if ($set === []) {
             return false;
         }
 
-        return (new QueryBuilder($this->pdo))
+        $query = (new QueryBuilder($this->pdo))
             ->from('api_clients')
-            ->where('public_id', '=', $publicId)
-            ->update($set) > 0;
+            ->where('public_id', '=', $publicId);
+
+        [$orgSql, $orgParams] = $this->organizationScope($organizationId);
+        if ($orgSql !== null) {
+            $query->whereRaw($orgSql, array_values($orgParams));
+        }
+
+        return $query->update($set) > 0;
     }
 
     public function deleteClientByPublicId(string $publicId, ?int $organizationId = null): bool
@@ -225,8 +229,12 @@ final class ApiClientRepository
         // TROPATTCRM-606: keys are scoped through their owning client. Legacy
         // rows (NULL org on the client) stay visible so pre-migration keys do
         // not break after the upgrade.
-        if ($organizationId !== null && $organizationId > 0) {
-            $query->whereRaw('(c.organization_id = ? OR c.organization_id IS NULL)', [$organizationId]);
+        if ($organizationId !== null) {
+            if ($organizationId > 0) {
+                $query->whereRaw('(c.organization_id = ? OR c.organization_id IS NULL)', [$organizationId]);
+            } else {
+                $query->whereRaw('0 = 1');
+            }
         }
 
         $row = $query->first();

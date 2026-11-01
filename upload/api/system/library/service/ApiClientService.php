@@ -7,6 +7,7 @@ use Api\Model\ApiClient\ApiClientRepository;
 use Api\Model\Auth\AuthRepository;
 use Api\Model\Permission\PermissionRepository;
 use Api\System\Library\Logger\JsonLogger;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\TokenManager;
 use Api\System\Library\Support\Ulid;
 
@@ -52,7 +53,18 @@ final class ApiClientService
             return null;
         }
         $id = (int)($actor['organization_id'] ?? 0);
-        return $id > 0 ? $id : null;
+        if ($id > 0) {
+            return $id;
+        }
+
+        if (!class_exists(ActorPermission::class, false)) {
+            require_once __DIR__ . '/../security/ActorPermission.php';
+        }
+        if (ActorPermission::isPrivileged($actor)) {
+            return null;
+        }
+
+        return -1;
     }
 
     public function getClient(string $publicId, ?array $actor = null): ?array
@@ -75,6 +87,9 @@ final class ApiClientService
         $now = gmdate('Y-m-d H:i:s');
         $publicId = Ulid::generate('apc');
         $orgId = $this->organizationId($actor);
+        if ($orgId === -1) {
+            return ['ok' => false, 'code' => 'FORBIDDEN'];
+        }
         $clientPayload = [
             'public_id' => $publicId,
             'title' => trim((string)($input['title'] ?? '')),
@@ -168,7 +183,7 @@ final class ApiClientService
         }
         $set['updated_at'] = gmdate('Y-m-d H:i:s');
 
-        $this->repository->updateClientByPublicId($publicId, $set);
+        $this->repository->updateClientByPublicId($publicId, $set, $this->organizationId($actor));
 
         $this->logger->audit([
             'action' => 'api_client_update',

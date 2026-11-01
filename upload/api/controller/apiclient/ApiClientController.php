@@ -15,6 +15,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -36,6 +41,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -53,6 +63,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -82,6 +97,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -101,6 +121,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -121,6 +146,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -145,6 +175,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -167,6 +202,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -194,6 +234,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -221,6 +266,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
@@ -245,6 +295,11 @@ final class ApiClientController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var ApiClientService $service */
         $service = $this->container->get('service.api_client');
