@@ -115,6 +115,13 @@ final class TaskRelationService
             return 'TASK_RELATION_SELF_LINK_FORBIDDEN';
         }
 
+        // Multi-tenant boundary check: linking across different organizations is forbidden for non-privileged actors
+        $sourceOrg = (int)($sourceTask['organization_id'] ?? 0);
+        $targetOrg = (int)($targetTask['organization_id'] ?? 0);
+        if ($sourceOrg > 0 && $targetOrg > 0 && $sourceOrg !== $targetOrg && !\Api\System\Library\Security\ActorPermission::isPrivileged($actor)) {
+            return 'TASK_RELATION_CROSS_ORG_FORBIDDEN';
+        }
+
         // Normalize relation type
         $rawType = trim((string)($input['relation_type'] ?? ''));
         $normalized = $this->normalizeRelationType($rawType);

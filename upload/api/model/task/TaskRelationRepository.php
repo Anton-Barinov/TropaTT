@@ -349,6 +349,8 @@ final class TaskRelationRepository
         $organizationId = (int)($actor['organization_id'] ?? 0);
         if ($organizationId > 0) {
             $qb->whereRaw('(t.organization_id IS NULL OR t.organization_id = ?)', [$organizationId]);
+        } elseif (!\Api\System\Library\Security\ActorPermission::isPrivileged($actor)) {
+            $qb->whereRaw('1 = 0');
         }
 
         return $qb->get();

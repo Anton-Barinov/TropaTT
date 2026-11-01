@@ -72,6 +72,9 @@ final class ChatService
         if ($title === '' || mb_strlen($title) > 160 || count($participantPublicIds) > 100) return [];
 
         $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId <= 0 && !\Api\System\Library\Security\ActorPermission::isPrivileged($actor)) {
+            return [];
+        }
         $ids = [];
         if ($participantPublicIds !== []) {
             $placeholders = implode(',', array_fill(0, count($participantPublicIds), '?'));

@@ -14092,6 +14092,7 @@ $tools[] = $this->tool(
         $service = $this->container->get('service.chat');
 
         if ($type === 'direct') {
+            $orgId = $this->activeOrganizationId();
             // Accept the public usr_... participant (participant_public_ids /
             // user_public_id) or the legacy internal numeric user_id.
             $withUserId = 0;
@@ -14102,7 +14103,7 @@ $tools[] = $this->tool(
                 $publicParticipant = trim((string)reset($arguments['participant_public_ids']));
             }
             if ($publicParticipant !== '') {
-                $withUserId = (int)($this->resolveUserIdByPublicIdInOrg($publicParticipant, $this->activeOrganizationId()) ?? 0);
+                $withUserId = (int)($this->resolveUserIdByPublicIdInOrg($publicParticipant, $orgId) ?? 0);
                 if ($withUserId <= 0) {
                     return ['error' => 'User not found in your organization.'];
                 }
@@ -14111,16 +14112,25 @@ $tools[] = $this->tool(
                 if ($withUserId <= 0) {
                     return ['error' => 'user_id or participant_public_ids is required for a direct chat.'];
                 }
-                $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL');
-                $stmt->execute(['id' => $withUserId]);
+                if ($orgId !== null && $orgId > 0 && !$this->isRootActor()) {
+                    $stmt = $pdo->prepare('SELECT u.id FROM users u JOIN organization_memberships om ON om.user_id = u.id WHERE u.id = :id AND om.organization_id = :oid AND u.is_active = 1 AND u.deleted_at IS NULL LIMIT 1');
+                    $stmt->execute(['id' => $withUserId, 'oid' => $orgId]);
+                } else {
+                    $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id AND is_active = 1 AND deleted_at IS NULL');
+                    $stmt->execute(['id' => $withUserId]);
+                }
                 if (!$stmt->fetchColumn()) {
-                    return ['error' => 'User not found.'];
+                    return ['error' => ($orgId !== null && $orgId > 0 && !$this->isRootActor()) ? 'User not found in your organization.' : 'User not found.'];
                 }
             }
             if ($withUserId === $userId) {
                 return ['error' => 'Cannot start a direct chat with yourself.'];
             }
-            return ['chat' => $this->publicData($service->ensureDirectChat($userId, $withUserId))];
+            $chat = $service->ensureDirectChat($userId, $withUserId, $orgId);
+            if ($chat === []) {
+                return ['error' => 'Failed to create chat or user not in your organization.'];
+            }
+            return ['chat' => $this->publicData($chat)];
         }
 
         if ($type === 'project') {

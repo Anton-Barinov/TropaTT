@@ -240,6 +240,7 @@ final class ProjectController extends BaseController
         if ($contextError !== null) {
             return $contextError;
         }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var ProjectService $service */
         $service = $this->container->get('service.project');

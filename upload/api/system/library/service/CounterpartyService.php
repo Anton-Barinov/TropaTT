@@ -200,7 +200,7 @@ final class CounterpartyService
             return false;
         }
 
-        return true;
+        return \Api\System\Library\Security\ActorPermission::sameOrganization($actor, $item);
     }
 
     private function normalizeCounterparty(array $item): array

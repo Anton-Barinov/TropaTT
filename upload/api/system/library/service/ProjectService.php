@@ -478,7 +478,11 @@ final class ProjectService
         // project.manage or task.manage may read any project of their
         // workspace — task create/move/list filters depend on it. Relations
         // below stay the fallback for actors without either permission.
-        if (ActorPermission::canReadProjects($actor) && ActorPermission::sameOrganization($actor, $project)) {
+        if (!ActorPermission::sameOrganization($actor, $project)) {
+            return false;
+        }
+
+        if (ActorPermission::canReadProjects($actor)) {
             return true;
         }
 
@@ -505,10 +509,11 @@ final class ProjectService
             return false;
         }
 
-        // Permission = capability: project writes are already gated by the
-        // project.manage route permission, so re-deriving them from ownership
-        // only locked administrators out of their own projects.
-        if (ActorPermission::canManageProjects($actor) && ActorPermission::sameOrganization($actor, $project)) {
+        if (!ActorPermission::sameOrganization($actor, $project)) {
+            return false;
+        }
+
+        if (ActorPermission::canManageProjects($actor)) {
             return true;
         }
 

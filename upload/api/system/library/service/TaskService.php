@@ -979,11 +979,14 @@ final class TaskService
 
         // Permission = capability (internal actors only): the client-portal
         // branch above has already returned for every external guest, so only
-        // internal holders of task.manage reach this point. The workspace stays
-        // the boundary — TaskController/MCP resolve the active organization
-        // before calling in, and relations remain the fallback for actors
-        // without the permission.
-        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+        // internal holders reach this point. The workspace stays the boundary:
+        // root/superadmin may access across workspaces, but regular actors
+        // must stay strictly inside their active organization.
+        if (!ActorPermission::sameOrganization($actor, $task)) {
+            return false;
+        }
+
+        if (ActorPermission::canManageTasks($actor)) {
             return true;
         }
 
