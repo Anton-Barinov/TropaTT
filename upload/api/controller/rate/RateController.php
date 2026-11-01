@@ -6,6 +6,7 @@ namespace Api\Controller\Rate;
 use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Security\FinancialFieldPolicy;
 use Api\System\Library\Service\RateResolutionService;
 use Api\Model\Rate\RateCardRepository;
@@ -34,12 +35,15 @@ final class RateController extends BaseController
      */
     private function applyOrganizationScope(QueryBuilder $qb, string $tableAlias = 'work_logs'): void
     {
-        $organizationId = $this->activeOrganizationId();
-        if ($organizationId === null) {
-            return;
+        $auth = $this->user();
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId > 0) {
+            $qb->join('tasks', 'tasks.id', '=', $tableAlias . '.task_id')
+                ->where('tasks.organization_id', '=', $organizationId);
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            $qb->whereRaw('0 = 1');
         }
-        $qb->join('tasks', 'tasks.id', '=', $tableAlias . '.task_id')
-            ->where('tasks.organization_id', '=', $organizationId);
     }
 
     /**
@@ -53,9 +57,14 @@ final class RateController extends BaseController
      */
     private function scopedWorkLogIds(\PDO $pdo, string $from, string $to, bool $onlyLocked): ?array
     {
-        $organizationId = $this->activeOrganizationId();
-        if ($organizationId === null) {
-            return null;
+        $auth = $this->user();
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
+        $organizationId = (int)($actor['organization_id'] ?? 0);
+        if ($organizationId <= 0) {
+            if (ActorPermission::isPrivileged($actor)) {
+                return null;
+            }
+            return [];
         }
 
         $qb = (new QueryBuilder($pdo))->from('work_logs')
@@ -76,7 +85,11 @@ final class RateController extends BaseController
     {
         $auth = $this->user();
         if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
-        $actor = $auth['user'];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         $hasFinance = $this->hasAnyFinancePerm($actor);
         if (!$hasFinance) return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
@@ -149,6 +162,14 @@ final class RateController extends BaseController
      */
     public function recalculate(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         $input = $this->request()->allInput();
         $from = (string)($input['date_from'] ?? '');
         $to = (string)($input['date_to'] ?? '');
@@ -254,6 +275,14 @@ final class RateController extends BaseController
      */
     public function lock(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         $input = $this->request()->allInput();
         $from = trim((string)($input['date_from'] ?? ''));
         $to = trim((string)($input['date_to'] ?? ''));
@@ -294,6 +323,14 @@ final class RateController extends BaseController
      */
     public function unlock(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         $input = $this->request()->allInput();
         $from = trim((string)($input['date_from'] ?? ''));
         $to = trim((string)($input['date_to'] ?? ''));
@@ -333,6 +370,14 @@ final class RateController extends BaseController
      */
     public function listLocks(): \Api\System\Library\Http\JsonResponse
     {
+        $auth = $this->user();
+        if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
+
         $pdo = $this->container->get('db.pdo');
 
         // Auto-close settings (3.8)
