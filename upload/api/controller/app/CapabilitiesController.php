@@ -14,7 +14,10 @@ final class CapabilitiesController extends BaseController
         if (!$auth || !is_array($auth['user'] ?? null)) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-        $user = $auth['user'];
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)$auth['user']);
 
         $permissions = [];
         if ($this->container->has('service.authz')) {
