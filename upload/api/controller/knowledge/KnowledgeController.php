@@ -138,6 +138,9 @@ final class KnowledgeController extends BaseController
 
     public function overview(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $actor = $this->actor();
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -152,6 +155,9 @@ final class KnowledgeController extends BaseController
 
     public function spaces(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         return $this->success('KNOWLEDGE_SPACES', $this->t('knowledge/messages.spaces', 'Knowledge spaces loaded'), [
             'items' => $this->repo()->spaces($this->request()->allInput(), $this->actor()),
         ]);
@@ -159,6 +165,9 @@ final class KnowledgeController extends BaseController
 
     public function spacesTree(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         return $this->success('KNOWLEDGE_SPACES_TREE', $this->t('knowledge/messages.spaces_tree', 'Knowledge spaces tree loaded'), [
             'items' => $this->repo()->spacesTree($this->request()->allInput(), $this->actor()),
         ]);
@@ -166,6 +175,9 @@ final class KnowledgeController extends BaseController
 
     public function createSpace(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $auth = $this->user();
         $input = $this->request()->allInput();
         $title = trim((string)($input['title'] ?? ''));
@@ -434,6 +446,9 @@ final class KnowledgeController extends BaseController
 
     public function createPage(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $auth = $this->user();
         $input = $this->request()->allInput();
         if (trim((string)($input['title'] ?? '')) === '') {

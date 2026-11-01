@@ -29,7 +29,8 @@ final class KnowledgeAiController extends BaseController
     private function actor(): array
     {
         $auth = $this->user();
-        return is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        $actor = is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        return $this->organizationScopedActor($actor);
     }
 
     private function actorUserId(): int
@@ -50,6 +51,11 @@ final class KnowledgeAiController extends BaseController
 
     private function checkAiEnabled(): ?JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+
         $actor = $this->actor();
         $isRoot = (bool)($actor['is_root'] ?? false);
 

@@ -16,11 +16,15 @@ final class KnowledgePageVersionController extends BaseController
     private function actor(): array
     {
         $auth = $this->user();
-        return is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        $actor = is_array($auth['user'] ?? null) ? $auth['user'] : [];
+        return $this->organizationScopedActor($actor);
     }
 
     public function list(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $filters = $this->request()->allInput();
         $filters['limit'] = min(100, max(1, (int)($filters['limit'] ?? 30)));
@@ -37,6 +41,9 @@ final class KnowledgePageVersionController extends BaseController
 
     public function get(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $versionPublicId = (string)$params['version_public_id'];
 
@@ -57,6 +64,9 @@ final class KnowledgePageVersionController extends BaseController
 
     public function restore(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $versionPublicId = (string)$params['version_public_id'];
         $input = $this->request()->allInput();
@@ -82,6 +92,9 @@ final class KnowledgePageVersionController extends BaseController
 
     public function diff(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $versionPublicId = (string)$params['version_public_id'];
 
@@ -100,6 +113,9 @@ final class KnowledgePageVersionController extends BaseController
 
     public function lock(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $input = $this->request()->allInput();
 
@@ -124,6 +140,9 @@ final class KnowledgePageVersionController extends BaseController
 
     public function unlock(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $pagePublicId = (string)$params['public_id'];
         $input = $this->request()->allInput();
 
