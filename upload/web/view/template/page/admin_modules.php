@@ -101,13 +101,19 @@
     var state = { selected: {}, modules: [], filter: 'all', modulesLoaded: false, modulesError: false, updates: {}, canUpdate: false, updateRunning: false };
     var COLSPAN = 6;
     var CATEGORY_ORDER = ['migration', 'calendar', 'integration', 'localization', 'productivity', 'diagram'];
-    var canInstall = Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
-    if (!canInstall) {
-        var linkInstall = document.getElementById('linkInstallModule');
-        if (linkInstall) linkInstall.style.display = 'none';
-        var permissionHint = document.getElementById('moduleInstallPermissionHint');
-        if (permissionHint) permissionHint.hidden = false;
+    function canInstallModules() {
+        return Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
     }
+
+    function syncInstallPermissionUi() {
+        var allowed = canInstallModules();
+        var linkInstall = document.getElementById('linkInstallModule');
+        if (linkInstall) linkInstall.style.display = allowed ? '' : 'none';
+        var permissionHint = document.getElementById('moduleInstallPermissionHint');
+        if (permissionHint) permissionHint.hidden = allowed;
+        return allowed;
+    }
+    syncInstallPermissionUi();
 
     function esc(value) {
         if (window.CRM && window.CRM.text && typeof window.CRM.text.escapeHtml === 'function') {
@@ -204,7 +210,7 @@
             ['bulkPurgeBtn', 'purge']
         ].forEach(function (entry) {
             var button = document.getElementById(entry[0]);
-            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0 || (entry[1] === 'install' && !canInstall);
+            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0 || (entry[1] === 'install' && !canInstallModules());
         });
 
         var bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
@@ -276,7 +282,7 @@
                 state.modulesError = false;
                 setTabCount('moduleInstalledCount', modules.length);
                 if (modules.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty', 'Модули не найдены.') + (canInstall ? ' <a href="index.php?route=admin-modules-install">' + window.CRM.i18n.t('admin_modules.link_install_first', 'Установить первый модуль') + '</a>' : '') + '</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty', 'Модули не найдены.') + (canInstallModules() ? ' <a href="index.php?route=admin-modules-install">' + window.CRM.i18n.t('admin_modules.link_install_first', 'Установить первый модуль') + '</a>' : '') + '</td></tr>';
                     renderFilters();
                     updateBulkToolbar();
                     mpRefreshCardStates();
@@ -490,6 +496,7 @@
     }
 
     function renderRows() {
+        syncInstallPermissionUi();
         var modules = visibleModules();
         if (modules.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="text-muted">' + window.CRM.i18n.t('admin_modules.empty_filter', 'Нет модулей в выбранной категории.') + '</td></tr>';
@@ -507,7 +514,7 @@
                 ? '<button class="btn btn-sm crm-btn-primary module-update me-1" data-name="' + esc(m.name) + '" title="' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + ' ' + esc(availableUpdate.latest_version) + '"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> ' + esc(window.CRM.i18n.t('admin_modules.update_button', 'Обновить')) + '</button>'
                 : '';
             if (m.status === 'not_installed') {
-                actions = canInstall ? '<button class="btn btn-sm crm-btn-primary module-install me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_install', 'Установить модуль') + '" data-i18n-title="admin_modules.title_install" aria-label="' + window.CRM.i18n.t('admin_modules.aria_install', 'Установить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules.btn_install', 'Установить') + '</button>' : '<span class="small text-muted" title="' + window.CRM.i18n.t('admin_modules.install_permission_required', 'Для установки требуется право module.install.') + '">' + window.CRM.i18n.t('admin_modules.install_permission_required', 'Требуется право module.install') + '</span>';
+                actions = canInstallModules() ? '<button class="btn btn-sm crm-btn-primary module-install me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_install', 'Установить модуль') + '" data-i18n-title="admin_modules.title_install" aria-label="' + window.CRM.i18n.t('admin_modules.aria_install', 'Установить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_install"><i class="fa-solid fa-download" aria-hidden="true"></i> ' + window.CRM.i18n.t('admin_modules.btn_install', 'Установить') + '</button>' : '<span class="small text-muted" title="' + window.CRM.i18n.t('admin_modules.install_permission_required', 'Для установки требуется право module.install.') + '">' + window.CRM.i18n.t('admin_modules.install_permission_required', 'Требуется право module.install') + '</span>';
             } else if (m.is_active) {
                 var openBtn = (m.page_routes && m.page_routes.length > 0)
                     ? '<a class="btn btn-sm crm-btn-secondary me-1" href="index.php?route=' + encodeURIComponent(m.page_routes[0]) + '" title="' + window.CRM.i18n.t('admin_modules.title_open', 'Открыть интерфейс модуля') + '"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>' + window.CRM.i18n.t('admin_modules.btn_open', 'Открыть') + '</a>'
