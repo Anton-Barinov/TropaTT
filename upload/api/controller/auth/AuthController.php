@@ -109,6 +109,10 @@ final class AuthController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)$authUser['user']);
 
         $csrfToken = '';
         $sessionToken = (string)($authUser['auth_token'] ?? '');
@@ -124,7 +128,7 @@ final class AuthController extends BaseController
             'expires_at' => (string)($authUser['expires_at'] ?? ''),
             'expires_in' => (int)($authUser['expires_in'] ?? $this->config()->get('security.auth.access_token_ttl', 604800)),
             'csrf_token' => $csrfToken,
-            'user' => $authUser['user'],
+            'user' => $user,
         ]);
     }
 
