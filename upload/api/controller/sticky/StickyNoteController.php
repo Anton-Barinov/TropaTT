@@ -25,6 +25,10 @@ final class StickyNoteController extends BaseController
 
     public function list(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $filters = $this->request()->allInput();
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
@@ -40,6 +44,10 @@ final class StickyNoteController extends BaseController
 
     public function get(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
         $isRoot = !empty($actor['is_root']);
@@ -58,6 +66,10 @@ final class StickyNoteController extends BaseController
 
     public function create(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $payload = $this->request()->allInput();
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
@@ -77,6 +89,10 @@ final class StickyNoteController extends BaseController
 
     public function update(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $payload = $this->request()->allInput();
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
@@ -96,6 +112,10 @@ final class StickyNoteController extends BaseController
 
     public function delete(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
         $isRoot = !empty($actor['is_root']);
@@ -113,6 +133,10 @@ final class StickyNoteController extends BaseController
 
     public function archive(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
         $isRoot = !empty($actor['is_root']);
@@ -131,6 +155,10 @@ final class StickyNoteController extends BaseController
 
     public function unarchive(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
         $isRoot = !empty($actor['is_root']);
@@ -149,6 +177,10 @@ final class StickyNoteController extends BaseController
 
     public function reorder(): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $payload = $this->request()->allInput();
         $items = (array)($payload['items'] ?? []);
         $authUser = $this->user();
@@ -167,6 +199,10 @@ final class StickyNoteController extends BaseController
 
     public function convertToTask(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $payload = $this->request()->allInput();
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
@@ -186,6 +222,10 @@ final class StickyNoteController extends BaseController
 
     public function convertToKnowledgePage(array $params): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $payload = $this->request()->allInput();
         $authUser = $this->user();
         $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];

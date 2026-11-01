@@ -4,7 +4,12 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Tag\TagRepository;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\Ulid;
+
+if (!class_exists(ActorPermission::class)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 final class TagService
 {
@@ -19,6 +24,18 @@ final class TagService
         $organizationId = $this->organizationId($actor);
         if ($organizationId !== null) {
             $filters['organization_id'] = $organizationId;
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'pagination' => [
+                        'page' => 1,
+                        'limit' => 20,
+                        'total' => 0,
+                        'pages' => 0,
+                    ],
+                ],
+            ];
         }
         [$items, $total, $page, $limit] = $this->tags->list($filters);
 
@@ -37,7 +54,11 @@ final class TagService
 
     public function get(string $publicId, array $actor = []): ?array
     {
-        return $this->tags->findByPublicId($publicId, $this->organizationId($actor));
+        $tag = $this->tags->findByPublicId($publicId, $this->organizationId($actor));
+        if (!$tag || !ActorPermission::sameOrganization($actor, $tag)) {
+            return null;
+        }
+        return $tag;
     }
 
     public function create(array $input, array $actor = [])
@@ -68,7 +89,7 @@ final class TagService
     {
         $organizationId = $this->organizationId($actor);
         $current = $this->tags->findByPublicId($publicId, $organizationId);
-        if (!$current) {
+        if (!$current || !ActorPermission::sameOrganization($actor, $current)) {
             return null;
         }
 
@@ -102,7 +123,13 @@ final class TagService
 
     public function delete(string $publicId, array $actor = []): bool
     {
-        return $this->tags->deleteByPublicId($publicId, $this->organizationId($actor));
+        $organizationId = $this->organizationId($actor);
+        $current = $this->tags->findByPublicId($publicId, $organizationId);
+        if (!$current || !ActorPermission::sameOrganization($actor, $current)) {
+            return false;
+        }
+
+        return $this->tags->deleteByPublicId($publicId, $organizationId);
     }
 
     public function listTaskTags(string $taskPublicId, array $actor): ?array
@@ -123,7 +150,7 @@ final class TagService
         }
 
         $tag = $this->tags->findByPublicId($tagPublicId, $this->organizationId($actor));
-        if (!$tag) {
+        if (!$tag || !ActorPermission::sameOrganization($actor, $tag)) {
             return false;
         }
 
@@ -140,7 +167,7 @@ final class TagService
         }
 
         $tag = $this->tags->findByPublicId($tagPublicId, $this->organizationId($actor));
-        if (!$tag) {
+        if (!$tag || !ActorPermission::sameOrganization($actor, $tag)) {
             return false;
         }
 

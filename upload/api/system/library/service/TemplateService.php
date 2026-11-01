@@ -6,7 +6,12 @@ namespace Api\System\Library\Service;
 use Api\Model\Template\TemplateRepository;
 use Api\Model\User\UserManagementRepository;
 use Api\System\Library\Policy\HierarchyPolicy;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\Ulid;
+
+if (!class_exists(ActorPermission::class)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 final class TemplateService
 {
@@ -24,6 +29,18 @@ final class TemplateService
         $organizationId = $this->organizationId($actor);
         if ($organizationId !== null) {
             $filters['organization_id'] = $organizationId;
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'pagination' => [
+                        'page' => 1,
+                        'limit' => 20,
+                        'total' => 0,
+                        'pages' => 0,
+                    ],
+                ],
+            ];
         }
 
         $scope = $this->accessScope($actor);
@@ -207,15 +224,11 @@ final class TemplateService
      */
     private function canAccess(array $item, array $actor): bool
     {
-        // Workspace check comes before the root shortcut: a multi-org root
-        // must not reach another organization's template (TROPATTCRM-603).
-        $actorOrgId = $this->organizationId($actor);
-        $itemOrgId = $item['organization_id'] ?? null;
-        if ($actorOrgId !== null && $itemOrgId !== null && (int)$itemOrgId !== $actorOrgId) {
+        if (!ActorPermission::sameOrganization($actor, $item)) {
             return false;
         }
 
-        if ((int)($actor['is_root'] ?? 0) === 1) {
+        if (ActorPermission::isPrivileged($actor)) {
             return true;
         }
 

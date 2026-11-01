@@ -70,6 +70,11 @@ final class TemplateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TemplateService $service */
         $service = $this->container->get('service.template');
@@ -84,6 +89,11 @@ final class TemplateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -111,6 +121,11 @@ final class TemplateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TemplateService $service */
         $service = $this->container->get('service.template');
@@ -130,6 +145,11 @@ final class TemplateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
         if (isset($input['payload']) && !is_array($input['payload'])) {
@@ -164,6 +184,9 @@ final class TemplateController extends BaseController
     {
         $authUser = $this->user();
         if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TemplateService $service */
         $service = $this->container->get('service.template');
@@ -179,6 +202,11 @@ final class TemplateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TemplateService $service */
         $service = $this->container->get('service.template');

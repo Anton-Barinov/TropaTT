@@ -4,6 +4,11 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\View\SavedViewRepository;
+use Api\System\Library\Security\ActorPermission;
+
+if (!class_exists(ActorPermission::class)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 final class SavedViewService
 {
@@ -38,6 +43,20 @@ final class SavedViewService
      */
     public function list(array $filters, array $actor): array
     {
+        if (!ActorPermission::isPrivileged($actor) && $this->organizationId($actor) === null) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'pagination' => [
+                        'page' => 1,
+                        'limit' => 50,
+                        'total' => 0,
+                        'pages' => 0,
+                    ],
+                ],
+            ];
+        }
+
         $result = $this->views->list(
             $filters,
             (int)($actor['id'] ?? 0),
@@ -609,15 +628,18 @@ final class SavedViewService
      */
     private function checkViewAccess(array $item, array $actor): true|string
     {
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        if (ActorPermission::isPrivileged($actor)) {
+            return true;
+        }
+
+        if (!ActorPermission::sameOrganization($actor, $item)) {
+            return 'SAVED_VIEW_FORBIDDEN';
+        }
+
         $userId = (int)($actor['id'] ?? 0);
         $ownerId = (int)($item['user_id'] ?? 0);
         $accessLevel = (string)($item['access_level'] ?? 'private');
         $isArchived = $item['archived_at'] !== null;
-
-        if ($isRoot) {
-            return true;
-        }
 
         // Private: only owner. Return immediately for the owner; falling
         // through to the public/system branch would incorrectly deny every
@@ -641,14 +663,17 @@ final class SavedViewService
      */
     private function checkEditAccess(array $item, array $actor): true|string
     {
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        if (ActorPermission::isPrivileged($actor)) {
+            return true;
+        }
+
+        if (!ActorPermission::sameOrganization($actor, $item)) {
+            return 'SAVED_VIEW_FORBIDDEN';
+        }
+
         $userId = (int)($actor['id'] ?? 0);
         $ownerId = (int)($item['user_id'] ?? 0);
         $isLocked = (bool)($item['is_locked'] ?? false);
-
-        if ($isRoot) {
-            return true;
-        }
 
         // Locked/system: only root
         if ($isLocked || (bool)($item['is_system'] ?? false)) {
