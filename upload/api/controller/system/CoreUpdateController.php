@@ -20,6 +20,9 @@ final class CoreUpdateController extends BaseController
 {
     public function status(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -31,6 +34,9 @@ final class CoreUpdateController extends BaseController
 
     public function check(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -51,6 +57,9 @@ final class CoreUpdateController extends BaseController
 
     public function changes(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -73,6 +82,9 @@ final class CoreUpdateController extends BaseController
 
     public function preflight(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -93,6 +105,9 @@ final class CoreUpdateController extends BaseController
 
     public function session(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -103,6 +118,9 @@ final class CoreUpdateController extends BaseController
 
     public function history(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -123,6 +141,9 @@ final class CoreUpdateController extends BaseController
      */
     public function recoveryKey(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -153,6 +174,9 @@ final class CoreUpdateController extends BaseController
 
     public function log(array $params): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->allowed()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
@@ -163,18 +187,22 @@ final class CoreUpdateController extends BaseController
 
     private function allowed(): bool
     {
-        $user = $this->user()['user'] ?? null;
-        if (!is_array($user)) {
+        $rawUser = $this->user()['user'] ?? null;
+        if (!is_array($rawUser)) {
             return false;
         }
-        if ((bool)($user['is_root'] ?? false)) {
+        if ((bool)($rawUser['is_root'] ?? false)) {
             return true;
         }
-        $permissions = is_array($user['permission_codes'] ?? null) ? $user['permission_codes'] : [];
-        if (in_array('*', $permissions, true) || in_array('system.update', $permissions, true) || in_array('settings.manage', $permissions, true)) {
+        $actor = $this->organizationScopedActor($rawUser);
+        if ((bool)($actor['is_root'] ?? false)) {
             return true;
         }
-        $roles = is_array($user['roles'] ?? null) ? $user['roles'] : [];
+        $permissions = is_array($actor['permission_codes'] ?? null) ? $actor['permission_codes'] : [];
+        if (in_array('*', $permissions, true) || in_array('system.update', $permissions, true)) {
+            return true;
+        }
+        $roles = is_array($actor['roles'] ?? null) ? $actor['roles'] : [];
         $normalizedRoles = array_values(array_unique(array_filter(array_map(
             static function (mixed $role): string {
                 if (is_array($role)) {
@@ -184,11 +212,21 @@ final class CoreUpdateController extends BaseController
             },
             $roles
         ), static fn(string $role): bool => $role !== '')));
-        if (array_intersect($normalizedRoles, ['admin', 'administrator', 'super_admin', 'super_administrator', 'root']) !== []) {
+        if (array_intersect($normalizedRoles, ['super_admin', 'super_administrator', 'root']) !== []) {
             return true;
         }
 
-        return strtolower(trim((string)($user['login'] ?? ''))) === 'admin';
+        // Global admin fallback (when user is acting globally without an organization context)
+        if (empty($actor['organization_id']) && (
+            in_array('settings.manage', $permissions, true) ||
+            in_array('admin', $normalizedRoles, true) ||
+            in_array('administrator', $normalizedRoles, true) ||
+            strtolower(trim((string)($actor['login'] ?? ''))) === 'admin'
+        )) {
+            return true;
+        }
+
+        return false;
     }
 
     private function callUpdater(string $action, array $payload, array $config): array

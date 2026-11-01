@@ -12,6 +12,10 @@ final class CoreVersionController extends BaseController
 {
     public function show(): \Api\System\Library\Http\JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $config = CoreUpdateConfig::load();
         $version = new CoreVersion((string)$config['storage_dir'], dirname(__DIR__, 3));
         $data = $version->current();
@@ -19,7 +23,11 @@ final class CoreVersionController extends BaseController
         // SEC-019: Remove internal build identifiers from public endpoint.
         // Admin users with settings.manage can still see full version data via /api/v1/core/version.
         $authUser = $this->user();
-        $isAdmin = $authUser && !empty($authUser['user']['is_root']);
+        $isAdmin = false;
+        if ($authUser && isset($authUser['user'])) {
+            $actor = $this->organizationScopedActor((array)$authUser['user']);
+            $isAdmin = !empty($actor['is_root']) || !empty($authUser['user']['is_root']);
+        }
         if (!$isAdmin) {
             unset($data['source_sha'], $data['short_sha'], $data['adopted']);
         }
