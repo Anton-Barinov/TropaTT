@@ -9210,6 +9210,7 @@ return array (
     'link_install_first' => 'Install the first module',
     'link_install_module' => 'Install module',
     'install_permission_required' => '安装模块需要 module.install 权限。',
+    'module_manage_permission_required' => '激活或删除模块需要 settings.manage 权限。',
     'state_active' => 'Active',
     'state_discovered' => 'Discovered',
     'state_installed' => 'Installed',

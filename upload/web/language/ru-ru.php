@@ -9303,6 +9303,7 @@ return array (
     'link_install_first' => 'Установить первый модуль',
     'link_install_module' => 'Установить модуль',
     'install_permission_required' => 'Для установки модуля требуется право module.install.',
+    'module_manage_permission_required' => 'Для активации и удаления модулей требуется право settings.manage.',
     'state_active' => 'Активен',
     'state_discovered' => 'Обнаружен',
     'state_installed' => 'Установлен',
