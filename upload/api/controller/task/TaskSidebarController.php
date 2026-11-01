@@ -77,8 +77,11 @@ final class TaskSidebarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         if ($userPublicId === '') {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -98,8 +101,11 @@ final class TaskSidebarController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         if ($userPublicId === '') {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);

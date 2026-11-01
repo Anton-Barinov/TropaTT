@@ -8,7 +8,12 @@ use Api\Model\Project\ProjectModuleTaskRepository;
 use Api\Model\Project\ProjectModuleMemberRepository;
 use Api\Model\Project\ProjectModuleLinkRepository;
 use Api\Model\Task\TaskRepository;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Support\Ulid;
+
+if (!class_exists(ActorPermission::class, false)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 final class ProjectModuleService
 {
@@ -817,7 +822,13 @@ final class ProjectModuleService
     private function organizationId(array $actor): ?int
     {
         $id = (int)($actor['organization_id'] ?? 0);
-        return $id > 0 ? $id : null;
+        if ($id > 0) {
+            return $id;
+        }
+        if (ActorPermission::isPrivileged($actor)) {
+            return null;
+        }
+        return -1;
     }
 
     private function enrichModule(array $module): array
