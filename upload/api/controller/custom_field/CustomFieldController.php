@@ -43,7 +43,8 @@ final class CustomFieldController extends BaseController
 
     public function create(): \Api\System\Library\Http\JsonResponse
     {
-        if (!$this->user()) {
+        $authUser = $this->user();
+        if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
 

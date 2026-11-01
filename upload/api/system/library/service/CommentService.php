@@ -239,7 +239,11 @@ final class CommentService
 
         // Permission = capability: task.manage may moderate comments on any
         // task of their workspace (comment routes are gated by task.manage).
-        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+        if (!ActorPermission::sameOrganization($actor, $task)) {
+            return false;
+        }
+
+        if (ActorPermission::canManageTasks($actor)) {
             return true;
         }
 
