@@ -65,7 +65,7 @@ final class WorkflowRepository
             $query->whereRaw('(title LIKE ? OR trigger_code LIKE ? OR action_code LIKE ?)', [$search, $search, $search]);
         }
 
-        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn('automation_rules')) {
+        if (array_key_exists('organization_id', $filters) && $filters['organization_id'] !== null && $this->hasOrganizationColumn('automation_rules')) {
             $query->where('organization_id', '=', (int)$filters['organization_id']);
         }
 
@@ -88,7 +88,7 @@ final class WorkflowRepository
             ->select(['id', 'public_id', 'title', 'trigger_code', 'action_code', 'payload', 'is_enabled', 'created_by_user_id', 'created_at', 'updated_at'])
             ->where('public_id', '=', $publicId);
 
-        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+        if ($organizationId !== null && $this->hasOrganizationColumn('automation_rules')) {
             $query->where('organization_id', '=', $organizationId);
         }
 
@@ -117,7 +117,7 @@ final class WorkflowRepository
             ->from('automation_rules')
             ->where('public_id', '=', $publicId);
 
-        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+        if ($organizationId !== null && $this->hasOrganizationColumn('automation_rules')) {
             $query->where('organization_id', '=', $organizationId);
         }
 
@@ -130,7 +130,7 @@ final class WorkflowRepository
             ->from('automation_rules')
             ->where('public_id', '=', $publicId);
 
-        if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn('automation_rules')) {
+        if ($organizationId !== null && $this->hasOrganizationColumn('automation_rules')) {
             $query->where('organization_id', '=', $organizationId);
         }
 
@@ -203,7 +203,7 @@ final class WorkflowRepository
             $query->where('ar.public_id', '=', (string)$filters['rule_public_id']);
         }
 
-        if ((int)($filters['organization_id'] ?? 0) > 0 && $this->hasOrganizationColumn('automation_rules')) {
+        if (array_key_exists('organization_id', $filters) && $filters['organization_id'] !== null && $this->hasOrganizationColumn('automation_rules')) {
             $query->where('ar.organization_id', '=', (int)$filters['organization_id']);
         }
 

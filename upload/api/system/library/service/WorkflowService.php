@@ -7,6 +7,11 @@ use Api\System\Library\Support\AppLog;
 use Api\Model\User\UserManagementRepository;
 use Api\Model\Workflow\WorkflowRepository;
 use Api\Model\Worklog\WorklogRepository;
+use Api\System\Library\Security\ActorPermission;
+
+if (!class_exists(ActorPermission::class, false)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 use Api\System\Library\Language\LanguageManager;
 use Api\System\Library\Language\TranslatableTrait;
 use Api\System\Library\Policy\HierarchyPolicy;
@@ -32,6 +37,8 @@ final class WorkflowService
         $organizationId = (int)($actor['organization_id'] ?? 0);
         if ($organizationId > 0) {
             $filters['organization_id'] = $organizationId;
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            $filters['organization_id'] = -1;
         }
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
@@ -176,6 +183,8 @@ final class WorkflowService
         $organizationId = (int)($actor['organization_id'] ?? 0);
         if ($organizationId > 0) {
             $filters['organization_id'] = $organizationId;
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            $filters['organization_id'] = -1;
         }
         $scope = $this->accessScope($actor);
         if ($scope['limit_to_creator_ids'] !== null) {
@@ -230,7 +239,13 @@ final class WorkflowService
     private function organizationId(array $actor): ?int
     {
         $id = (int)($actor['organization_id'] ?? 0);
-        return $id > 0 ? $id : null;
+        if ($id > 0) {
+            return $id;
+        }
+        if (ActorPermission::isPrivileged($actor)) {
+            return null;
+        }
+        return -1;
     }
 
     /**
