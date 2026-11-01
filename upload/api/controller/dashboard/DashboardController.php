@@ -87,8 +87,8 @@ final class DashboardController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         if ($userPublicId === '') {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
@@ -109,8 +109,8 @@ final class DashboardController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-
-        $user = $authUser['user'] ?? [];
+        if ($error = $this->rejectInvalidOrganizationContext()) return $error;
+        $user = $this->organizationScopedActor((array)($authUser['user'] ?? []));
         $userPublicId = (string)($user['public_id'] ?? '');
         if ($userPublicId === '') {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
