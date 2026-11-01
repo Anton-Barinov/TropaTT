@@ -10,6 +10,17 @@ final class LoginDebugLogger extends BaseController
 {
     public function log(): void
     {
+        if (strlen($this->request()->rawBody) > 16 * 1024) {
+            http_response_code(413);
+            return;
+        }
+
+        $rateLimit = $this->checkIpRateLimit('login_debug', 60, 60, 300);
+        if (($rateLimit['blocked'] ?? false) === true) {
+            http_response_code(429);
+            return;
+        }
+
         $payload = $this->request()->allInput();
 
         $sanitized = $this->sanitizePayload($payload);
