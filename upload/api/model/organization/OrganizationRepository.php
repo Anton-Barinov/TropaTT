@@ -94,6 +94,14 @@ final class OrganizationRepository implements OrganizationMembershipReader
             ->get();
     }
 
+    public function findById(int $id): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('organizations')
+            ->where('id', '=', $id)
+            ->first();
+    }
+
     public function findByPublicId(string $publicId): ?array
     {
         return (new QueryBuilder($this->pdo))

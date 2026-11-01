@@ -13,17 +13,19 @@ final class InvitationRepository
     {
     }
 
-    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false): array
+    public function list(array $filters, ?int $actorUserId = null, bool $actorIsRoot = false, ?int $organizationId = null): array
     {
         $page = max(1, (int)($filters['page'] ?? 1));
         $limit = min(100, max(1, (int)($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)->count();
-        $items = $this->buildListQuery($filters, $actorUserId, $actorIsRoot)
+        $total = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $organizationId)->count();
+        $items = $this->buildListQuery($filters, $actorUserId, $actorIsRoot, $organizationId)
             ->select([
                 'i.public_id',
                 'i.email',
+                'i.organization_id',
+                'i.role_code',
                 'i.expires_at',
                 'i.accepted_at',
                 'i.created_at',
@@ -76,14 +78,20 @@ final class InvitationRepository
         return $query;
     }
 
-    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot): QueryBuilder
+    private function buildListQuery(array $filters, ?int $actorUserId, bool $actorIsRoot, ?int $organizationId = null): QueryBuilder
     {
         $query = (new QueryBuilder($this->pdo))
             ->from('invitations i')
             ->leftJoin('users inviter', 'inviter.id', '=', 'i.invited_by_user_id');
 
-        if (!$actorIsRoot && $actorUserId !== null && $actorUserId > 0) {
-            $query->where('i.invited_by_user_id', '=', $actorUserId);
+        if (!$actorIsRoot) {
+            if ($organizationId !== null && $organizationId > 0) {
+                $query->where('i.organization_id', '=', $organizationId);
+            } elseif ($organizationId === -1) {
+                $query->whereRaw('0 = 1');
+            } elseif ($actorUserId !== null && $actorUserId > 0) {
+                $query->where('i.invited_by_user_id', '=', $actorUserId);
+            }
         }
 
         if (!empty($filters['search'])) {

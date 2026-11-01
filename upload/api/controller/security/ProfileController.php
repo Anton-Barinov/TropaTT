@@ -16,6 +16,9 @@ final class ProfileController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var UserProfileService $service */
         $service = $this->container->get('service.user_profile');
@@ -34,6 +37,9 @@ final class ProfileController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -71,6 +77,9 @@ final class ProfileController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         $file = $this->request()->files['file'] ?? null;
 
@@ -103,6 +112,9 @@ final class ProfileController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var UserProfileService $service */
         $service = $this->container->get('service.user_profile');
@@ -120,6 +132,9 @@ final class ProfileController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var UserProfileService $service */
         $service = $this->container->get('service.user_profile');
@@ -135,6 +150,9 @@ final class ProfileController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -164,6 +182,9 @@ final class ProfileController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();

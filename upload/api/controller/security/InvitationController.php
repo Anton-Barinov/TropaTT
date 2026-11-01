@@ -16,10 +16,14 @@ final class InvitationController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var InvitationService $service */
         $service = $this->container->get('service.invitation');
-        $result = $service->list($this->request()->allInput(), $auth['user']);
+        $result = $service->list($this->request()->allInput(), $actor);
 
         return $this->success('INVITATION_LIST', $this->t('security/messages.invitation_list'), [
             'items' => $result['items'],
@@ -32,6 +36,10 @@ final class InvitationController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         $input = $this->request()->allInput();
         $validator = new Validator();
@@ -50,7 +58,7 @@ final class InvitationController extends BaseController
 
         /** @var InvitationService $service */
         $service = $this->container->get('service.invitation');
-        $result = $service->create($input, $auth['user']);
+        $result = $service->create($input, $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $status = (string)($result['code'] ?? '') === 'INVITATION_EMAIL_EXISTS' ? 409 : 400;
 
@@ -71,10 +79,14 @@ final class InvitationController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var InvitationService $service */
         $service = $this->container->get('service.invitation');
-        $item = $service->get((string)$params['public_id'], $auth['user']);
+        $item = $service->get((string)$params['public_id'], $actor);
         if (!$item) {
             return $this->error('INVITATION_NOT_FOUND', $this->t('security/messages.invitation_not_found'), 404, [
                 'invitation' => [$this->t('security/messages.invitation_not_found')],

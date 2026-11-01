@@ -15,6 +15,9 @@ final class SessionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var SessionService $service */
         $service = $this->container->get('service.session');
@@ -30,6 +33,9 @@ final class SessionController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         /** @var SessionService $service */
@@ -55,6 +61,9 @@ final class SessionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var SessionService $service */
         $service = $this->container->get('service.session');
@@ -71,6 +80,9 @@ final class SessionController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var SessionService $service */
         $service = $this->container->get('service.session');
@@ -86,6 +98,9 @@ final class SessionController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
