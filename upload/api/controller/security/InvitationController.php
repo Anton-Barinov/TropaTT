@@ -139,6 +139,14 @@ final class InvitationController extends BaseController
 
     public function acceptOrganization(array $params): \Api\System\Library\Http\JsonResponse
     {
+        // SEC-04: IP-based rate limit to prevent token brute-force
+        $rl = $this->checkIpRateLimit('inv_accept', 20, 60, 300);
+        if ($rl['blocked'] === true) {
+            return $this->error('RATE_LIMITED', $this->t('common/messages.rate_limited'), 429, [], [
+                'retry_after' => $rl['retry_after'],
+            ]);
+        }
+
         $input = $this->request()->allInput();
         $validator = new Validator();
         $validator->require($input, 'invitation_token', $this->t('common/messages.field_required'))

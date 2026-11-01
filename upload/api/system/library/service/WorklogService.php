@@ -561,6 +561,12 @@ final class WorklogService
         // holders of task.manage reach this point. Lookups in this service are
         // organization-scoped; sameOrganization() is the last word when they
         // are not (task summary re-reads the task unscoped).
+        $actorOrgId = (int)($actor['organization_id'] ?? 0);
+        $taskOrgId = (int)($task['organization_id'] ?? 0);
+        if ($actorOrgId > 0 && $taskOrgId > 0 && $actorOrgId !== $taskOrgId && !ActorPermission::isPrivileged($actor)) {
+            return false;
+        }
+
         if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
             return true;
         }

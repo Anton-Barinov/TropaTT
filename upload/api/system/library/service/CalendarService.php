@@ -534,7 +534,11 @@ final class CalendarService
 
         // Permission = capability: task.manage may attach events to any task of
         // their workspace (calendar routes are gated by task.manage).
-        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $task)) {
+        if (!ActorPermission::sameOrganization($actor, $task)) {
+            return false;
+        }
+
+        if (ActorPermission::canManageTasks($actor)) {
             return true;
         }
 
