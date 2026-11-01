@@ -105,6 +105,10 @@
         return Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('module.install'));
     }
 
+    function canManageModules() {
+        return Boolean(window.CRM && window.CRM.api && typeof window.CRM.api.hasPermission === 'function' && window.CRM.api.hasPermission('settings.manage'));
+    }
+
     function syncInstallPermissionUi() {
         var allowed = canInstallModules();
         var linkInstall = document.getElementById('linkInstallModule');
@@ -210,7 +214,9 @@
             ['bulkPurgeBtn', 'purge']
         ].forEach(function (entry) {
             var button = document.getElementById(entry[0]);
-            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0 || (entry[1] === 'install' && !canInstallModules());
+            if (button) button.hidden = count === 0 || getSelectedNames(entry[1]).length === 0
+                || (entry[1] === 'install' && !canInstallModules())
+                || (['activate', 'deactivate', 'uninstall', 'purge'].indexOf(entry[1]) >= 0 && !canManageModules());
         });
 
         var bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
@@ -519,11 +525,16 @@
                 var openBtn = (m.page_routes && m.page_routes.length > 0)
                     ? '<a class="btn btn-sm crm-btn-secondary me-1" href="index.php?route=' + encodeURIComponent(m.page_routes[0]) + '" title="' + window.CRM.i18n.t('admin_modules.title_open', 'Открыть интерфейс модуля') + '"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>' + window.CRM.i18n.t('admin_modules.btn_open', 'Открыть') + '</a>'
                     : '';
-                actions = openBtn + '<button class="btn btn-sm crm-btn-warning module-deact me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_deactivate', 'Деактивировать модуль') + '" data-i18n-title="admin_modules.title_deactivate" aria-label="' + window.CRM.i18n.t('admin_modules.aria_deactivate', 'Деактивировать модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_deactivate"><i class="fa-solid fa-pause" aria-hidden="true"></i></button>';
-                actions += '<button class="btn btn-sm crm-btn-danger-icon module-remove" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_remove', 'Удалить модуль') + '" data-i18n-title="admin_modules.title_remove" aria-label="' + window.CRM.i18n.t('admin_modules.aria_remove', 'Удалить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_remove"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+                actions = openBtn;
+                if (canManageModules()) {
+                    actions += '<button class="btn btn-sm crm-btn-warning module-deact me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_deactivate', 'Деактивировать модуль') + '" data-i18n-title="admin_modules.title_deactivate" aria-label="' + window.CRM.i18n.t('admin_modules.aria_deactivate', 'Деактивировать модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_deactivate"><i class="fa-solid fa-pause" aria-hidden="true"></i></button>';
+                    actions += '<button class="btn btn-sm crm-btn-danger-icon module-remove" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_remove', 'Удалить модуль') + '" data-i18n-title="admin_modules.title_remove" aria-label="' + window.CRM.i18n.t('admin_modules.aria_remove', 'Удалить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_remove"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+                }
             } else {
-                actions = '<button class="btn btn-sm crm-btn-success module-act me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_activate', 'Активировать модуль') + '" data-i18n-title="admin_modules.title_activate" aria-label="' + window.CRM.i18n.t('admin_modules.aria_activate', 'Активировать модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_activate"><i class="fa-solid fa-play" aria-hidden="true"></i></button>';
-                actions += '<button class="btn btn-sm crm-btn-danger-icon module-remove" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_remove', 'Удалить модуль') + '" data-i18n-title="admin_modules.title_remove" aria-label="' + window.CRM.i18n.t('admin_modules.aria_remove', 'Удалить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_remove"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+                if (canManageModules()) {
+                    actions = '<button class="btn btn-sm crm-btn-success module-act me-1" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_activate', 'Активировать модуль') + '" data-i18n-title="admin_modules.title_activate" aria-label="' + window.CRM.i18n.t('admin_modules.aria_activate', 'Активировать модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_activate"><i class="fa-solid fa-play" aria-hidden="true"></i></button>';
+                    actions += '<button class="btn btn-sm crm-btn-danger-icon module-remove" data-name="' + esc(m.name) + '" title="' + window.CRM.i18n.t('admin_modules.title_remove', 'Удалить модуль') + '" data-i18n-title="admin_modules.title_remove" aria-label="' + window.CRM.i18n.t('admin_modules.aria_remove', 'Удалить модуль') + ' ' + esc(m.name) + '" data-i18n-aria-label="admin_modules.aria_remove"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>';
+                }
             }
 
             rows += '<tr>';
@@ -533,13 +544,13 @@
             rows += '<td class="text-center"><input type="checkbox" class="module-select" data-name="' + esc(m.name) + '" aria-label="' + esc(window.CRM.i18n.t('admin_modules.select_module', 'Выбрать модуль')) + ' ' + esc(m.name) + '"></td>';
             var primaryLink = (m.page_routes && m.page_routes.length > 0 && m.is_active)
                 ? 'index.php?route=' + encodeURIComponent(m.page_routes[0])
-                : 'index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name);
-            rows += '<td><a href="' + primaryLink + '" class="text-decoration-none"><strong>' + esc(m.title || m.name) + '</strong></a>';
+                : (canManageModules() ? 'index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name) : '');
+            rows += '<td>' + (primaryLink ? '<a href="' + primaryLink + '" class="text-decoration-none"><strong>' + esc(m.title || m.name) + '</strong></a>' : '<strong>' + esc(m.title || m.name) + '</strong>');
             if (m.page_routes && m.page_routes.length > 0 && m.is_active) {
                 rows += ' <a href="' + primaryLink + '" class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none ms-1"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>' + window.CRM.i18n.t('admin_modules.badge_panel', 'Панель модуля') + '</a>';
             }
             if (m.category) rows += ' <span class="badge bg-light text-muted border crm-module-cat">' + esc(categoryLabel(m.category)) + '</span>';
-            rows += '<br><small class="text-muted">' + esc(m.name) + ' · <a href="index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name) + '" class="text-muted text-decoration-none"><i class="fa-solid fa-gear me-1"></i>' + window.CRM.i18n.t('admin_modules.link_details', 'Параметры и миграции') + '</a></small>';
+            rows += '<br><small class="text-muted">' + esc(m.name) + (canManageModules() ? ' · <a href="index.php?route=admin-module-detail&module=' + encodeURIComponent(m.name) + '" class="text-muted text-decoration-none"><i class="fa-solid fa-gear me-1"></i>' + window.CRM.i18n.t('admin_modules.link_details', 'Параметры и миграции') + '</a>' : '') + '</small>';
             if (m.description) rows += '<br><small class="text-muted">' + esc(m.description) + '</small>';
             rows += '</td>';
             rows += '<td>' + esc(m.version) + (availableUpdate ? '<br><small class="' + (availableUpdate.update_supported ? 'text-success' : 'text-muted') + '">' + esc(window.CRM.i18n.t('admin_modules.update_available', 'Доступна')) + ': ' + esc(availableUpdate.latest_version) + (!availableUpdate.update_supported ? '<br>' + esc(window.CRM.i18n.t('admin_modules.update_unsupported', 'Автообновление этим установщиком пока не поддерживается')) : '') + '</small>' : '') + '</td>';
@@ -1147,9 +1158,13 @@
                     : '<span class="badge bg-warning">' + esc(mpT('admin_modules.mp_installed', 'Установлен')) + '</span>';
                 html += stateBadge;
                 if (cardState === 'installed') {
-                    html += '<button type="button" class="btn btn-sm crm-btn-primary mp-activate" data-code="' + esc(code)
-                        + '" title="' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '"' + (mpState.canInstall ? '' : ' disabled')
-                        + '>' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '</button>';
+                    if (canManageModules()) {
+                        html += '<button type="button" class="btn btn-sm crm-btn-primary mp-activate" data-code="' + esc(code)
+                            + '" title="' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '"'
+                            + '>' + esc(mpT('admin_modules.mp_activate', 'Активировать')) + '</button>';
+                    } else {
+                        html += '<span class="small text-muted">' + esc(mpT('admin_modules.module_manage_permission_required', 'Для активации и удаления модулей требуется право settings.manage.')) + '</span>';
+                    }
                 }
             } else if (cardState === 'discovered') {
                 // The package is already on disk (shipped by the build), so there

@@ -1040,7 +1040,7 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/{name}/deactivate', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'deactivate', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/{name}/uninstall', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'uninstall', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/{name}/purge', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'purge', 'auth' => true, 'required_permissions' => ['settings.manage']],
-    ['methods' => ['POST'], 'pattern' => '/api/v1/modules/bulk', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'bulk', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['POST'], 'pattern' => '/api/v1/modules/bulk', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'bulk', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/config', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'config', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}/health', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'health', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/install-from-url', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'installFromUrl', 'auth' => true, 'required_permissions' => ['module.install']],
@@ -1052,10 +1052,10 @@ return [
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/queue/tick', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'queueTick', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/diagnostics', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'diagnostics', 'auth' => true, 'required_permissions' => ['settings.manage']],
 
-    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/catalog', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'catalog', 'auth' => true, 'required_permissions' => ['settings.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/categories', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'categories', 'auth' => true, 'required_permissions' => ['settings.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/modules/{full_code}', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'module', 'auth' => true, 'required_permissions' => ['settings.manage']],
-    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/updates', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'updates', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/catalog', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'catalog', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/categories', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'categories', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/modules/{full_code}', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'module', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/marketplace/updates', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'updates', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/marketplace/install', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'install', 'auth' => true, 'required_permissions' => ['module.install']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/marketplace/update', 'controller' => Api\Controller\Module\ModuleMarketplaceController::class, 'action' => 'update', 'auth' => true, 'required_permissions' => ['module.install']],
 

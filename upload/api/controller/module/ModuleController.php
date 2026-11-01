@@ -497,11 +497,13 @@ final class ModuleController
             return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
         }
 
-        // The bulk route is protected by settings.manage, while Marketplace
-        // installation and updates require module.install (or root). Never let
-        // the bulk wrapper widen those Marketplace privileges.
-        if ($action === 'update' && !$this->canInstallModules()) {
+        // The route permits either installer or module manager. Keep action-level
+        // checks here because this wrapper invokes controller methods directly.
+        if (in_array($action, ['install', 'update'], true) && !$this->canInstallModules()) {
             return JsonResponse::error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
+        }
+        if (in_array($action, ['activate', 'deactivate', 'uninstall', 'purge'], true) && !$this->canManageModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('module/messages.manage_permission_required', 'The settings.manage permission is required to manage installed modules.'), 403);
         }
 
         $results = [];
@@ -993,6 +995,24 @@ final class ModuleController
         /** @var \Api\System\Library\Service\AuthzService $authz */
         $authz = $this->container->get('service.authz');
         return $authz->hasAnyPermissions($user, ['module.install']);
+    }
+
+    private function canManageModules(): bool
+    {
+        $user = $this->user();
+        if (!$user) {
+            return false;
+        }
+        if (!empty($user['is_root'])) {
+            return true;
+        }
+        if (!$this->container->has('service.authz')) {
+            return false;
+        }
+
+        /** @var \Api\System\Library\Service\AuthzService $authz */
+        $authz = $this->container->get('service.authz');
+        return $authz->hasAnyPermissions($user, ['settings.manage']);
     }
 
     private function withModuleOperationLock(string $name, callable $operation): JsonResponse

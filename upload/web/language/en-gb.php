@@ -9183,6 +9183,7 @@ return array (
     'link_install_first' => 'Install the first module',
     'link_install_module' => 'Install module',
     'install_permission_required' => 'The module.install permission is required to install modules.',
+    'module_manage_permission_required' => 'The settings.manage permission is required to activate or remove modules.',
     'state_active' => 'Active',
     'state_discovered' => 'Discovered',
     'state_installed' => 'Installed',
