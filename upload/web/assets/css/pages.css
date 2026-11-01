@@ -4,6 +4,12 @@
   gap: var(--space-4);
 }
 
+/* Do not flash permission-sensitive widget shells before the server-filtered
+   widget catalog is loaded. The client reveals only the active, authorized set. */
+.crm-dashboard-grid:not(.crm-dashboard-ready) > [data-dashboard-widget] {
+  display: none !important;
+}
+
 /* Workspaces: keep the desktop table calm and scannable.  The action cell is
    deliberately a flex row with its own gap instead of relying on adjacent
    inline buttons, which made the controls look like one merged control. */
