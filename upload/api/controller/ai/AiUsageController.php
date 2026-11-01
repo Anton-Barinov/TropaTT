@@ -14,14 +14,17 @@ final class AiUsageController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         if (!$this->canViewAiAudit($auth['user'])) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
                 'permission' => ['ai.view_audit'],
             ]);
         }
 
-        $authUser = $this->user();
-        $actor = $authUser ? $this->organizationScopedActor((array)($authUser['user'] ?? [])) : [];
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
 
         /** @var AiUsageService $service */
         $service = $this->container->get('service.ai_usage');
@@ -37,6 +40,10 @@ final class AiUsageController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         // TROPATTCRM-556: `audit_logs` (backing this "AI audit" view via
         // action_prefix=ai_) has no organization_id column and is genuinely
