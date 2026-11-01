@@ -20,6 +20,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
@@ -39,6 +40,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
@@ -61,6 +63,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $input = $this->request()->allInput();
         $v = new Validator();
@@ -99,6 +102,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
@@ -129,6 +133,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
@@ -154,6 +159,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $filters = $this->request()->allInput();
         if (isset($params['public_id'])) {
@@ -178,6 +184,7 @@ final class WebhookController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         /** @var WebhookService $service */
         $service = $this->container->get('service.webhook');
