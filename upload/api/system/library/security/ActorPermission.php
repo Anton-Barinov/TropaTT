@@ -25,6 +25,21 @@ namespace Api\System\Library\Security;
  */
 final class ActorPermission
 {
+    /** True when the actor is root or has platform superadmin/admin roles. */
+    public static function isPrivileged(array $actor): bool
+    {
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            return false;
+        }
+
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+
+        $roles = (array)($actor['roles'] ?? []);
+        return in_array('admin', $roles, true) || in_array('superadmin', $roles, true);
+    }
+
     /** True when the internal actor may perform task-management operations. */
     public static function canManageTasks(array $actor): bool
     {
@@ -62,14 +77,13 @@ final class ActorPermission
 
     /**
      * True when the row may be touched by an actor bound to an active
-     * workspace. Actors without a workspace context keep the legacy,
-     * unscoped behaviour; rows that never received an organization id are
-     * treated as legacy data and stay reachable.
+     * workspace. Root and platform superadmin/admin can access and edit anything.
+     * Regular actors without a workspace context cannot access organization-scoped rows.
+     * Rows that never received an organization id are treated as legacy data and stay reachable.
      */
     public static function sameOrganization(array $actor, array $row): bool
     {
-        $actorOrganizationId = (int)($actor['organization_id'] ?? 0);
-        if ($actorOrganizationId <= 0) {
+        if (self::isPrivileged($actor)) {
             return true;
         }
 
@@ -78,17 +92,17 @@ final class ActorPermission
             return true;
         }
 
+        $actorOrganizationId = (int)($actor['organization_id'] ?? 0);
+        if ($actorOrganizationId <= 0) {
+            return false;
+        }
+
         return (int)$rowOrganizationId === $actorOrganizationId;
     }
 
     private static function has(array $actor, string $code): bool
     {
-        if ((bool)($actor['is_root'] ?? false)) {
-            return true;
-        }
-
-        $roles = (array)($actor['roles'] ?? []);
-        if (in_array('admin', $roles, true) || in_array('superadmin', $roles, true)) {
+        if (self::isPrivileged($actor)) {
             return true;
         }
 
