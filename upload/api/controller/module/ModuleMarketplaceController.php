@@ -63,16 +63,23 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
         if (!is_array($user) || !isset($user['user'])) {
             return false;
         }
+        $actor = $this->organizationScopedActor((array)$user['user']);
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
         if (!$this->container->has('service.authz')) {
             return false;
         }
         /** @var \Api\System\Library\Service\AuthzService $authz */
         $authz = $this->container->get('service.authz');
-        return $authz->hasAnyPermissions($user['user'], ['module.install']);
+        return $authz->hasAnyPermissions($actor, ['module.install']);
     }
 
     public function catalog(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $client = $this->client();
         $status = $client->status();
 
@@ -114,6 +121,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
 
     public function categories(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $client = $this->client();
         if (!$client->isEnabled() || $client->baseUrl() === '') {
             return $this->success('MODULE_MARKETPLACE_CATEGORIES', $this->t('module/messages.marketplace_unavailable'), ['categories' => []]);
@@ -129,6 +139,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
 
     public function module(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $fullCode = trim((string)($params['full_code'] ?? ''));
         if (!ModuleMarketplaceClient::isValidCode($fullCode)) {
             return $this->error('INVALID_PARAM', $this->t('common/messages.invalid_parameter'), 400);
@@ -154,6 +167,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
     /** List Marketplace releases newer than the installed registry version. */
     public function updates(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $pm = $this->container->get('plugin.manager');
         $mc = $this->container->get('module.config');
         $pm->discover();
@@ -298,6 +314,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
     /** Update one or multiple registered modules to their latest published Marketplace release. */
     public function update(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
         }
@@ -420,6 +439,9 @@ final class ModuleMarketplaceController extends \Api\Controller\Common\BaseContr
      */
     public function install(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('module/messages.marketplace_root_required'), 403);
         }

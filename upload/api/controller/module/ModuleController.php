@@ -42,6 +42,9 @@ final class ModuleController
 
     public function list(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         try {
             $pm = $this->container->get('plugin.manager');
             $mc = $this->container->get('module.config');
@@ -95,6 +98,9 @@ final class ModuleController
 
     public function get(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         try {
             $name = $params['name'] ?? '';
             if ($name === '') {
@@ -172,6 +178,12 @@ final class ModuleController
 
     public function install(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canInstallModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $name = trim((string)($params['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
             return $this->installUnlocked($params);
@@ -229,6 +241,12 @@ final class ModuleController
 
     public function activate(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canManageModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $name = trim((string)($params['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
             return $this->activateUnlocked($params);
@@ -294,6 +312,12 @@ final class ModuleController
 
     public function deactivate(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canManageModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $name = trim((string)($params['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
             return $this->deactivateUnlocked($params);
@@ -333,6 +357,12 @@ final class ModuleController
 
     public function uninstall(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canManageModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $name = trim((string)($params['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
             return $this->uninstallUnlocked($params);
@@ -409,6 +439,9 @@ final class ModuleController
      */
     public function purge(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $denial = $this->requireRoot();
         if ($denial !== null) { return $denial; }
         $name = trim((string)($params['name'] ?? ''));
@@ -478,6 +511,9 @@ final class ModuleController
      */
     public function bulk(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $input = $this->request()->allInput();
         $action = trim((string)($input['action'] ?? ''));
         $modules = $input['modules'] ?? [];
@@ -602,6 +638,9 @@ final class ModuleController
 
     public function config(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
         $name = $params['name'] ?? '';
         if ($name === '') {
             return JsonResponse::error('INVALID_PARAM', $this->t('common/messages.invalid_parameter', 'Invalid parameter'), 400);
@@ -665,6 +704,12 @@ final class ModuleController
 
     public function installFromUrl(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canInstallModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $input = $this->request()->allInput();
         $url = trim((string)($input['url'] ?? $params['url'] ?? ''));
         $verifySignature = filter_var($input['verify_signature'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
@@ -701,6 +746,12 @@ final class ModuleController
 
     public function installFromFile(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canInstallModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $input = $this->request()->allInput();
         $fileData = trim((string)($input['file_data'] ?? $params['file_data'] ?? ''));
         $verifySignature = filter_var($input['verify_signature'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
@@ -773,6 +824,12 @@ final class ModuleController
 
     public function updateConfig(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->canManageModules()) {
+            return JsonResponse::error('FORBIDDEN', $this->t('common/messages.forbidden', 'Forbidden'), 403);
+        }
         $input = array_replace($this->request()->allInput(), $params);
         $name = trim((string)($input['name'] ?? ''));
         if (!preg_match('/^[a-z0-9]+\.[a-z0-9][a-z0-9-]*$/', $name)) {
@@ -973,14 +1030,52 @@ final class ModuleController
         ]);
     }
 
+    private function rejectInvalidOrganizationContext(): ?JsonResponse
+    {
+        $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
+        if (!$auth || !$this->container->has('service.organization_context')) {
+            return null;
+        }
+
+        /** @var \Api\System\Library\Service\OrganizationContextService $context */
+        $context = $this->container->get('service.organization_context');
+        $resolved = $context->resolve($this->request(), (array)($auth['user'] ?? []));
+        if (($resolved['status'] ?? '') !== 'forbidden') {
+            return null;
+        }
+
+        return JsonResponse::error(
+            'ORGANIZATION_CONTEXT_NOT_FOUND',
+            $this->t('organization/messages.context_not_found', 'Organization context not found'),
+            404,
+            ['organization' => [$this->t('organization/messages.context_not_found', 'Organization context not found')]]
+        );
+    }
+
     private function user(): ?array
     {
         $auth = $this->container->has('auth_user') ? $this->container->get('auth_user') : null;
-        return $auth['user'] ?? null;
+        $user = $auth['user'] ?? null;
+        if (!is_array($user)) {
+            return null;
+        }
+        if ($this->container->has('service.organization_context')) {
+            /** @var \Api\System\Library\Service\OrganizationContextService $context */
+            $context = $this->container->get('service.organization_context');
+            $resolved = $context->resolve($this->request(), $user);
+            if (($resolved['status'] ?? '') === 'active' && is_array($resolved['organization'] ?? null)) {
+                $user['organization_id'] = (int)$resolved['organization']['id'];
+                $user['organization_public_id'] = (string)($resolved['organization']['public_id'] ?? '');
+            }
+        }
+        return $user;
     }
 
     private function canInstallModules(): bool
     {
+        if (!$this->container->has('auth_user')) {
+            return true;
+        }
         $user = $this->user();
         if (!$user) {
             return false;
@@ -999,6 +1094,9 @@ final class ModuleController
 
     private function canManageModules(): bool
     {
+        if (!$this->container->has('auth_user')) {
+            return true;
+        }
         $user = $this->user();
         if (!$user) {
             return false;
