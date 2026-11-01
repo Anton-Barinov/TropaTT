@@ -4,6 +4,11 @@ declare(strict_types=1);
 namespace Api\System\Library\Service;
 
 use Api\Model\Activity\ActivityRepository;
+use Api\System\Library\Security\ActorPermission;
+
+if (!class_exists(ActorPermission::class)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 final class ActivityService
 {
@@ -23,6 +28,21 @@ final class ActivityService
 
     public function feed(array $filters, array $actor): array
     {
+        if (!ActorPermission::isPrivileged($actor) && $this->organizationId($actor) === null) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'pagination' => [
+                        'page' => 1,
+                        'limit' => 50,
+                        'total' => 0,
+                        'pages' => 0,
+                        'has_more' => false,
+                    ],
+                ],
+            ];
+        }
+
         [$items, $total, $page, $limit, $hasMore] = $this->activity->feed(
             $filters,
             (string)($actor['public_id'] ?? ''),

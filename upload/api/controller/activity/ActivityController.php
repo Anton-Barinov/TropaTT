@@ -16,6 +16,11 @@ final class ActivityController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         // TROPATTCRM-635: even with per-channel counts the cold path stays
         // ~1s; a 20s file-cache layer absorbs repeated dashboard/API polls
@@ -47,6 +52,11 @@ final class ActivityController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         $entityType = trim((string)($params['entity_type'] ?? $this->request()->input('entity_type', '')));
         $publicId = trim((string)($params['public_id'] ?? $this->request()->input('public_id', '')));

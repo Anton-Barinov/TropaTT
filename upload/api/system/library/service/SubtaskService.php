@@ -298,7 +298,7 @@ final class SubtaskService
 
         // Permission = capability: an orphan has no parent task left to reason
         // about, so task.manage is the only sensible grant left.
-        if (ActorPermission::canManageTasks($actor)) {
+        if (ActorPermission::canManageTasks($actor) && ActorPermission::sameOrganization($actor, $subtask)) {
             return true;
         }
 
