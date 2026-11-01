@@ -15,6 +15,10 @@ final class SlaController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
@@ -31,6 +35,10 @@ final class SlaController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
@@ -57,6 +65,10 @@ final class SlaController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
@@ -76,6 +88,10 @@ final class SlaController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
@@ -103,6 +119,10 @@ final class SlaController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         /** @var SlaService $service */
@@ -120,6 +140,10 @@ final class SlaController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
@@ -176,6 +200,10 @@ final class SlaController extends BaseController
     {
         $authUser = $this->user();
         if (!$authUser) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $actor = $this->organizationScopedActor((array)($authUser['user'] ?? []));
 
         $taskId = (string)($params['public_id'] ?? '');

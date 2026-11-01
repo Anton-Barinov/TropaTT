@@ -16,6 +16,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
@@ -37,6 +41,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -68,6 +76,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
@@ -90,6 +102,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -125,6 +141,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
@@ -143,6 +163,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -165,6 +189,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
@@ -186,6 +214,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -218,6 +250,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
@@ -248,6 +284,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
@@ -266,6 +306,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -288,6 +332,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
@@ -308,6 +356,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -340,6 +392,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         /** @var TaskEstimateService $service */
@@ -360,6 +416,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
@@ -383,6 +443,10 @@ final class EstimateController extends BaseController
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $filters = $this->request()->allInput();
@@ -404,6 +468,10 @@ final class EstimateController extends BaseController
         $authUser = $this->user();
         if (!$authUser) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
         }
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
