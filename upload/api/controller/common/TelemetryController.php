@@ -16,6 +16,10 @@ final class TelemetryController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)$auth['user']);
 
         if (strlen($this->request()->rawBody) > self::MAX_REPORT_BODY_BYTES) {
             return $this->error('PAYLOAD_TOO_LARGE', $this->t('common/messages.payload_too_large', 'Payload too large'), 413);
@@ -35,7 +39,7 @@ final class TelemetryController extends BaseController
         /** @var JsonLogger $logger */
         $logger = $this->container->get('logger');
         $logger->security([
-            'actor_public_id' => (string)($auth['user']['public_id'] ?? ''),
+            'actor_public_id' => (string)($actor['public_id'] ?? ''),
             'event_type' => match ($eventType) {
                 'api_error' => 'frontend_api_error',
                 'js_error' => 'frontend_js_error',
@@ -45,6 +49,7 @@ final class TelemetryController extends BaseController
             'ip' => (string)($this->request()->server['REMOTE_ADDR'] ?? ''),
             'user_agent' => (string)($this->request()->server['HTTP_USER_AGENT'] ?? ''),
             'details' => [
+                'organization_id' => (int)($actor['organization_id'] ?? 0),
                 'route' => $this->sanitizeLogValue($input['route'] ?? '', 256, true),
                 'page_url' => $this->sanitizeLogValue($input['page_url'] ?? '', 512, true),
                 'payload' => $sanitized,
