@@ -237,7 +237,16 @@ final class OrganizationController extends BaseController
         $v->require($input, 'email', $this->t('common/messages.field_required'))->maxLen($input, 'email', 190, $this->t('organization/messages.max_190'));
         if ($v->fails() || !filter_var(trim((string)($input['email'] ?? '')), FILTER_VALIDATE_EMAIL)) return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         $result = $this->container->get('service.invitation')->createForOrganization((string)$params['public_id'], $input, $auth['user']);
-        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_create_failed'), 409);
+        if (!(bool)($result['ok'] ?? false)) {
+            $code = (string)($result['code'] ?? 'ORGANIZATION_INVITATION_FAILED');
+            $status = match ($code) {
+                'ORGANIZATION_INVITATION_FORBIDDEN' => 403,
+                'ORGANIZATION_NOT_FOUND' => 404,
+                'INVITATION_EMAIL_EXISTS' => 409,
+                default => 422,
+            };
+            return $this->error($code, $this->t('organization/messages.invitation_create_failed'), $status);
+        }
         return $this->success('ORGANIZATION_INVITATION_CREATED', $this->t('organization/messages.invitation_created'), ['invitation' => $result['invitation'], 'accept_token' => $result['accept_token']], 201);
     }
 
@@ -246,7 +255,15 @@ final class OrganizationController extends BaseController
         $auth = $this->user();
         if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         $result = $this->container->get('service.invitation')->revokeForOrganization((string)$params['public_id'], (string)$params['invitation_public_id'], $auth['user']);
-        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_revoke_failed'), 422);
+        if (!(bool)($result['ok'] ?? false)) {
+            $code = (string)($result['code'] ?? 'ORGANIZATION_INVITATION_FAILED');
+            $status = match ($code) {
+                'ORGANIZATION_INVITATION_FORBIDDEN' => 403,
+                'INVITATION_NOT_FOUND', 'ORGANIZATION_NOT_FOUND' => 404,
+                default => 422,
+            };
+            return $this->error($code, $this->t('organization/messages.invitation_revoke_failed'), $status);
+        }
         return $this->success('ORGANIZATION_INVITATION_REVOKED', $this->t('organization/messages.invitation_revoked'));
     }
 
@@ -255,7 +272,15 @@ final class OrganizationController extends BaseController
         $auth = $this->user();
         if (!$auth) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         $result = $this->container->get('service.invitation')->resendForOrganization((string)$params['public_id'], (string)$params['invitation_public_id'], $auth['user']);
-        if (!(bool)($result['ok'] ?? false)) return $this->error((string)$result['code'], $this->t('organization/messages.invitation_resend_failed'), 422);
+        if (!(bool)($result['ok'] ?? false)) {
+            $code = (string)($result['code'] ?? 'ORGANIZATION_INVITATION_FAILED');
+            $status = match ($code) {
+                'ORGANIZATION_INVITATION_FORBIDDEN' => 403,
+                'INVITATION_NOT_FOUND', 'ORGANIZATION_NOT_FOUND' => 404,
+                default => 422,
+            };
+            return $this->error($code, $this->t('organization/messages.invitation_resend_failed'), $status);
+        }
         return $this->success('ORGANIZATION_INVITATION_RESENT', $this->t('organization/messages.invitation_resent'), ['invitation' => $result['invitation'], 'accept_token' => $result['accept_token']]);
     }
 }

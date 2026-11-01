@@ -33,10 +33,20 @@ final class InvitationService
 
     public function list(array $filters, array $actor): array
     {
+        $actorIsRoot = (bool)($actor['is_root'] ?? false);
+        $orgId = null;
+        if (!$actorIsRoot) {
+            $orgId = (int)($actor['organization_id'] ?? 0);
+            if ($orgId <= 0) {
+                $orgId = -1;
+            }
+        }
+
         [$items, $total, $page, $limit] = $this->invitations->list(
             $filters,
             (int)($actor['id'] ?? 0),
-            (bool)($actor['is_root'] ?? false)
+            $actorIsRoot,
+            $orgId
         );
 
         return [
@@ -63,7 +73,7 @@ final class InvitationService
         $publicId = Ulid::generate('inv');
         $expiresAt = gmdate('Y-m-d H:i:s', time() + (86400 * max(1, min(30, (int)($input['expires_in_days'] ?? 7)))));
 
-        $this->invitations->create([
+        $payload = [
             'public_id' => $publicId,
             'email' => $email,
             'invited_by_user_id' => (int)($actor['id'] ?? 0),
@@ -71,7 +81,13 @@ final class InvitationService
             'expires_at' => $expiresAt,
             'accepted_at' => null,
             'created_at' => gmdate('Y-m-d H:i:s'),
-        ]);
+        ];
+        if (!empty($actor['organization_id']) && (int)$actor['organization_id'] > 0) {
+            $payload['organization_id'] = (int)$actor['organization_id'];
+            $payload['role_code'] = 'member';
+        }
+
+        $this->invitations->create($payload);
 
         $this->logger->audit([
             'action' => 'invitation_create',
@@ -229,6 +245,15 @@ final class InvitationService
             $this->userManagement->replaceRoles($userId, [(string)$defaultRole['public_id']]);
         }
 
+        if (!empty($invitation['organization_id'])) {
+            $orgId = (int)$invitation['organization_id'];
+            $org = $this->organizations->findById($orgId);
+            if ($org) {
+                $role = in_array((string)($invitation['role_code'] ?? 'member'), ['admin', 'member'], true) ? (string)$invitation['role_code'] : 'member';
+                $this->organizations->addOrUpdateMember((string)$org['public_id'], $userPublicId, $role, Ulid::generate('orm'), $now);
+            }
+        }
+
         $this->invitations->markAccepted((string)$invitation['public_id'], $now);
 
         $this->logger->audit([
@@ -258,6 +283,12 @@ final class InvitationService
     {
         if ((bool)($actor['is_root'] ?? false)) {
             return true;
+        }
+
+        $actorOrgId = (int)($actor['organization_id'] ?? 0);
+        $invOrgId = (int)($invitation['organization_id'] ?? 0);
+        if ($actorOrgId > 0 && $invOrgId > 0) {
+            return $actorOrgId === $invOrgId;
         }
 
         return (int)($invitation['invited_by_user_id'] ?? 0) === (int)($actor['id'] ?? 0);
