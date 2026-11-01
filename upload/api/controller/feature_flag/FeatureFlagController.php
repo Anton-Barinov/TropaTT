@@ -14,6 +14,10 @@ final class FeatureFlagController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
 
         $cache = $this->cacheApi();
         if ($cache !== null) {
@@ -42,10 +46,14 @@ final class FeatureFlagController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        $actor = $this->organizationScopedActor((array)($auth['user'] ?? []));
 
         /** @var FeatureFlagService $service */
         $service = $this->container->get('service.feature_flag');
-        $result = $service->update((string)$params['public_id'], $this->request()->allInput(), $auth['user']);
+        $result = $service->update((string)$params['public_id'], $this->request()->allInput(), $actor);
         if (!(bool)($result['ok'] ?? false)) {
             $code = (string)($result['code'] ?? 'FEATURE_FLAG_UPDATE_FAILED');
             $status = match ($code) {

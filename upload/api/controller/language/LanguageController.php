@@ -40,6 +40,10 @@ final class LanguageController extends BaseController
      */
     public function adminList(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $registry = $this->registry();
         $items = $registry->listAll();
         $default = $registry->getDefaultLocale();
@@ -56,6 +60,10 @@ final class LanguageController extends BaseController
      */
     public function adminToggle(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $input = $this->request()->allInput();
         $code = trim((string)($input['code'] ?? ''));
         if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
@@ -118,6 +126,10 @@ final class LanguageController extends BaseController
      */
     public function adminSetDefault(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $input = $this->request()->allInput();
         $code = trim((string)($input['code'] ?? ''));
         if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
@@ -147,6 +159,10 @@ final class LanguageController extends BaseController
      */
     public function adminInstall(): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $installer = $this->installer();
 
         // 1. Check for uploaded file (supports 'file' or 'package' parameter name)
@@ -187,6 +203,20 @@ final class LanguageController extends BaseController
      */
     public function adminExport(array $params = []): void
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            $status = $contextError->getStatusCode();
+            http_response_code($status);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'error' => [
+                    'code' => 'INVALID_ORGANIZATION_CONTEXT',
+                    'message' => 'Invalid organization context.',
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+            exit(0);
+        }
+
         // Route placeholders arrive as the params array (see App::run), never
         // as positional scalar arguments — the previous `string $code`
         // signature made every export answer a TypeError 500.
@@ -238,6 +268,10 @@ final class LanguageController extends BaseController
      */
     public function adminDelete(array $params = []): JsonResponse
     {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+
         $code = trim((string)($params['code'] ?? ''));
         if (!preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/', $code)) {
             return $this->adminDeleteUnlocked($params);
