@@ -24,12 +24,34 @@ final class AuditController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
-        if (!(bool)($auth['user']['is_root'] ?? false)) {
-            return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
-                'permission' => ['is_root'],
-            ]);
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
-        return null;
+        $rawUser = (array)($auth['user'] ?? []);
+        if ((bool)($rawUser['is_root'] ?? false)) {
+            return null;
+        }
+        $actor = $this->organizationScopedActor($rawUser);
+        if ((bool)($actor['is_root'] ?? false)) {
+            return null;
+        }
+        $roles = is_array($actor['roles'] ?? null) ? $actor['roles'] : [];
+        $normalizedRoles = array_values(array_unique(array_filter(array_map(
+            static function (mixed $role): string {
+                if (is_array($role)) {
+                    $role = $role['code'] ?? $role['public_id'] ?? $role['name'] ?? '';
+                }
+                return strtolower(str_replace('-', '_', trim(is_scalar($role) ? (string)$role : '')));
+            },
+            $roles
+        ), static fn(string $role): bool => $role !== '')));
+        if (array_intersect($normalizedRoles, ['super_admin', 'super_administrator', 'root']) !== []) {
+            return null;
+        }
+
+        return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403, [
+            'permission' => ['is_root'],
+        ]);
     }
 
     public function list(): \Api\System\Library\Http\JsonResponse

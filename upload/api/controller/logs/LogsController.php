@@ -8,10 +8,39 @@ use Api\System\Library\Service\LogsService;
 
 final class LogsController extends BaseController
 {
-    public function requestLogs(): \Api\System\Library\Http\JsonResponse
+    private function isRoot(): bool
     {
         $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (!$auth || !isset($auth['user'])) {
+            return false;
+        }
+        $rawUser = (array)$auth['user'];
+        if ((bool)($rawUser['is_root'] ?? false)) {
+            return true;
+        }
+        $actor = $this->organizationScopedActor($rawUser);
+        if ((bool)($actor['is_root'] ?? false)) {
+            return true;
+        }
+        $roles = is_array($actor['roles'] ?? null) ? $actor['roles'] : [];
+        $normalizedRoles = array_values(array_unique(array_filter(array_map(
+            static function (mixed $role): string {
+                if (is_array($role)) {
+                    $role = $role['code'] ?? $role['public_id'] ?? $role['name'] ?? '';
+                }
+                return strtolower(str_replace('-', '_', trim(is_scalar($role) ? (string)$role : '')));
+            },
+            $roles
+        ), static fn(string $role): bool => $role !== '')));
+        return array_intersect($normalizedRoles, ['super_admin', 'super_administrator', 'root']) !== [];
+    }
+
+    public function requestLogs(): \Api\System\Library\Http\JsonResponse
+    {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -26,8 +55,10 @@ final class LogsController extends BaseController
 
     public function securityLogs(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -42,8 +73,10 @@ final class LogsController extends BaseController
 
     public function auditLogs(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -58,8 +91,10 @@ final class LogsController extends BaseController
 
     public function frontendErrorChart(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -74,8 +109,10 @@ final class LogsController extends BaseController
 
     public function serverErrors(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -103,8 +140,10 @@ final class LogsController extends BaseController
 
     public function moduleErrors(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
@@ -135,8 +174,10 @@ final class LogsController extends BaseController
      */
     public function allErrors(): \Api\System\Library\Http\JsonResponse
     {
-        $auth = $this->user();
-        if (!$auth || !(bool)($auth['user']['is_root'] ?? false)) {
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
+        if (!$this->isRoot()) {
             return $this->error('FORBIDDEN', $this->t('common/messages.forbidden'), 403);
         }
 
