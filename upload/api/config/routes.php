@@ -1033,7 +1033,7 @@ return [
     ['methods' => ['PATCH', 'PUT', 'POST'], 'pattern' => '/api/v1/profile/preferences/set', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'setPreferences', 'auth' => true, 'authz_note' => 'self-service: own preferences'],
     ['methods' => ['POST'], 'pattern' => '/api/v1/profile/password/change', 'controller' => Api\Controller\Security\ProfileController::class, 'action' => 'changePassword', 'auth' => true, 'authz_note' => 'self-service: requires current password'],
 
-    ['methods' => ['GET'], 'pattern' => '/api/v1/modules', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage']],
+    ['methods' => ['GET'], 'pattern' => '/api/v1/modules', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'list', 'auth' => true, 'required_permissions' => ['settings.manage', 'module.install']],
     ['methods' => ['GET'], 'pattern' => '/api/v1/modules/{name}', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'get', 'auth' => true, 'required_permissions' => ['settings.manage']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/{name}/install', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'install', 'auth' => true, 'required_permissions' => ['module.install']],
     ['methods' => ['POST'], 'pattern' => '/api/v1/modules/{name}/activate', 'controller' => Api\Controller\Module\ModuleController::class, 'action' => 'activate', 'auth' => true, 'required_permissions' => ['settings.manage']],
