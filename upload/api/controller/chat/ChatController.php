@@ -7,8 +7,13 @@ use Api\System\Library\Support\AppLog;
 use Api\Controller\Common\BaseController;
 use Api\System\Library\Http\JsonResponse;
 use Api\System\Library\Module\ModuleEvents;
+use Api\System\Library\Security\ActorPermission;
 use Api\System\Library\Service\ChatService;
 use PDO;
+
+if (!class_exists(ActorPermission::class)) {
+    require_once dirname(__DIR__, 2) . '/system/library/security/ActorPermission.php';
+}
 
 final class ChatController extends BaseController
 {
@@ -239,6 +244,8 @@ final class ChatController extends BaseController
 
     public function participants(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -247,6 +254,8 @@ final class ChatController extends BaseController
 
     public function settings(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -302,6 +311,10 @@ final class ChatController extends BaseController
                 return $this->error('INVALID_USER', $this->t('chat/messages.select_active_user'), 422);
             }
 
+            if ($organizationId <= 0 && !ActorPermission::isPrivileged($user)) {
+                return $this->error('ORGANIZATION_CONTEXT_REQUIRED', $this->t('organization/messages.context_not_found', 'Organization context required'), 404);
+            }
+
             if ($organizationId > 0) {
                 $userStmt = $pdo->prepare("
                     SELECT u.id FROM users u
@@ -330,17 +343,17 @@ final class ChatController extends BaseController
             ");
             $stmt->execute(['id' => $projectId]);
             $project = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($project)) return $this->error('PROJECT_NOT_FOUND', $this->t('chat/messages.project_not_found'), 404);
+            if (!is_array($project) || !ActorPermission::sameOrganization($user, $project)) return $this->error('PROJECT_NOT_FOUND', $this->t('chat/messages.project_not_found'), 404);
             $chat = $service->ensureProjectChat($project, $user);
             if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
             return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
         }
 
         if ($type === 'team' && $teamId > 0) {
-            $stmt = $pdo->prepare("SELECT id, public_id, title, manager_user_id, created_by_user_id, member_user_ids, created_at, updated_at FROM teams WHERE id = :id");
+            $stmt = $pdo->prepare("SELECT id, public_id, organization_id, title, manager_user_id, created_by_user_id, member_user_ids, created_at, updated_at FROM teams WHERE id = :id");
             $stmt->execute(['id' => $teamId]);
             $team = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($team)) return $this->error('TEAM_NOT_FOUND', $this->t('chat/messages.team_not_found'), 404);
+            if (!is_array($team) || !ActorPermission::sameOrganization($user, $team)) return $this->error('TEAM_NOT_FOUND', $this->t('chat/messages.team_not_found'), 404);
             $chat = $service->ensureTeamChat($team, $user);
             if (!$service->assertParticipant((int)($chat['id'] ?? 0), $userId)) return $this->error('FORBIDDEN', $this->t('chat/messages.not_participant'), 403);
             return $this->success('CHAT_CREATED', $this->t('chat/messages.chat_ready'), ['public_id' => $chat['public_id'] ?? ''], status: 201);
@@ -373,8 +386,11 @@ final class ChatController extends BaseController
 
     public function messages(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         // External users: defence-in-depth type check
-        $actor = $this->user()['user'] ?? [];
+        $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         if (!empty((int)($actor['is_external'] ?? 0))) {
             $publicId = trim((string)($params['public_id'] ?? ''));
             if ($publicId === '') return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
@@ -451,6 +467,9 @@ final class ChatController extends BaseController
 
     public function sendMessage(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         // External users: defence-in-depth type check
         $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         if (!empty((int)($actor['is_external'] ?? 0))) {
@@ -635,6 +654,9 @@ final class ChatController extends BaseController
 
     private function aiRunResponse(array $params, bool $advance): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         $staffFallback = false;
@@ -665,8 +687,11 @@ final class ChatController extends BaseController
 
     public function editMessage(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         // External users (client portal): defence-in-depth type check
-        $actor = $this->user()['user'] ?? [];
+        $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         if (!empty((int)($actor['is_external'] ?? 0))) {
             return $this->externalEditMessage($params, $actor);
         }
@@ -704,8 +729,11 @@ final class ChatController extends BaseController
 
     public function deleteMessage(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         // External users (client portal): defence-in-depth type check
-        $actor = $this->user()['user'] ?? [];
+        $actor = $this->organizationScopedActor($this->user()['user'] ?? []);
         if (!empty((int)($actor['is_external'] ?? 0))) {
             return $this->externalDeleteMessage($params, $actor);
         }
@@ -793,6 +821,9 @@ final class ChatController extends BaseController
 
     public function messageHistory(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -829,6 +860,9 @@ final class ChatController extends BaseController
 
     public function uploadAttachment(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return $this->error('NOT_FOUND', $this->t('chat/messages.chat_not_found'), 404);
 
@@ -897,6 +931,9 @@ final class ChatController extends BaseController
 
     public function downloadAttachment(array $params = []): array
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return ['error' => 'FILE_NOT_FOUND'];
+
         $chat = $this->chatForCurrentUser((string)($params['public_id'] ?? ''));
         if (!$chat) return ['error' => 'FILE_NOT_FOUND'];
         $pdo = $this->container->get('db.pdo');
@@ -937,6 +974,9 @@ final class ChatController extends BaseController
 
     public function markRead(array $params = []): JsonResponse
     {
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
         // External users: defence-in-depth type check
         $actor = $this->user()['user'] ?? [];
         if (!empty((int)($actor['is_external'] ?? 0))) {
@@ -1005,7 +1045,10 @@ final class ChatController extends BaseController
 
     public function archive(array $params): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
+        $user = $this->organizationScopedActor($this->user()['user'] ?? []);
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
@@ -1047,7 +1090,10 @@ final class ChatController extends BaseController
 
     public function restore(array $params): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
+        $user = $this->organizationScopedActor($this->user()['user'] ?? []);
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
@@ -1165,13 +1211,13 @@ final class ChatController extends BaseController
             $service = $this->container->get('service.chat');
             $chat = $service->findProjectClientChatByPublicId($publicId);
             if ($chat && !empty($chat['project_public_id'])) {
-                $organizationId = (int)($this->organizationScopedActor($actor)['organization_id'] ?? 0);
-                if ($organizationId > 0 && (int)($chat['organization_id'] ?? 0) !== $organizationId) {
+                $scopedActor = $this->organizationScopedActor($actor);
+                if (!ActorPermission::sameOrganization($scopedActor, $chat)) {
                     return null;
                 }
                 /** @var \Api\System\Library\Service\ProjectService $projectService */
                 $projectService = $this->container->get('service.project');
-                if ($projectService->get((string)$chat['project_public_id'], $actor)) {
+                if ($projectService->get((string)$chat['project_public_id'], $scopedActor)) {
                     return $chat;
                 }
             }
@@ -1207,6 +1253,10 @@ final class ChatController extends BaseController
         $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!is_array($row)) {
+            return null;
+        }
+
+        if (!ActorPermission::sameOrganization($actor, $row)) {
             return null;
         }
 
@@ -1265,7 +1315,15 @@ final class ChatController extends BaseController
         if ($organizationId > 0) $params['organization_id'] = $organizationId;
         $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return is_array($row) ? $row : null;
+        if (!is_array($row)) {
+            return null;
+        }
+
+        if (!ActorPermission::sameOrganization($actor, $row)) {
+            return null;
+        }
+
+        return $row;
     }
 
     /**
@@ -1376,6 +1434,7 @@ final class ChatController extends BaseController
 
     private function storeAttachment(string $messagePublicId, array $raw): array
     {
+        $organizationId = $this->organizationId();
         $publicId = 'fil_' . bin2hex(random_bytes(8));
         $name = $this->sanitizeFileName((string)($raw['name'] ?? 'file.bin'));
         $tmp = (string)($raw['tmp_name'] ?? '');
@@ -1399,18 +1458,36 @@ final class ChatController extends BaseController
         }
 
         try {
-            $this->container->get('db.pdo')->prepare("
-                INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
-                VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
-            ")->execute([
-                'pid' => $publicId,
-                'entity_pid' => $messagePublicId,
-                'uid' => $this->currentUserId(),
-                'name' => $name,
-                'path' => $path,
-                'mime' => $mime,
-                'size' => $size,
-            ]);
+            $pdo = $this->container->get('db.pdo');
+            $hasOrg = $this->tableHasColumn($pdo, 'files', 'organization_id');
+            if ($hasOrg && $organizationId > 0) {
+                $pdo->prepare("
+                    INSERT INTO files (public_id, organization_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
+                    VALUES (:pid, :org_id, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
+                ")->execute([
+                    'pid' => $publicId,
+                    'org_id' => $organizationId,
+                    'entity_pid' => $messagePublicId,
+                    'uid' => $this->currentUserId(),
+                    'name' => $name,
+                    'path' => $path,
+                    'mime' => $mime,
+                    'size' => $size,
+                ]);
+            } else {
+                $pdo->prepare("
+                    INSERT INTO files (public_id, entity_type, entity_public_id, uploader_user_id, original_name, storage_path, mime_type, size_bytes, is_deleted, created_at)
+                    VALUES (:pid, 'chat_message', :entity_pid, :uid, :name, :path, :mime, :size, 0, NOW())
+                ")->execute([
+                    'pid' => $publicId,
+                    'entity_pid' => $messagePublicId,
+                    'uid' => $this->currentUserId(),
+                    'name' => $name,
+                    'path' => $path,
+                    'mime' => $mime,
+                    'size' => $size,
+                ]);
+            }
         } catch (\Throwable $recordFailure) {
             // The bytes were already moved: never leave an unreferenced file on disk.
             if (is_file($path)) @unlink($path);
@@ -1693,7 +1770,10 @@ final class ChatController extends BaseController
      */
     public function ensureClientChat(array $params): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
+        $user = $this->organizationScopedActor($this->user()['user'] ?? []);
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
@@ -1723,7 +1803,10 @@ final class ChatController extends BaseController
      */
     public function addClientChatParticipant(array $params): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
+        $user = $this->organizationScopedActor($this->user()['user'] ?? []);
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 
@@ -1793,7 +1876,10 @@ final class ChatController extends BaseController
      */
     public function removeClientChatParticipant(array $params): JsonResponse
     {
-        $user = $this->user()['user'] ?? [];
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) return $contextError;
+
+        $user = $this->organizationScopedActor($this->user()['user'] ?? []);
         $userId = (int)($user['id'] ?? 0);
         if ($userId <= 0) return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
 

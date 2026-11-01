@@ -2314,9 +2314,25 @@ final class KnowledgeRepository
     /** Add the active workspace boundary before ACL evaluation. */
     private function organizationScopeSql(string $alias, ?array $actor, array &$params): string
     {
-        if (is_array($actor) && array_key_exists('organization_id', $actor) && (int)$actor['organization_id'] <= 0) {
-            return '0=1';
+        if (!class_exists(\Api\System\Library\Security\ActorPermission::class)) {
+            require_once dirname(__DIR__, 2) . '/system/library/security/ActorPermission.php';
         }
+
+        if (is_array($actor)) {
+            if (\Api\System\Library\Security\ActorPermission::isPrivileged($actor)) {
+                $organizationId = (int)($actor['organization_id'] ?? 0);
+                if ($organizationId <= 0 || !$this->columnExists('knowledge_spaces', 'organization_id')) {
+                    return '1=1';
+                }
+                $params['knowledge_organization_id'] = $organizationId;
+                return $alias . '.organization_id = :knowledge_organization_id';
+            }
+
+            if (array_key_exists('organization_id', $actor) && (int)$actor['organization_id'] <= 0) {
+                return '0=1';
+            }
+        }
+
         $organizationId = (int)($actor['organization_id'] ?? 0);
         if ($organizationId <= 0 || !$this->columnExists('knowledge_spaces', 'organization_id')) {
             return '1=1';
