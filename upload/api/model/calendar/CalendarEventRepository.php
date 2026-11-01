@@ -147,14 +147,19 @@ final class CalendarEventRepository
     /** @param list<int> $userIds */
     private function hasPublicBookingOverlap(int $organizationId, array $userIds, string $startsAt, string $endsAt, ?int $excludeEventId = null): bool
     {
-        $placeholders = [];
+        $ownerPlaceholders = [];
+        $attendeePlaceholders = [];
         $params = [':org_id' => $organizationId, ':end_at' => $endsAt];
         foreach ($userIds as $index => $userId) {
-            $key = ':protected_user_' . $index;
-            $placeholders[] = $key;
-            $params[$key] = $userId;
+            $ownerKey = ':owner_user_' . $index;
+            $attendeeKey = ':att_user_' . $index;
+            $ownerPlaceholders[] = $ownerKey;
+            $attendeePlaceholders[] = $attendeeKey;
+            $params[$ownerKey] = $userId;
+            $params[$attendeeKey] = $userId;
         }
-        $users = implode(',', $placeholders);
+        $ownerUsers = implode(',', $ownerPlaceholders);
+        $attendeeUsers = implode(',', $attendeePlaceholders);
         // Booking rows snapshot their buffer at booking time. Query a 4-hour
         // lookback (the configuration cap), then apply the padded interval in
         // PHP so SQLite and MySQL share identical date semantics.
@@ -167,7 +172,7 @@ final class CalendarEventRepository
         // Reserve the maximum supported padding until snapshots can be read.
         $snapshotSelect = $snapshotState === true ? 'COALESCE(s.booking_buffer_minutes, 0)' : '240';
         $snapshotJoin = $snapshotState === true ? ' LEFT JOIN crm_public_form_submissions s ON s.event_public_id = e.public_id AND s.organization_id = e.organization_id' : '';
-        $sql = "SELECT e.id, e.starts_at, e.ends_at, $snapshotSelect AS buffer_minutes FROM calendar_events e$snapshotJoin WHERE e.organization_id = :org_id AND e.source_type = 'public_form_booking' AND e.starts_at < :end_at AND e.ends_at > :lookback AND (e.owner_user_id IN ($users) OR EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.event_id = e.id AND a.user_id IN ($users)))";
+        $sql = "SELECT e.id, e.starts_at, e.ends_at, $snapshotSelect AS buffer_minutes FROM calendar_events e$snapshotJoin WHERE e.organization_id = :org_id AND e.source_type = 'public_form_booking' AND e.starts_at < :end_at AND e.ends_at > :lookback AND (e.owner_user_id IN ($ownerUsers) OR EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.event_id = e.id AND a.user_id IN ($attendeeUsers)))";
         if ($excludeEventId !== null) { $sql .= ' AND e.id <> :exclude_id'; $params[':exclude_id'] = $excludeEventId; }
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
