@@ -52,9 +52,17 @@ window.CRM.stickyNotes = (function () {
     return api.request(route, opts || {});
   }
 
+  function canLoadDashboardWidget() {
+    var api = getApi();
+    var config = window.CRM && window.CRM.dashboardWidgetsConfig;
+    if (!api || !config || config.loaded !== true || !Array.isArray(config.active)) return false;
+    if (typeof api.hasPermission === 'function' && !api.hasPermission('task.manage')) return false;
+    return config.active.indexOf('sticky_notes') !== -1;
+  }
+
   function loadNotes() {
     var list = document.getElementById('stickyNotesList');
-    if (!list) return;
+    if (!list || !canLoadDashboardWidget()) return;
     list.innerHTML = '<div class="col-12 text-muted small">' + esc(t('dashboard.sticky_notes_loading', 'Загрузка заметок...')) + '</div>';
 
     req('api/v1/sticky-notes', { query: { limit: 50 } })
@@ -369,11 +377,15 @@ window.CRM.stickyNotes = (function () {
     injectDragStyles();
     if (document.body.getAttribute('data-page') !== 'dashboard') return;
     waitForApi(function () {
-      loadNotes();
-            var addBtn = document.getElementById('stickyNoteAddBtn');
+      var addBtn = document.getElementById('stickyNoteAddBtn');
       if (addBtn) addBtn.addEventListener('click', openCreateModal);
     });
   }
+
+  document.addEventListener('crm:page-data-ready', function (event) {
+    var detail = event && event.detail ? event.detail : {};
+    if (detail.route === 'dashboard' && canLoadDashboardWidget()) loadNotes();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

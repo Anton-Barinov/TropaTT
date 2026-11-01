@@ -5648,10 +5648,14 @@ window.CRM.pageApiBindings = (function () {
 
   function dashWidgetsFromEnvelope(envelope) {
     var data = envelope && envelope.data ? envelope.data : {};
-    var active = Array.isArray(data.active) ? data.active.slice() : [];
+    var hasActiveList = Array.isArray(data.active);
+    var active = hasActiveList ? data.active.slice() : [];
     var catalog = Array.isArray(data.catalog) ? data.catalog : [];
+    var loaded = Boolean(envelope && envelope.success === true
+      && (hasActiveList || Array.isArray(data.widgets))
+      && (Array.isArray(data.catalog) || Array.isArray(data.widgets)));
     var map = {};
-    if (!active.length && Array.isArray(data.widgets)) {
+    if (!hasActiveList && Array.isArray(data.widgets)) {
       data.widgets.forEach(function (widget) {
         if (widget && widget.key && widget.enabled !== false && map[widget.key] !== true) {
           active.push(widget.key);
@@ -5661,15 +5665,22 @@ window.CRM.pageApiBindings = (function () {
     active.forEach(function (key) { if (key) map[key] = true; });
     catalog.forEach(function (widget) {
       if (!widget || !widget.key) return;
-      if (!(widget.key in map)) map[widget.key] = widget.default_enabled === true;
+      map[widget.key] = active.indexOf(widget.key) !== -1;
     });
-    window.CRM.dashboardWidgetsConfig = { active: active, catalog: catalog, map: map };
+    // The server omits catalog entries the actor is not allowed to use. Treat
+    // those keys as inactive too; otherwise `undefined !== false` in a loader
+    // can trigger a forbidden background request for a hidden widget.
+    document.querySelectorAll('[data-dashboard-widget]').forEach(function (node) {
+      var key = node.getAttribute('data-dashboard-widget');
+      if (key && !(key in map)) map[key] = false;
+    });
+    window.CRM.dashboardWidgetsConfig = { active: active, catalog: catalog, map: map, loaded: loaded };
     return map;
   }
 
   function applyDashboardWidgetVisibility(map) {
     var config = window.CRM.dashboardWidgetsConfig;
-    var activeList = config && Array.isArray(config.active) && config.active.length ? config.active : null;
+    var activeList = config && config.loaded === true && Array.isArray(config.active) ? config.active : null;
     var grid = document.querySelector('[data-dashboard-grid]');
     var pool = document.getElementById('dashboardWidgetPool');
     var nodes = {};
@@ -5677,7 +5688,8 @@ window.CRM.pageApiBindings = (function () {
       nodes[node.getAttribute('data-dashboard-widget')] = node;
     });
 
-    if (activeList && activeList.length) {
+    if (activeList !== null) {
+      if (grid) grid.classList.add('crm-dashboard-ready');
       activeList.forEach(function (key) {
         var node = nodes[key];
         if (!node) return;
@@ -5694,8 +5706,8 @@ window.CRM.pageApiBindings = (function () {
     } else {
       Object.keys(nodes).forEach(function (key) {
         var node = nodes[key];
-        node.classList.remove('d-none');
-        applyWidgetSize(node);
+        node.classList.add('d-none');
+        if (pool && node.parentNode !== pool) pool.appendChild(node);
       });
     }
   }
@@ -6023,7 +6035,20 @@ window.CRM.pageApiBindings = (function () {
 
     var widgetsEnvelope = await tryRequest('api/v1/dashboard/widgets', { silent: true });
     var dashboardWidgetConfig = dashWidgetsFromEnvelope(widgetsEnvelope);
+    var dashboardWidgetState = window.CRM.dashboardWidgetsConfig || {};
     applyDashboardWidgetVisibility(dashboardWidgetConfig);
+    document.querySelectorAll('[data-open-modal="createTaskModal"]').forEach(function (node) {
+      node.classList.toggle('d-none', !canManageTasks);
+      node.disabled = !canManageTasks;
+    });
+    document.querySelectorAll('[data-open-modal="createProjectModal"]').forEach(function (node) {
+      node.classList.toggle('d-none', !canManageProjects);
+      node.disabled = !canManageProjects;
+    });
+    var dashboardBuilderToggle = document.querySelector('[data-dashboard-builder-toggle]');
+    if (dashboardBuilderToggle) {
+      dashboardBuilderToggle.classList.toggle('d-none', !dashboardWidgetState.loaded || !dashboardWidgetState.catalog.length);
+    }
     bindDashboardWidgetSettings();
     initDashboardAutoRefresh();
 
@@ -9807,7 +9832,10 @@ window.CRM.pageApiBindings = (function () {
 
     try {
       var notificationResponses = await Promise.all([
-        tryRequest('api/v1/notifications', { query: { limit: 7 } }),
+        // The top-bar popover is an optional self-service widget. Older installs
+        // may still enforce a broader permission on this endpoint; a background
+        // 401/403 must not surface as a global toast on every protected page.
+        tryRequest('api/v1/notifications', { query: { limit: 7 }, silent: true }),
         tryRequest('api/v1/notifications/counters', { silent: true })
       ]);
       var envelope = notificationResponses[0];
@@ -9815,10 +9843,14 @@ window.CRM.pageApiBindings = (function () {
       var counters = countersEnvelope && countersEnvelope.data && countersEnvelope.data.counters;
       var countersUnread = Number(counters && counters.unread);
 
-      items = mapItems(envelope);
-      unread = Number.isFinite(countersUnread)
-        ? Math.max(0, countersUnread)
-        : items.filter(function (item) { return !item.is_read; }).length;
+      if (!envelope || envelope.success === false) {
+        hasError = true;
+      } else {
+        items = mapItems(envelope);
+        unread = Number.isFinite(countersUnread)
+          ? Math.max(0, countersUnread)
+          : items.filter(function (item) { return !item.is_read; }).length;
+      }
     } catch (error) {
       hasError = true;
     }
