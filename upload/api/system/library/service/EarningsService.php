@@ -6,7 +6,12 @@ namespace Api\System\Library\Service;
 use Api\Model\Rate\RateCardRepository;
 use Api\Model\Worklog\WorklogRepository;
 use Api\System\Library\Database\Builder\QueryBuilder;
+use Api\System\Library\Security\ActorPermission;
 use PDO;
+
+if (!class_exists(ActorPermission::class, false)) {
+    require_once __DIR__ . '/../security/ActorPermission.php';
+}
 
 /**
  * Self-scoped earnings queries (TZ 7.1-7.2).
@@ -38,7 +43,7 @@ final class EarningsService
         }
 
         // Per-day aggregate with snapshot rates (TZ 7.1)
-        $rows = (new QueryBuilder($this->pdo))
+        $qb = (new QueryBuilder($this->pdo))
             ->from('work_logs w')
             ->leftJoin('tasks t', 't.id', '=', 'w.task_id')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
@@ -56,8 +61,16 @@ final class EarningsService
             ])
             ->where('w.user_id', '=', $userId)
             ->where('w.logged_at', '>=', $from)
-            ->where('w.logged_at', '<=', $to . ' 23:59:59')
-            ->groupBy(['DATE(w.logged_at)', 'w.currency_code', 't.id', 'p.id'])
+            ->where('w.logged_at', '<=', $to . ' 23:59:59');
+
+        $orgId = (int)($actor['organization_id'] ?? 0);
+        if ($orgId > 0) {
+            $qb->where('t.organization_id', '=', $orgId);
+        } elseif (!ActorPermission::isPrivileged($actor)) {
+            $qb->whereRaw('0 = 1');
+        }
+
+        $rows = $qb->groupBy(['DATE(w.logged_at)', 'w.currency_code', 't.id', 'p.id'])
             ->orderBy('day', 'DESC')
             ->orderBy('p.title', 'ASC')
             ->get();

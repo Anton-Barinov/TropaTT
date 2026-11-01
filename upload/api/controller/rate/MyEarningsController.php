@@ -22,6 +22,11 @@ final class MyEarningsController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         // TZ 7.1 / 8.1: internal users need view_own_payout (or view_cost, which
         // implies own payout per FinancialFieldPolicy); external executors are
@@ -53,6 +58,11 @@ final class MyEarningsController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        $contextError = $this->rejectInvalidOrganizationContext();
+        if ($contextError !== null) {
+            return $contextError;
+        }
+        $auth['user'] = $this->organizationScopedActor((array)$auth['user']);
 
         // L-8: the boolean indicator itself must be gated by payout permission;
         // a user without finance.rate.view_own_payout must never learn whether
