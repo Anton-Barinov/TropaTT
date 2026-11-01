@@ -19,6 +19,9 @@ final class TwoFactorController extends BaseController
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
         }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
+        }
 
         /** @var TwoFactorService $service */
         $service = $this->container->get('service.two_factor');
@@ -35,6 +38,9 @@ final class TwoFactorController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();
@@ -74,6 +80,9 @@ final class TwoFactorController extends BaseController
         $auth = $this->user();
         if (!$auth) {
             return $this->error('UNAUTHORIZED', $this->t('common/messages.unauthorized'), 401);
+        }
+        if (($contextError = $this->rejectInvalidOrganizationContext()) !== null) {
+            return $contextError;
         }
 
         $input = $this->request()->allInput();

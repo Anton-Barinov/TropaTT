@@ -24,6 +24,9 @@ final class AvatarController extends BaseController
         if (!$this->user()) {
             return ['error' => 'UNAUTHORIZED'];
         }
+        if ($this->rejectInvalidOrganizationContext() !== null) {
+            return ['error' => 'FORBIDDEN'];
+        }
 
         /** @var UserProfileService $service */
         $service = $this->container->get('service.user_profile');
