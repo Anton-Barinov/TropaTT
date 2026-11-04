@@ -630,10 +630,11 @@ final class WorklogService
 
     private function isWorklogOnClosedAllowed(array $actor): bool
     {
-        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+        if (!empty($actor['is_root'])) {
             return true;
         }
-        if (ActorPermission::canManageTasks($actor)) {
+        $roles = (array)($actor['roles'] ?? []);
+        if (in_array('super_admin', $roles, true)) {
             return true;
         }
 
