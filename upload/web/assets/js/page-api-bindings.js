@@ -29466,6 +29466,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       .catch(function () { notify(tp('counterparty_detail.contact_delete_fail', 'Failed to delete contact'), 'error'); });
   };
 
+  function resolveCounterpartyRequisiteType(cp) {
+    if (!cp) return 'organization';
+    var inn = String(cp.tax_inn || '').replace(/\D+/g, '');
+    if (inn.length === 12) return 'sole_proprietor';
+    if (inn.length === 10) return 'organization';
+    if (cp.tax_ogrnip && !cp.tax_ogrn) return 'sole_proprietor';
+    if (cp.counterparty_type === 'sole_proprietor') return 'sole_proprietor';
+    return cp.counterparty_type || 'organization';
+  }
+
   function setupRequisitesEditModal(cp, cpPublicId) {
     var btn = document.getElementById('counterpartyRequisitesEditBtn');
     var modalNode = document.getElementById('counterpartyRequisitesEditModal');
@@ -29477,8 +29487,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     btn.onclick = function () {
       fillFormFields(form, cp, cpPublicId, ['public_id', 'legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal', 'address_actual']);
-      toggleRequisiteTypeGroups(form, cp.counterparty_type);
-      toggleRequisiteLocaleFields();
+      var effectiveType = resolveCounterpartyRequisiteType(cp);
+      toggleRequisiteTypeGroups(form, effectiveType);
+      toggleRequisiteLocaleFields(effectiveType);
       modal.show();
     };
     if (form.dataset.bound !== '1') {
@@ -29486,6 +29497,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         var payload = extractFormPayload(form, ['legal_name', 'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name', 'address_legal', 'address_postal', 'address_actual']);
+        var innDigits = String(payload.tax_inn || '').replace(/\D+/g, '');
+        if (innDigits.length === 12) {
+          payload.tax_ogrn = null;
+          payload.tax_kpp = null;
+        } else if (innDigits.length === 10) {
+          payload.tax_ogrnip = null;
+        }
         try {
           await request('api/v1/counterparties/' + encodeURIComponent(cpPublicId), { method: 'PATCH', body: payload });
           notify(tp('counterparty_detail.requisites_updated', 'Requisites updated'));
@@ -29499,7 +29517,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     }
   }
 
-  function toggleRequisiteLocaleFields() {
+  function toggleRequisiteLocaleFields(reqType) {
     var currentLocale = document.documentElement.lang || 'ru-ru';
     var isRu = String(currentLocale).indexOf('ru') === 0;
     var form = document.getElementById('counterpartyRequisitesEditForm');
@@ -29512,8 +29530,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       el.style.display = isRu ? 'none' : '';
     });
 
-    if (isRu && window._counterpartyRequisitesData && window._counterpartyRequisitesData.cp) {
-      toggleRequisiteTypeGroups(form, window._counterpartyRequisitesData.cp.counterparty_type);
+    if (isRu) {
+      var t = reqType || (window._counterpartyRequisitesData && resolveCounterpartyRequisiteType(window._counterpartyRequisitesData.cp)) || 'organization';
+      toggleRequisiteTypeGroups(form, t);
     }
   }
 
@@ -29528,6 +29547,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
   function setupDaDataInnAutocomplete() {
     var innInput = document.getElementById('requisitesInnInput');
     var suggestionsBox = document.getElementById('dadataSuggestions');
+    var form = document.getElementById('counterpartyRequisitesEditForm');
     if (!innInput || !suggestionsBox) return;
 
     var currentLocale = document.documentElement.lang || 'ru-ru';
@@ -29537,6 +29557,14 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     innInput.addEventListener('input', function () {
       clearTimeout(debounceTimer);
       var query = String(innInput.value || '').trim();
+      var digits = query.replace(/\D+/g, '');
+      if (form) {
+        if (digits.length === 12) {
+          toggleRequisiteTypeGroups(form, 'sole_proprietor');
+        } else if (digits.length === 10) {
+          toggleRequisiteTypeGroups(form, 'organization');
+        }
+      }
       if (query.length < 4) { suggestionsBox.style.display = 'none'; return; }
       debounceTimer = setTimeout(function () { fetchDaDataSuggestions(query); }, 400);
     });
@@ -29579,33 +29607,47 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     function fillDaDataResult(suggestion) {
       if (!suggestion || !suggestion.data) return;
       var data = suggestion.data;
-      var form = document.getElementById('counterpartyRequisitesEditForm');
-      if (!form) return;
+      var f = document.getElementById('counterpartyRequisitesEditForm');
+      if (!f) return;
 
-      var innInput2 = form.querySelector('[name="tax_inn"]');
-      if (innInput2 && !innInput2.value) innInput2.value = String(data.inn || '');
+      var innVal = String(data.inn || '').replace(/\D+/g, '');
+      var isSP = (data.type === 'INDIVIDUAL') || (innVal.length === 12);
 
-      var kppInput = form.querySelector('[name="tax_kpp"]');
-      if (kppInput && !kppInput.value) kppInput.value = String(data.kpp || '');
+      var innInput2 = f.querySelector('[name="tax_inn"]');
+      if (innInput2) innInput2.value = innVal || String(data.inn || '');
 
-      var ogrnInput = form.querySelector('[name="tax_ogrn"]');
-      if (ogrnInput && !ogrnInput.value) ogrnInput.value = String(data.ogrn || '');
-
-      var ogrnipInput = form.querySelector('[name="tax_ogrnip"]');
-      if (ogrnipInput && !ogrnipInput.value) ogrnipInput.value = String(data.ogrnip || '');
-
-      var nameInput = form.querySelector('[name="legal_name"]');
-      if (nameInput && !nameInput.value) {
-        var fullName = (data.name && data.name.full_with_opf) || (data.name && data.name.short_with_opf) || '';
-        if (!fullName && data.name && data.name.full) fullName = data.name.full;
+      var nameInput = f.querySelector('[name="legal_name"]');
+      if (nameInput) {
+        var fullName = (data.name && (data.name.full_with_opf || data.name.short_with_opf || data.name.full)) || suggestion.value || '';
         nameInput.value = fullName;
       }
 
-      var addressInput = form.querySelector('[name="address_legal"]');
-      if (addressInput && !addressInput.value) addressInput.value = String(data.address && data.address.value || '');
+      var addressInput = f.querySelector('[name="address_legal"]');
+      if (addressInput) {
+        var addr = (data.address && (data.address.value || (data.address.data && data.address.data.source))) || '';
+        addressInput.value = addr;
+      }
 
-      var cpType = guessCounterpartyTypeFromInn(String(data.inn || ''));
-      if (cpType) toggleRequisiteTypeGroups(form, cpType);
+      var ogrnInput = f.querySelector('[name="tax_ogrn"]');
+      var ogrnipInput = f.querySelector('[name="tax_ogrnip"]');
+      var kppInput = f.querySelector('[name="tax_kpp"]');
+
+      if (isSP) {
+        // Individual entrepreneur / sole proprietor (ИП):
+        // DaData returns the 15-digit registration in data.ogrn (no data.ogrnip property).
+        var ogrnipVal = String(data.ogrnip || data.ogrn || '').replace(/\D+/g, '');
+        if (ogrnipInput) ogrnipInput.value = ogrnipVal;
+        if (ogrnInput) ogrnInput.value = '';
+        if (kppInput) kppInput.value = '';
+        toggleRequisiteTypeGroups(f, 'sole_proprietor');
+      } else {
+        // Legal entity (ООО / АО / etc.):
+        var ogrnVal = String(data.ogrn || '').replace(/\D+/g, '');
+        if (ogrnInput) ogrnInput.value = ogrnVal;
+        if (ogrnipInput) ogrnipInput.value = '';
+        if (kppInput) kppInput.value = String(data.kpp || '');
+        toggleRequisiteTypeGroups(f, 'organization');
+      }
     }
 
     function guessCounterpartyTypeFromInn(inn) {
@@ -29858,15 +29900,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
   function renderRequisites(cp) {
     var requisitesNode = document.getElementById('counterpartyDetailRequisites');
     if (!requisitesNode) return;
-    var isOrg = String(cp.counterparty_type || '').indexOf('organization') >= 0 || String(cp.counterparty_type || '').indexOf('legal_entity') >= 0;
-    var isSP = String(cp.counterparty_type || '') === 'sole_proprietor';
 
     var reqFields = [
       [tp('counterparty_detail.req_legal_name', 'Legal name'), cp.legal_name],
       [tp('counterparty_detail.req_tax_inn', 'Tax ID'), cp.tax_inn],
       [tp('counterparty_detail.req_tax_kpp', 'Tax registration code'), cp.tax_kpp],
-      isOrg ? [tp('counterparty_detail.req_ogrn', 'Registration number'), cp.tax_ogrn] : null,
-      isSP ? [tp('counterparty_detail.req_ogrnip', 'Sole proprietor registration number'), cp.tax_ogrnip] : null,
+      hasDisplayValue(cp.tax_ogrn) ? [tp('counterparty_detail.req_ogrn', 'Registration number'), cp.tax_ogrn] : null,
+      hasDisplayValue(cp.tax_ogrnip) ? [tp('counterparty_detail.req_ogrnip', 'Sole proprietor registration number'), cp.tax_ogrnip] : null,
       [tp('counterparty_detail.req_bank_account', 'Account no.'), cp.bank_account],
       [tp('counterparty_detail.req_bank_bik', 'SWIFT / BIC'), cp.bank_bik],
       [tp('counterparty_detail.req_corr_account', 'Correspondent account / IBAN'), cp.bank_corr_account],

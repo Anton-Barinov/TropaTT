@@ -125,6 +125,7 @@ final class MigrationManager
             new InstallGranularPermissionsMigration(),
             new IdempotencyClaimHardeningMigration(),
             new StatusProgressPercentMigration(),
+            new CounterpartyRequisitesExpansionMigration(),
         ];
     }
 
