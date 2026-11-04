@@ -27272,6 +27272,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         label: tp('admin_settings.setting_allow_assignee_edit_identity', 'Allow assignee to edit task title/description'),
         hint: tp('admin_settings.tasks_allow_assignee_edit_identity_hint', 'Позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'),
         default: false
+      },
+      'tasks.allow_worklog_on_closed': {
+        type: 'boolean',
+        label: tp('admin_settings.setting_allow_worklog_on_closed', 'Time tracking on closed tasks'),
+        hint: tp('admin_settings.tasks_allow_worklog_on_closed_hint', 'Позволяет участникам проекта списывать время в закрытые или выполненные задачи.'),
+        default: false
       }
     };
 
@@ -27285,7 +27291,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       time_rounding_minutes: tp('admin_settings.setting_time_rounding', 'Time rounding (minutes, 0 = off)'),
       'insights.weekly_capacity_minutes': tp('admin_settings.setting_weekly_capacity', 'Dashboard: weekly capacity per person (minutes, 300–6000)'),
       'tasks.worklog_policy': tp('admin_settings.setting_worklog_policy', 'Task time tracking policy'),
-      'tasks.allow_assignee_edit_identity': tp('admin_settings.setting_allow_assignee_edit_identity', 'Allow assignee to edit task title/description')
+      'tasks.allow_assignee_edit_identity': tp('admin_settings.setting_allow_assignee_edit_identity', 'Allow assignee to edit task title/description'),
+      'tasks.allow_worklog_on_closed': tp('admin_settings.setting_allow_worklog_on_closed', 'Time tracking on closed tasks')
     };
     var retentionLabels = {
       request_logs_days: tp('admin_settings.retention_request_logs', 'Request logs'),
@@ -27824,6 +27831,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         }
         if (!settingsItems.some(function (item) { return String(item.name || '') === 'tasks.allow_assignee_edit_identity'; })) {
           settingsItems.push({ scope: 'system', name: 'tasks.allow_assignee_edit_identity', value: false });
+        }
+        if (!settingsItems.some(function (item) { return String(item.name || '') === 'tasks.allow_worklog_on_closed'; })) {
+          settingsItems.push({ scope: 'system', name: 'tasks.allow_worklog_on_closed', value: false });
         }
         currentSettingsMap = {};
         settingsItems.forEach(function (item) {
@@ -28466,6 +28476,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var taskSaveBtn = document.getElementById('adminTaskSettingsSaveBtn');
       var worklogPolicySelect = document.getElementById('tasksWorklogPolicy');
       var allowAssigneeEditToggle = document.getElementById('tasksAllowAssigneeEditIdentity');
+      var allowWorklogOnClosedToggle = document.getElementById('tasksAllowWorklogOnClosed');
 
       loadTaskSettings = async function () {
         var wpEnv = await tryRequest('api/v1/settings/tasks.worklog_policy', { query: { scope: 'system' }, silent: true });
@@ -28476,6 +28487,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         if (aeEnv && aeEnv.success && aeEnv.data && aeEnv.data.setting && allowAssigneeEditToggle) {
           allowAssigneeEditToggle.checked = Boolean(aeEnv.data.setting.value);
         }
+        var wcEnv = await tryRequest('api/v1/settings/tasks.allow_worklog_on_closed', { query: { scope: 'system' }, silent: true });
+        if (wcEnv && wcEnv.success && wcEnv.data && wcEnv.data.setting && allowWorklogOnClosedToggle) {
+          allowWorklogOnClosedToggle.checked = Boolean(wcEnv.data.setting.value);
+        }
       };
 
       if (taskSaveBtn && taskSaveBtn.dataset.bound !== '1') {
@@ -28484,9 +28499,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           try {
             var policy = String(worklogPolicySelect ? worklogPolicySelect.value : 'all_project_members');
             var allowEdit = Boolean(allowAssigneeEditToggle && allowAssigneeEditToggle.checked);
+            var allowWorklogClosed = Boolean(allowWorklogOnClosedToggle && allowWorklogOnClosedToggle.checked);
             var idemKey = window.CRM.api.createIdempotencyKey('task-settings');
             await request('api/v1/settings/tasks.worklog_policy', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: policy } });
             await request('api/v1/settings/tasks.allow_assignee_edit_identity', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: allowEdit } });
+            await request('api/v1/settings/tasks.allow_worklog_on_closed', { method: 'PATCH', headers: { 'X-Idempotency-Key': idemKey }, body: { scope: 'system', value: allowWorklogClosed } });
             notify(tp('admin_settings.tasks_saved', 'Task policies saved'));
             await loadPage();
           } catch (error) {

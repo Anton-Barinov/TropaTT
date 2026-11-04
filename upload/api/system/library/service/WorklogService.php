@@ -174,7 +174,11 @@ final class WorklogService
             if (!$this->canLogTimeToTask($task, $actor, $userId)) {
                 return 'FORBIDDEN';
             }
-            if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
+            if (!empty($task['deleted_at'])) {
+                return 'TASK_CLOSED';
+            }
+            $isClosed = !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''));
+            if ($isClosed && !$this->isWorklogOnClosedAllowed($actor)) {
                 return 'TASK_CLOSED';
             }
             $taskId = (int)$task['id'];
@@ -324,7 +328,11 @@ final class WorklogService
                 if (!$this->canLogTimeToTask($task, $actor, (int)($existing['user_id'] ?? 0))) {
                     return 'FORBIDDEN';
                 }
-                if (!empty($task['deleted_at']) || !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''))) {
+                if (!empty($task['deleted_at'])) {
+                    return 'TASK_CLOSED';
+                }
+                $isClosed = !empty((int)($task['is_closed'] ?? 0)) || \Api\System\Library\Support\TaskStatusSemantics::isTerminal($this->worklogs->getPdo(), (string)($task['status_code'] ?? ''));
+                if ($isClosed && !$this->isWorklogOnClosedAllowed($actor)) {
                     return 'TASK_CLOSED';
                 }
                 $set['task_id'] = (int)$task['id'];
@@ -618,6 +626,27 @@ final class WorklogService
         }
         $v = is_array($val) ? ($val['value'] ?? 'all_project_members') : $val;
         return in_array($v, ['assignee_only', 'all_project_members'], true) ? (string)$v : 'all_project_members';
+    }
+
+    private function isWorklogOnClosedAllowed(array $actor): bool
+    {
+        if (!empty($actor['is_root'])) {
+            return true;
+        }
+        $roles = (array)($actor['roles'] ?? []);
+        if (in_array('super_admin', $roles, true)) {
+            return true;
+        }
+
+        if ($this->settings === null) {
+            return false;
+        }
+        $val = $this->settings->get('system', 'tasks.allow_worklog_on_closed');
+        if ($val === null) {
+            return false;
+        }
+        $v = is_array($val) ? ($val['value'] ?? false) : $val;
+        return $v === true || $v === 1 || $v === '1' || $v === 'true';
     }
 
     /**
