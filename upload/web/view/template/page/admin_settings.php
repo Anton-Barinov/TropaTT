@@ -222,11 +222,16 @@
             <div class="form-text" data-i18n="admin_settings.tasks_worklog_policy_hint"><?= htmlspecialchars($t('admin_settings.tasks_worklog_policy_hint', 'В строгом режиме списывать время могут только назначенные исполнители (или менеджеры). Если исполнитель не назначен (общие задачи), время могут списывать любые участники проекта.'), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
           <div class="col-md-6">
-            <div class="form-check form-switch">
+            <div class="form-check form-switch mb-3">
               <input class="form-check-input" type="checkbox" role="switch" id="tasksAllowAssigneeEditIdentity">
               <label class="form-check-label fw-semibold" for="tasksAllowAssigneeEditIdentity" data-i18n="admin_settings.tasks_allow_assignee_edit_identity"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity', 'Разрешить исполнителю менять название и описание задачи'), ENT_QUOTES, 'UTF-8') ?></label>
+              <div class="form-text" data-i18n="admin_settings.tasks_allow_assignee_edit_identity_hint"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity_hint', 'По умолчанию менять название и описание могут только создатель задачи и менеджеры. Включение опции позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
             </div>
-            <div class="form-text" data-i18n="admin_settings.tasks_allow_assignee_edit_identity_hint"><?= htmlspecialchars($t('admin_settings.tasks_allow_assignee_edit_identity_hint', 'По умолчанию менять название и описание могут только создатель задачи и менеджеры. Включение опции позволяет назначенному исполнителю обновлять заголовок и формулировку задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="tasksAllowWorklogOnClosed">
+              <label class="form-check-label fw-semibold" for="tasksAllowWorklogOnClosed" data-i18n="admin_settings.tasks_allow_worklog_on_closed"><?= htmlspecialchars($t('admin_settings.tasks_allow_worklog_on_closed', 'Разрешить списание времени в закрытые задачи'), ENT_QUOTES, 'UTF-8') ?></label>
+              <div class="form-text" data-i18n="admin_settings.tasks_allow_worklog_on_closed_hint"><?= htmlspecialchars($t('admin_settings.tasks_allow_worklog_on_closed_hint', 'По умолчанию списание времени в закрытые или выполненные задачи заблокировано (422 TASK_CLOSED). Включение опции позволяет разработчикам и участникам проекта вносить записи времени в закрытые задачи (например, в конце дня или при отправке отчетов из внешних трекеров).'), ENT_QUOTES, 'UTF-8') ?></div>
+            </div>
           </div>
         </div>
         <div class="crm-admin-settings-save-actions mt-3"><button class="btn crm-btn-primary" id="adminTaskSettingsSaveBtn" type="button" data-i18n="page.save"><?= htmlspecialchars($t('page.save', 'Сохранить'), ENT_QUOTES, 'UTF-8') ?></button></div>

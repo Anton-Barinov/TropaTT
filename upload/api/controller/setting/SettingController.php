@@ -87,6 +87,7 @@ final class SettingController extends BaseController
             'time_rounding_minutes',
             'tasks.worklog_policy',
             'tasks.allow_assignee_edit_identity',
+            'tasks.allow_worklog_on_closed',
             'tasks.tabs_order',
         ];
         // L-3: scope must not come from the request. User settings live in
@@ -240,7 +241,7 @@ final class SettingController extends BaseController
         }
 
         $value = $input['value'];
-        if ($scope === 'system' && $name === 'tasks.allow_assignee_edit_identity') {
+        if ($scope === 'system' && ($name === 'tasks.allow_assignee_edit_identity' || $name === 'tasks.allow_worklog_on_closed')) {
             $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
         }
 
@@ -271,6 +272,7 @@ final class SettingController extends BaseController
             'finance.auto_close.lag_days' => 5,
             'tasks.worklog_policy' => 'all_project_members',
             'tasks.allow_assignee_edit_identity' => false,
+            'tasks.allow_worklog_on_closed' => false,
             'tasks.tabs_order' => ['subtasks', 'checklists', 'comments', 'worklogs', 'dependencies', 'files', 'activity', 'knowledge'],
             'branding.name' => '',
             'branding.logo' => '',
@@ -339,7 +341,7 @@ final class SettingController extends BaseController
             return null;
         }
 
-        if ($name === 'tasks.allow_assignee_edit_identity') {
+        if ($name === 'tasks.allow_assignee_edit_identity' || $name === 'tasks.allow_worklog_on_closed') {
             if (!is_bool($value) && $value !== 0 && $value !== 1 && $value !== '0' && $value !== '1' && $value !== 'true' && $value !== 'false') {
                 return $this->t('setting/messages.invalid_boolean');
             }
