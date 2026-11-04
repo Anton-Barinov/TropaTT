@@ -9,5 +9,9 @@ return [
     'title_required' => '名称为必填项',
     'invalid_type' => '交易方类型无效',
     'invalid_inn' => '税号应为 10 或 12 位数字',
+    'invalid_ogrn' => 'OGRN 应为 13 位数字',
+    'invalid_ogrnip' => 'OGRNIP 应为 15 位数字',
+    'invalid_kpp' => 'KPP 应为 9 位字符',
+    'invalid_bik' => '银行代码应为 9 位数字',
     'invalid_email' => '邮箱地址无效',
 ];

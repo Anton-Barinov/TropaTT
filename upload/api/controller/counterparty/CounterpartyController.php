@@ -80,6 +80,7 @@ final class CounterpartyController extends BaseController
         $authUser['user'] = $this->organizationScopedActor((array)$authUser['user']);
 
         $input = $this->request()->allInput();
+        $input = $this->normalizeCounterpartyRequisites($input);
         if (empty($input['counterparty_type'])) $input['counterparty_type'] = 'organization';
         if (empty($input['status'])) $input['status'] = 'active';
         $errors = $this->validateCounterpartyPayload($input, true);
@@ -126,6 +127,7 @@ final class CounterpartyController extends BaseController
         }
 
         $input = $this->request()->allInput();
+        $input = $this->normalizeCounterpartyRequisites($input);
         $errors = $this->validateCounterpartyPayload($input, false, $current);
         if ($errors !== []) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $errors);
@@ -210,10 +212,99 @@ final class CounterpartyController extends BaseController
             }
         }
 
+        if (!empty($input['tax_ogrn'])) {
+            $ogrn = preg_replace('/\D+/', '', (string)$input['tax_ogrn']);
+            if (strlen($ogrn) !== 13) {
+                $errors['tax_ogrn'] = [$this->t('counterparty/messages.invalid_ogrn')];
+            }
+        }
+
+        if (!empty($input['tax_ogrnip'])) {
+            $ogrnip = preg_replace('/\D+/', '', (string)$input['tax_ogrnip']);
+            if (strlen($ogrnip) !== 15) {
+                $errors['tax_ogrnip'] = [$this->t('counterparty/messages.invalid_ogrnip')];
+            }
+        }
+
+        if (!empty($input['tax_kpp'])) {
+            $kpp = trim((string)$input['tax_kpp']);
+            if (strlen($kpp) !== 9) {
+                $errors['tax_kpp'] = [$this->t('counterparty/messages.invalid_kpp')];
+            }
+        }
+
+        if (!empty($input['bank_bik'])) {
+            $bik = trim((string)$input['bank_bik']);
+            if (!ctype_digit($bik) || (strlen($bik) !== 9 && strlen($bik) !== 8 && strlen($bik) !== 11)) {
+                $errors['bank_bik'] = [$this->t('counterparty/messages.invalid_bik')];
+            }
+        }
+
         if (!empty($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = [$this->t('counterparty/messages.invalid_email')];
         }
 
         return $errors;
+    }
+
+    /**
+     * Normalizes counterparty requisites payload:
+     * - Trims whitespace and casts empty strings to null.
+     * - Strips non-digits from INN.
+     * - Intelligently maps 15-digit registration in tax_ogrn to tax_ogrnip (e.g. from DaData party autocomplete).
+     * - For 12-digit INN (sole proprietor): clears tax_kpp (KPP does not exist for ИП in Russia).
+     * - For 10-digit INN (legal entity): maps misrouted 13-digit tax_ogrnip to tax_ogrn.
+     */
+    private function normalizeCounterpartyRequisites(array $input): array
+    {
+        $fields = [
+            'tax_inn', 'tax_kpp', 'tax_ogrn', 'tax_ogrnip', 'legal_name',
+            'bank_account', 'bank_bik', 'bank_corr_account', 'bank_name',
+            'address_legal', 'address_postal', 'address_actual',
+        ];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $input)) {
+                $val = is_string($input[$field]) ? trim($input[$field]) : $input[$field];
+                $input[$field] = ($val === '') ? null : $val;
+            }
+        }
+
+        $innDigits = !empty($input['tax_inn']) ? preg_replace('/\D+/', '', (string)$input['tax_inn']) : null;
+        if ($innDigits !== null) {
+            $input['tax_inn'] = $innDigits;
+        }
+
+        $rawOgrn = !empty($input['tax_ogrn']) ? preg_replace('/\D+/', '', (string)$input['tax_ogrn']) : null;
+        $rawOgrnip = !empty($input['tax_ogrnip']) ? preg_replace('/\D+/', '', (string)$input['tax_ogrnip']) : null;
+
+        // If a 15-digit registration is supplied in tax_ogrn (typical for DaData party suggestions where ogrn holds OGRNIP)
+        // and tax_ogrnip is empty:
+        if ($rawOgrn !== null && strlen($rawOgrn) === 15 && empty($rawOgrnip)) {
+            $input['tax_ogrnip'] = $rawOgrn;
+            $input['tax_ogrn'] = null;
+            $rawOgrnip = $rawOgrn;
+            $rawOgrn = null;
+        }
+
+        // If 12-digit INN (sole proprietor):
+        if ($innDigits !== null && strlen($innDigits) === 12) {
+            if (array_key_exists('tax_kpp', $input) && empty($input['tax_kpp'])) {
+                $input['tax_kpp'] = null;
+            }
+            if ($rawOgrn !== null && strlen($rawOgrn) === 15) {
+                $input['tax_ogrnip'] = $rawOgrn;
+                $input['tax_ogrn'] = null;
+            }
+        }
+
+        // If 10-digit INN (legal entity):
+        if ($innDigits !== null && strlen($innDigits) === 10) {
+            if ($rawOgrnip !== null && strlen($rawOgrnip) === 13 && empty($rawOgrn)) {
+                $input['tax_ogrn'] = $rawOgrnip;
+                $input['tax_ogrnip'] = null;
+            }
+        }
+
+        return $input;
     }
 }
