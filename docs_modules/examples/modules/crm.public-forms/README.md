@@ -29,6 +29,7 @@ php docs_modules/examples/modules/crm.public-forms/qa/service_workspace_test.php
 php docs_modules/examples/modules/crm.public-forms/qa/submission_security_test.php
 php docs_modules/examples/modules/crm.public-forms/qa/booking_workflow_test.php
 php docs_modules/examples/modules/crm.public-forms/qa/request_body_limit_test.php
+php docs_modules/examples/modules/crm.public-forms/qa/resilience_and_stale_routing_test.php
 ```
 
 The service and module tests use in-memory SQLite fixtures and do not send public submissions over the network. The request-size test simulates the core request parser's oversized-body flag, including missing or understated `Content-Length` values.

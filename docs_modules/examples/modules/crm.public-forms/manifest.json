@@ -1,6 +1,6 @@
 {
     "name": "crm.public-forms",
-    "version": "1.0.8",
+    "version": "1.0.12",
     "vendor": "crm",
     "author": "Anton Barinov",
     "author_url": "https://github.com/Anton-Barinov",
@@ -8,7 +8,7 @@
     "description": "Конструктор публичных форм заявок, безопасная публикация ссылок и просмотр обращений клиентов",
     "core_version": ">=1.0.0",
     "license": "MIT",
-    "category": "crm",
+    "category": "integration",
     "dependencies": [],
     "require_permissions": [
         "settings.view",
@@ -34,6 +34,7 @@
         ],
         "js_routes": {
             "module-public-forms": "web/assets/js/public-forms.js",
+            "public-forms": "web/assets/js/public-forms.js",
             "public-form": "web/assets/js/public-forms.js"
         }
     },

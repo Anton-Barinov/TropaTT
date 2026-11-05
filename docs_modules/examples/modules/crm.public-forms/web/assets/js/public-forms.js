@@ -69,7 +69,7 @@
     const name = document.createElement('input');
     name.className = 'form-control';
     name.maxLength = 64;
-    name.pattern = '[A-Za-z][A-Za-z0-9_-]{0,63}';
+    name.pattern = '[A-Za-z][-A-Za-z0-9_]{0,63}';
     name.required = true;
     name.value = String(field.name || 'field_' + (container.children.length + 1));
     nameLabel.appendChild(name);
@@ -268,9 +268,16 @@
         actions.classList.add('pform-row-actions');
         const edit = makeButton('Изменить', 'edit-form');
         const publish = makeButton(form.is_published ? 'Снять с публикации' : 'Опубликовать', 'toggle-publish');
-        actions.append(edit, document.createTextNode(' '), publish);
+        const del = makeButton('Удалить', 'delete-form', 'btn crm-btn-secondary btn-sm text-danger');
+        actions.append(edit, document.createTextNode(' '), publish, document.createTextNode(' '), del);
         if (form.is_published) {
-          actions.append(document.createTextNode(' '), makeButton('Копировать ссылку', 'copy-link'));
+          const openLink = document.createElement('a');
+          openLink.href = safePublicUrl(form.slug || '');
+          openLink.target = '_blank';
+          openLink.rel = 'noopener';
+          openLink.className = 'btn crm-btn-secondary btn-sm';
+          openLink.textContent = 'Открыть';
+          actions.append(document.createTextNode(' '), openLink, document.createTextNode(' '), makeButton('Копировать ссылку', 'copy-link'));
         }
       });
     } catch (_) {
@@ -300,6 +307,17 @@
           list.append(term, description);
         });
         answerCell.appendChild(list);
+        if (item.intake_public_id) {
+          const intakeWrap = document.createElement('div');
+          intakeWrap.className = 'mt-2';
+          const intakeLink = document.createElement('a');
+          intakeLink.className = 'badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none';
+          intakeLink.href = 'index.php?route=intake';
+          intakeLink.title = 'Перейти в раздел Входящие (' + item.intake_public_id + ')';
+          intakeLink.textContent = 'Входящее обращение: ' + item.intake_public_id;
+          intakeWrap.appendChild(intakeLink);
+          answerCell.appendChild(intakeWrap);
+        }
         textCell(row, item.created_at || '');
       });
     } catch (error) {
@@ -394,6 +412,14 @@
       button.disabled = true;
       try {
         if (button.dataset.action === 'edit-form') return await openEditor(id);
+        if (button.dataset.action === 'delete-form') {
+          if (!window.confirm('Удалить эту форму? Все её сохранённые ответы также будут удалены.')) return;
+          await api('/manage/forms/' + encodeURIComponent(id), {method: 'DELETE'});
+          message('Форма удалена.');
+          await loadForms();
+          await loadSubmissions();
+          return;
+        }
         if (button.dataset.action === 'toggle-publish') {
           const publish = button.textContent.trim() !== 'Снять с публикации';
           await api('/manage/forms/' + encodeURIComponent(id) + '/publish', {method: 'POST', body: {is_published: publish}});
@@ -529,6 +555,9 @@
         result.className = 'mt-3 text-muted';
         result.textContent = 'Отправляем обращение…';
         const payload = Object.fromEntries(new FormData(formElement).entries());
+        if (form.form_type !== 'booking' || !payload._booking_slot) {
+          delete payload._booking_slot;
+        }
         payload.consent_agreed = $('publicFormConsent').checked ? '1' : '';
         try {
           const submitUrl = publicApiUrl(prefix + '/forms/' + encodeURIComponent(slug) + '/submit');

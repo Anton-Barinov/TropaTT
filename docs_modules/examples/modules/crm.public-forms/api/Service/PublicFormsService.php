@@ -181,7 +181,7 @@ final class PublicFormsService
         $stmt = $this->db->prepare(
             "INSERT INTO crm_public_forms
              (public_id, organization_id, slug, title, description, form_type, fields_schema_json, consent_text, consent_version, target_project_public_id, target_assignee_user_public_id, calendar_user_public_id, slot_duration_minutes, buffer_minutes, booking_timezone, booking_schedule_json, is_published, created_at, updated_at)
-             VALUES (:pub_id, :org_id, :slug, :title, :description, :type, :fields, :consent, 1, :proj, :assignee, :cal_usr, :slot_dur, :buf, :timezone, :schedule, 0, :now, :now)"
+             VALUES (:pub_id, :org_id, :slug, :title, :description, :type, :fields, :consent, 1, :proj, :assignee, :cal_usr, :slot_dur, :buf, :timezone, :schedule, 0, :created_at, :updated_at)"
         );
         $stmt->execute([
             ':pub_id' => $pubId,
@@ -199,7 +199,8 @@ final class PublicFormsService
             ':buf' => $bufferMinutes,
             ':timezone' => $bookingTimezone,
             ':schedule' => json_encode($bookingSchedule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
-            ':now' => $now,
+            ':created_at' => $now,
+            ':updated_at' => $now,
         ]);
 
         return $pubId;
@@ -271,6 +272,44 @@ final class PublicFormsService
             ':public_id' => $publicId,
         ]);
         return true;
+    }
+
+    public function deleteForm(int $organizationId, string $publicId): bool
+    {
+        if ($organizationId < 1 || !preg_match('/^pfn_[a-f0-9]{20}$/D', $publicId)) {
+            return false;
+        }
+        $stmt = $this->db->prepare('SELECT id FROM crm_public_forms WHERE organization_id = :org_id AND public_id = :public_id LIMIT 1');
+        $stmt->execute([':org_id' => $organizationId, ':public_id' => $publicId]);
+        $formId = $stmt->fetchColumn();
+        if ($formId === false) {
+            return false;
+        }
+        $formId = (int)$formId;
+
+        $this->db->beginTransaction();
+        try {
+            $delSubmissions = $this->db->prepare('DELETE FROM crm_public_form_submissions WHERE form_id = :form_id AND organization_id = :org_id');
+            $delSubmissions->execute([':form_id' => $formId, ':org_id' => $organizationId]);
+
+            try {
+                $delSlots = $this->db->prepare('DELETE FROM crm_public_form_slot_requests WHERE form_id = :form_id');
+                $delSlots->execute([':form_id' => $formId]);
+            } catch (\Throwable) {
+                // Ignore if table does not exist
+            }
+
+            $delForm = $this->db->prepare('DELETE FROM crm_public_forms WHERE id = :form_id AND organization_id = :org_id');
+            $delForm->execute([':form_id' => $formId, ':org_id' => $organizationId]);
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /** @param list<array<string, mixed>> $fieldsSchema */
@@ -596,7 +635,7 @@ final class PublicFormsService
 
         $key = trim((string)($data['_idempotency_key'] ?? ''));
         $bookingSlotInput = $data['_booking_slot'] ?? null;
-        unset($data['_hp_website'], $data['_t_token'], $data['_idempotency_key'], $data['consent_agreed'], $data['_booking_slot']);
+        unset($data['route'], $data['_route_'], $data['_hp_website'], $data['_t_token'], $data['_idempotency_key'], $data['consent_agreed'], $data['_booking_slot']);
         if ($key === '' || strlen($key) > 128 || preg_match('/^[A-Za-z0-9._:-]{16,128}$/D', $key) !== 1) {
             throw new PublicFormSubmissionException('IDEMPOTENCY_KEY_REQUIRED', 'A valid submission key is required. Reload the form and try again.', 400);
         }
@@ -1044,11 +1083,25 @@ final class PublicFormsService
             'extra' => $extra,
         ];
         if (is_string($targetProject) && $targetProject !== '') {
-            $this->assertRoutingProject($targetProject, $organizationId);
-            $intakeInput['project_public_id'] = $targetProject;
+            try {
+                $this->assertRoutingProject($targetProject, $organizationId);
+                $intakeInput['project_public_id'] = $targetProject;
+            } catch (\InvalidArgumentException) {
+                // Target project was archived or deleted after form was saved;
+                // omit it so the client submission is never dropped.
+                $descriptionLines[] = '[Маршрутизация: проект ' . $targetProject . ' недоступен]';
+                $intakeInput['description'] = implode("\n", $descriptionLines);
+            }
         }
         if (is_string($targetAssignee) && $targetAssignee !== '') {
-            $intakeInput['assignee_user_id'] = $this->assertRoutingAssignee($targetAssignee, $organizationId);
+            try {
+                $intakeInput['assignee_user_id'] = $this->assertRoutingAssignee($targetAssignee, $organizationId);
+            } catch (\InvalidArgumentException) {
+                // Target assignee was deactivated or removed from workspace;
+                // omit so the client submission is never dropped.
+                $descriptionLines[] = '[Маршрутизация: ответственный ' . $targetAssignee . ' недоступен]';
+                $intakeInput['description'] = implode("\n", $descriptionLines);
+            }
         }
         $result = ($this->intakeCreator)($intakeInput, [
             'id' => 0,
