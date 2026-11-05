@@ -39,7 +39,9 @@ final class PublicFormsApiController extends BaseController
         if ($contextError !== null) {
             return $contextError;
         }
-        $user = (array)$auth['user'];
+        $user = method_exists($this, 'organizationScopedActor')
+            ? $this->organizationScopedActor((array)$auth['user'])
+            : (array)$auth['user'];
         if (!empty($user['is_external']) && empty($user['is_root'])) {
             return $this->error('FORBIDDEN', 'External client accounts cannot manage public forms.', 403);
         }
@@ -110,8 +112,11 @@ final class PublicFormsApiController extends BaseController
             return $this->success('PUBLIC_FORM_CREATED', 'Draft form created.', ['public_id' => $publicId], 201);
         } catch (\InvalidArgumentException) {
             return $this->error('VALIDATION_ERROR', 'The form settings or one of its fields is invalid.', 422);
-        } catch (\PDOException) {
-            return $this->error('FORM_CONFLICT', 'This form URL is already used. Choose a different URL slug.', 409);
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), '1062 Duplicate entry')) {
+                return $this->error('FORM_CONFLICT', 'This form URL is already used. Choose a different URL slug.', 409);
+            }
+            return $this->error('FORM_SAVE_FAILED', 'The form could not be saved: ' . $e->getMessage(), 500);
         } catch (Throwable) {
             return $this->error('FORM_SAVE_FAILED', 'The form could not be saved.', 500);
         }
@@ -129,6 +134,15 @@ final class PublicFormsApiController extends BaseController
         $saved = $this->getService()->setFormPublished($access[0], (string)($params['public_id'] ?? ''), $input['is_published']);
         if (!$saved) return $this->error('NOT_FOUND', 'Form not found in this workspace.', 404);
         return $this->success('PUBLIC_FORM_PUBLICATION_UPDATED', $input['is_published'] ? 'Form published.' : 'Form unpublished.', ['is_published' => $input['is_published']]);
+    }
+
+    public function adminDeleteForm(array $params): JsonResponse
+    {
+        $access = $this->authorizeManager('settings.edit');
+        if ($access instanceof JsonResponse) return $access;
+        $deleted = $this->getService()->deleteForm($access[0], (string)($params['public_id'] ?? ''));
+        if (!$deleted) return $this->error('NOT_FOUND', 'Form not found in this workspace.', 404);
+        return $this->success('PUBLIC_FORM_DELETED', 'Form deleted.', ['deleted' => true]);
     }
 
     public function adminListCalendarUsers(): JsonResponse
@@ -174,10 +188,11 @@ final class PublicFormsApiController extends BaseController
         if ($contentType !== 'application/json') {
             return $this->error('UNSUPPORTED_MEDIA_TYPE', 'Requests must use application/json.', 415);
         }
-        if (!is_array($request->jsonBody) || array_is_list($request->jsonBody)) {
+        $json = json_decode($request->rawBody, true);
+        if (!is_array($json) || array_is_list($json)) {
             return $this->error('INVALID_REQUEST_BODY', 'Request body must be a JSON object.', 400);
         }
-        return $request->jsonBody;
+        return $json;
     }
 
     public function getForm(array $params): JsonResponse
@@ -222,7 +237,12 @@ final class PublicFormsApiController extends BaseController
         if ($contentType !== 'application/json') {
             return $this->error('UNSUPPORTED_MEDIA_TYPE', 'Submissions must use application/json.', 415);
         }
-        $data = $this->request()->allInput();
+        $raw = trim($request->rawBody);
+        $data = $raw !== '' ? json_decode($raw, true) : null;
+        if (!is_array($data) || array_is_list($data)) {
+            $data = is_array($request->allInput()) ? $request->allInput() : [];
+        }
+        unset($data['route'], $data['_route_']);
         $headerKey = trim((string)($request->header('Idempotency-Key') ?? ''));
         if ($headerKey !== '') {
             $data['_idempotency_key'] = $headerKey;

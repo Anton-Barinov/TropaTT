@@ -13,7 +13,7 @@ $safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
             <div id="publicFormState" class="alert alert-info mt-4" role="status">Загружаем форму…</div>
             <div id="publicFormContent" hidden>
                 <h1 class="h3" id="publicFormHeading"></h1>
-                <p class="text-muted" id="publicFormDescription"></p>
+                <p class="text-muted pform-public-description" id="publicFormDescription"></p>
                 <form id="publicFormSubmission" class="pform-public-fields" novalidate>
                     <div id="publicFormBooking" class="mb-3" hidden>
                         <label class="form-label" for="publicBookingDate">Дата встречи</label>

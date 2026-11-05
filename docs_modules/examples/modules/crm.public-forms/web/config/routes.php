@@ -5,5 +5,6 @@ use Module\Crm\PublicForms\Web\Controller\PublicFormsWebController;
 
 return [
     'module-public-forms' => [PublicFormsWebController::class, 'index'],
+    'public-forms' => [PublicFormsWebController::class, 'index'],
     'public-form' => [PublicFormsWebController::class, 'publicForm'],
 ];

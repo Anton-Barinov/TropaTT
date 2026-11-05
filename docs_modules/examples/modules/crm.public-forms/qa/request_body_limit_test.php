@@ -19,6 +19,7 @@ namespace Api\Controller\Common {
         protected function user(): array { return $this->auth; }
         protected function request(): object { return $this->requestObject; }
         protected function rejectInvalidOrganizationContext(): ?JsonResponse { return null; }
+        protected function organizationScopedActor(array $actor): array { return $actor; }
         protected function error(string $code, string $message, int $status = 400): JsonResponse { return new JsonResponse($status, ['code' => $code, 'message' => $message]); }
         protected function success(string $code, string $message, array $data = [], int $status = 200): JsonResponse { return new JsonResponse($status, ['code' => $code, 'data' => $data]); }
         protected function invalidateCache(string $name): void {}
