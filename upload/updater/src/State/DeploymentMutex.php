@@ -33,22 +33,28 @@ final class DeploymentMutex
         clearstatcache(true, $directory);
         $directoryStat = @lstat($directory);
         if ($directoryStat === false) { return false; }
-        if (is_link($directory) || ($directoryStat['mode'] & 0170000) !== 0040000
-            || ($directoryStat['mode'] & 0077) !== 0
-            || !self::isValidOwner((int)$directoryStat['uid'], (int)$storageStat['uid'])) { return true; }
+        if (is_link($directory) || ($directoryStat['mode'] & 0170000) !== 0040000) { return true; }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($directoryStat['mode'] & 0077) !== 0
+                || !self::isValidOwner((int)$directoryStat['uid'], (int)$storageStat['uid'])) { return true; }
+        }
         $path = $directory . '/installation-release.lock';
         clearstatcache(true, $path);
         $pathStat = @lstat($path);
         if ($pathStat === false) { return false; }
-        if (is_link($path) || ($pathStat['mode'] & 0170000) !== 0100000
-            || ($pathStat['mode'] & 0077) !== 0 || $pathStat['nlink'] !== 1
-            || !self::isValidOwner((int)$pathStat['uid'], (int)$directoryStat['uid'])) { return true; }
+        if (is_link($path) || ($pathStat['mode'] & 0170000) !== 0100000) { return true; }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($pathStat['mode'] & 0077) !== 0 || $pathStat['nlink'] !== 1
+                || !self::isValidOwner((int)$pathStat['uid'], (int)$directoryStat['uid'])) { return true; }
+        }
         $handle = @fopen($path, 'rb');
         if ($handle === false) { return true; }
         try {
             $opened = fstat($handle);
-            if (!is_array($opened) || $opened['dev'] !== $pathStat['dev']
-                || $opened['ino'] !== $pathStat['ino']) { return true; }
+            if (!is_array($opened)) { return true; }
+            if (PHP_OS_FAMILY !== 'Windows') {
+                if ($opened['dev'] !== $pathStat['dev'] || $opened['ino'] !== $pathStat['ino']) { return true; }
+            }
             if (!flock($handle, LOCK_SH | LOCK_NB)) { return true; }
             flock($handle, LOCK_UN);
             return false;
@@ -76,9 +82,14 @@ final class DeploymentMutex
         }
         clearstatcache(true, $directory);
         $directoryStat = @stat($directory);
-        if ($directoryStat === false || ($directoryStat['mode'] & 0077) !== 0
-            || !self::isValidOwner((int)$directoryStat['uid'], (int)@fileowner($storage))) {
-            throw new \RuntimeException('Deployment mutex directory must be private.');
+        if ($directoryStat === false) {
+            throw new \RuntimeException('Deployment mutex directory unavailable.');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($directoryStat['mode'] & 0077) !== 0
+                || !self::isValidOwner((int)$directoryStat['uid'], (int)@fileowner($storage))) {
+                throw new \RuntimeException('Deployment mutex directory must be private.');
+            }
         }
         $path = $directory . '/installation-release.lock';
         if (is_link($path)) {
@@ -94,11 +105,16 @@ final class DeploymentMutex
             throw new \RuntimeException('Deployment mutex unavailable.');
         }
         $fileStat = fstat($handle);
-        if ($fileStat === false || ($fileStat['mode'] & 0170000) !== 0100000
-            || ($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
-            || !self::isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])) {
+        if ($fileStat === false || ($fileStat['mode'] & 0170000) !== 0100000) {
             fclose($handle);
             throw new \RuntimeException('Unsafe deployment mutex file.');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
+                || !self::isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])) {
+                fclose($handle);
+                throw new \RuntimeException('Unsafe deployment mutex file.');
+            }
         }
         if (!flock($handle, ($exclusive ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
             fclose($handle);
@@ -124,6 +140,9 @@ final class DeploymentMutex
 
     private static function isValidOwner(int $uid, int $expectedUid): bool
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return true;
+        }
         if ($uid === $expectedUid) {
             return true;
         }

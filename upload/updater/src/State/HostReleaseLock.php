@@ -22,14 +22,21 @@ final class HostReleaseLock
         clearstatcache(true, $path);
         $stat = @lstat($path);
         if ($stat === false) { return false; }
-        if (is_link($path) || ($stat['mode'] & 0170000) !== 0100000 || ($stat['mode'] & 0077) !== 0
-            || $stat['nlink'] !== 1) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
+        if (is_link($path) || ($stat['mode'] & 0170000) !== 0100000) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
+        }
         $handle = @fopen($path, 'rb');
         if ($handle === false) { throw new \RuntimeException('Protocol-1 release guard unavailable.'); }
         try {
             $opened = fstat($handle);
-            if ($opened === false || $opened['dev'] !== $stat['dev'] || $opened['ino'] !== $stat['ino']) {
+            if ($opened === false) {
                 throw new \RuntimeException('Protocol-1 release guard identity changed.');
+            }
+            if (PHP_OS_FAMILY !== 'Windows') {
+                if ($opened['dev'] !== $stat['dev'] || $opened['ino'] !== $stat['ino']) {
+                    throw new \RuntimeException('Protocol-1 release guard identity changed.');
+                }
             }
             if (@flock($handle, LOCK_EX | LOCK_NB)) { flock($handle, LOCK_UN); return false; }
             return true;
@@ -60,9 +67,13 @@ final class HostReleaseLock
         }
         clearstatcache(true, $directory);
         $directoryStat = @lstat($directory);
-        if ($directoryStat === false || ($directoryStat['mode'] & 0170000) !== 0040000
-            || ($directoryStat['mode'] & 0077) !== 0) {
+        if ($directoryStat === false || ($directoryStat['mode'] & 0170000) !== 0040000) {
             throw new \RuntimeException('Host release lock directory must be private.');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($directoryStat['mode'] & 0077) !== 0) {
+                throw new \RuntimeException('Host release lock directory must be private.');
+            }
         }
 
         $path = $directory . '/host-release.lock';
@@ -88,15 +99,20 @@ final class HostReleaseLock
         clearstatcache(true, $directory);
         $directoryStatAfter = @lstat($directory);
         if ($fileStat === false || ($fileStat['mode'] & 0170000) !== 0100000
-            || ($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
-            || !$this->isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid']) || $pathStatAfter === false
-            || ($pathStatAfter['mode'] & 0170000) !== 0100000
-            || $fileStat['dev'] !== $pathStatAfter['dev'] || $fileStat['ino'] !== $pathStatAfter['ino']
-            || $directoryStatAfter === false || ($directoryStatAfter['mode'] & 0170000) !== 0040000
-            || $directoryStat['dev'] !== $directoryStatAfter['dev']
-            || $directoryStat['ino'] !== $directoryStatAfter['ino']) {
+            || $pathStatAfter === false || ($pathStatAfter['mode'] & 0170000) !== 0100000
+            || $directoryStatAfter === false || ($directoryStatAfter['mode'] & 0170000) !== 0040000) {
             fclose($handle);
             throw new \RuntimeException('Unsafe host release lock metadata.');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
+                || !$this->isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])
+                || $fileStat['dev'] !== $pathStatAfter['dev'] || $fileStat['ino'] !== $pathStatAfter['ino']
+                || $directoryStat['dev'] !== $directoryStatAfter['dev']
+                || $directoryStat['ino'] !== $directoryStatAfter['ino']) {
+                fclose($handle);
+                throw new \RuntimeException('Unsafe host release lock metadata.');
+            }
         }
         if (!flock($handle, LOCK_EX | LOCK_NB)) {
             fclose($handle);
@@ -197,6 +213,9 @@ final class HostReleaseLock
 
     private function isValidOwner(int $uid, int $expectedUid): bool
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return true;
+        }
         if ($uid === $expectedUid) {
             return true;
         }
