@@ -888,6 +888,9 @@ final class DurableHostReleaseLease
 
     private function isValidOwner(int $uid, int $expectedUid): bool
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return true;
+        }
         if ($uid === $expectedUid) {
             return true;
         }

@@ -73,9 +73,14 @@ final class BootstrapV1ContinuationBridge
         $maintenancePath = rtrim($this->basePath, '/') . '/storage_api/maintenance.flag';
         $maintenanceStat = @lstat($maintenancePath);
         if ($maintenanceStat === false || is_link($maintenancePath)
-            || ($maintenanceStat['mode'] & 0170000) !== 0100000 || $maintenanceStat['nlink'] !== 1
-            || !$this->isValidOwner((int)$maintenanceStat['uid'], (int)fileowner($this->storageDir)) || $maintenanceStat['size'] > 4096) {
+            || ($maintenanceStat['mode'] & 0170000) !== 0100000 || $maintenanceStat['size'] > 4096) {
             throw new \RuntimeException('BOOTSTRAP_V1_MAINTENANCE_FILE_UNSAFE');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if ($maintenanceStat['nlink'] !== 1
+                || !$this->isValidOwner((int)$maintenanceStat['uid'], (int)fileowner($this->storageDir))) {
+                throw new \RuntimeException('BOOTSTRAP_V1_MAINTENANCE_FILE_UNSAFE');
+            }
         }
         $maintenance = json_decode((string)@file_get_contents($maintenancePath), true);
         if (!is_array($maintenance)) { throw new \RuntimeException('BOOTSTRAP_V1_MAINTENANCE_JSON_INVALID'); }
@@ -93,9 +98,13 @@ final class BootstrapV1ContinuationBridge
     {
         clearstatcache(true, $path);
         $stat = @lstat($path);
-        if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0040000
-            || ($stat['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
+        if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0040000) {
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_DIRECTORY_UNSAFE');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($stat['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
+                throw new \RuntimeException('BOOTSTRAP_V1_READBACK_DIRECTORY_UNSAFE');
+            }
         }
     }
 
@@ -103,10 +112,14 @@ final class BootstrapV1ContinuationBridge
     {
         clearstatcache(true, $path);
         $stat = @lstat($path);
-        if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0100000
-            || ($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1
-            || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir)) || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
+        if ($stat === false || is_link($path) || ($stat['mode'] & 0170000) !== 0100000 || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_FILE_UNSAFE');
+        }
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if (($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1
+                || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
+                throw new \RuntimeException('BOOTSTRAP_V1_READBACK_FILE_UNSAFE');
+            }
         }
         $raw = @file_get_contents($path);
         $data = is_string($raw) ? json_decode($raw, true) : null;
@@ -129,6 +142,9 @@ final class BootstrapV1ContinuationBridge
 
     private function isValidOwner(int $uid, int $expectedUid): bool
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return true;
+        }
         if ($uid === $expectedUid) {
             return true;
         }
