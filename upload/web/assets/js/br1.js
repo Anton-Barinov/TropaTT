@@ -5652,11 +5652,15 @@ window.CRM.br1 = (function () {
         priority_code: (currentTask && currentTask.priority_code) || 'normal',
         start_at: (currentTask && currentTask.start_at) || '',
         due_at: (currentTask && currentTask.due_at) || '',
-        end_at: (currentTask && currentTask.end_at) || ''
+        end_at: (currentTask && currentTask.end_at) || '',
+        parent_due_at: (currentTask && currentTask.due_at) || ''
       };
     };
 
     var populateSubtaskCreateDefaults = function () {
+      if (createForm) {
+        createForm.dataset.parentDueAt = (currentTask && currentTask.due_at) || '';
+      }
       fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
     };
 
@@ -5862,6 +5866,7 @@ window.CRM.br1 = (function () {
       }
 
       var tagIds = await loadTaskTagIds(subtaskPublicId);
+      editForm.dataset.parentDueAt = (currentTask && currentTask.due_at) || '';
       fillSubtaskForm(editForm, subtaskItem, tagIds);
       editForm.dataset.initialTags = tagIds.join(',');
       var publicIdInput = editForm.querySelector('[name="public_id"]');
