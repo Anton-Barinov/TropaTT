@@ -12,6 +12,8 @@ return [
     'invalid_status' => 'Invalid status',
     'invalid_priority' => 'Invalid priority',
     'invalid_due_at' => 'Invalid due date',
+    'invalid_start_at' => 'Invalid start date',
+    'invalid_end_at' => 'Invalid end date',
     'max_255' => 'Maximum 255 characters',
     'max_8000' => 'Maximum 8000 characters',
 ];

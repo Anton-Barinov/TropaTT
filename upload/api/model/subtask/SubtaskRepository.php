@@ -125,7 +125,7 @@ final class SubtaskRepository
     {
         return (new QueryBuilder($this->pdo))
             ->from('tasks')
-            ->select(['id', 'public_id', 'project_id', 'client_public_id', 'priority_code', 'creator_user_id', 'task_key_prefix', 'organization_id'])
+            ->select(['id', 'public_id', 'project_id', 'client_public_id', 'priority_code', 'creator_user_id', 'task_key_prefix', 'organization_id', 'start_at', 'due_at', 'end_at'])
             ->where('public_id', '=', $taskPublicId)
             ->whereNull('deleted_at')
             ->first();
@@ -167,6 +167,22 @@ final class SubtaskRepository
         return $id !== false ? (int)$id : null;
     }
 
+    public function calculateSubtaskDateBounds(int $parentTaskId): ?array
+    {
+        return (new QueryBuilder($this->pdo))
+            ->from('task_relations r')
+            ->join('tasks st', 'st.id', '=', 'r.child_task_id')
+            ->select([
+                'MIN(st.start_at) AS min_start_at',
+                'MAX(st.due_at) AS max_due_at',
+                'MAX(st.end_at) AS max_end_at',
+            ])
+            ->where('r.parent_task_id', '=', $parentTaskId)
+            ->where('r.relation_type', '=', 'subtask')
+            ->whereNull('st.deleted_at')
+            ->first();
+    }
+
     private function subtaskSelect(): array
     {
         return [
@@ -193,6 +209,9 @@ final class SubtaskRepository
             'pt.id AS parent_task_id',
             'pt.public_id AS parent_task_public_id',
             'pt.public_id AS task_public_id',
+            'pt.start_at AS parent_start_at',
+            'pt.due_at AS parent_due_at',
+            'pt.end_at AS parent_end_at',
             'su.public_id AS assignee_user_public_id',
             'su.full_name AS assignee_name',
             'cu.public_id AS creator_user_public_id',

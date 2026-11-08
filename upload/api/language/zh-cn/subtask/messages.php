@@ -12,6 +12,8 @@ return [
     'invalid_status' => '状态无效',
     'invalid_priority' => '优先级无效',
     'invalid_due_at' => '截止日期无效',
+    'invalid_start_at' => '无效的开始日期',
+    'invalid_end_at' => '无效的完成日期',
     'max_255' => '最多 255 个字符',
     'max_8000' => '最多 8000 个字符',
 ];

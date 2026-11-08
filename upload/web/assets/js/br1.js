@@ -4576,8 +4576,32 @@ window.CRM.br1 = (function () {
       refreshVisualEditors(formNode, true);
     }
     if (startInput) startInput.value = toDateInputValue(subtask.start_at);
-    if (dueInput) dueInput.value = toDateInputValue(subtask.due_at);
+    if (dueInput) {
+      dueInput.value = toDateInputValue(subtask.due_at);
+      if (dueInput.dataset.warnBound !== '1') {
+        var onDueChange = function () { checkSubtaskDueWarning(formNode); };
+        dueInput.addEventListener('input', onDueChange);
+        dueInput.addEventListener('change', onDueChange);
+        dueInput.dataset.warnBound = '1';
+      }
+    }
     if (endInput) endInput.value = toDateInputValue(subtask.end_at);
+    checkSubtaskDueWarning(formNode);
+  }
+
+  function checkSubtaskDueWarning(formNode) {
+    if (!formNode) return;
+    var dueInput = formNode.querySelector('[name="due_at"]');
+    var warnEl = formNode.querySelector('.subtask-due-warning');
+    if (!dueInput || !warnEl) return;
+    var subVal = String(dueInput.value || '').trim();
+    var parentVal = String((currentTask && currentTask.due_at) || '').trim();
+    var parentDay = parentVal ? toDateInputValue(parentVal) : '';
+    if (subVal && parentDay && subVal > parentDay) {
+      warnEl.classList.remove('d-none');
+    } else {
+      warnEl.classList.add('d-none');
+    }
   }
 
   function isSubtaskAuthor(item) {
@@ -4609,6 +4633,12 @@ window.CRM.br1 = (function () {
         var dueLabel = item.due_at ? formatDate(item.due_at) : window.CRM.i18n.t('js.br1.bez_dedlayna', 'Без дедлайна');
         var canEditSubtask = canCreateTask && isSubtaskAuthor(item);
         var authorLabel = resolveUserDisplayName(item.creator_name || '', item.creator_user_public_id || '', window.CRM.i18n.t('js.br1.ne_ukazan_2', 'Не указан'));
+        var parentDueVal = (currentTask && currentTask.due_at) || item.parent_due_at;
+        var isExceedingParent = Boolean(item.is_overdue_vs_parent) || (Boolean(item.due_at && parentDueVal && toDateInputValue(item.due_at) > toDateInputValue(parentDueVal)));
+        var dueHtml = escapeHtml(dueLabel);
+        if (isExceedingParent) {
+          dueHtml += ' <span class="badge bg-warning-subtle text-warning-emphasis ms-1" title="' + escapeHtml(window.CRM.i18n.t('js.br1.subtask_exceeds_parent_due', 'Дедлайн подзадачи позже дедлайна родительской задачи')) + '"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>' + escapeHtml(window.CRM.i18n.t('js.br1.subtask_later_than_parent', 'позже задачи')) + '</span>';
+        }
         return '<tr data-subtask-id="' + escapeHtml(subtaskId) + '">'
           + '<td>'
           + '<a class="crm-subtask-link fw-semibold" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(subtaskId) + '">'
@@ -4616,7 +4646,7 @@ window.CRM.br1 = (function () {
           + '</a>'
           + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mt_1_avtor', '<div class="small text-muted mt-1">Автор: ') + escapeHtml(authorLabel) + '</div>'
           + '</td>'
-          + '<td>' + escapeHtml(dueLabel) + '</td>'
+          + '<td>' + dueHtml + '</td>'
           + '<td class="crm-subtask-status-cell">'
           + subtaskStatusControl(item, canWorkTask)
           + '</td>'
@@ -5609,12 +5639,19 @@ window.CRM.br1 = (function () {
       }
     });
 
+    var getSubtaskCreateDefaults = function () {
+      return {
+        status_code: 'new',
+        priority_code: (currentTask && currentTask.priority_code) || 'normal',
+        start_at: (currentTask && currentTask.start_at) || '',
+        due_at: (currentTask && currentTask.due_at) || '',
+        end_at: (currentTask && currentTask.end_at) || ''
+      };
+    };
+
     var bootSubtaskDictionaries = async function () {
       await ensureCreateTaskDictionaries();
-      fillSubtaskForm(createForm, {
-        status_code: 'new',
-        priority_code: 'normal'
-      }, []);
+      fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
     };
 
     bootSubtaskDictionaries();
@@ -5623,10 +5660,7 @@ window.CRM.br1 = (function () {
       openCreateBtn.addEventListener('click', async function () {
         if (!canCreateTask) return;
         await ensureCreateTaskDictionaries();
-        fillSubtaskForm(createForm, {
-          status_code: 'new',
-          priority_code: 'normal'
-        }, []);
+        fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
       });
       openCreateBtn.dataset.bound = '1';
     }
@@ -5673,10 +5707,7 @@ window.CRM.br1 = (function () {
           }
 
           createForm.reset();
-          fillSubtaskForm(createForm, {
-            status_code: 'new',
-            priority_code: 'normal'
-          }, []);
+          fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
           await loadSubtasks(taskId, canWorkTask, canCreateTask);
           notify(window.CRM.i18n.t('js.br1.podzadacha_sozdana', 'Подзадача создана'));
           window.bootstrap.Modal.getOrCreateInstance(createModalEl).hide();

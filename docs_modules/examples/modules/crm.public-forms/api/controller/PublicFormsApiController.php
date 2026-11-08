@@ -240,7 +240,7 @@ final class PublicFormsApiController extends BaseController
         $raw = trim($request->rawBody);
         $data = $raw !== '' ? json_decode($raw, true) : null;
         if (!is_array($data) || array_is_list($data)) {
-            $data = is_array($request->allInput()) ? $request->allInput() : [];
+            $data = is_array($this->request()->allInput()) ? $this->request()->allInput() : [];
         }
         unset($data['route'], $data['_route_']);
         $headerKey = trim((string)($request->header('Idempotency-Key') ?? ''));

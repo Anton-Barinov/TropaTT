@@ -11,12 +11,14 @@ use Api\System\Library\Support\Ulid;
 
 final class SubtaskService
 {
+    /** @param TaskService|object $tasks */
     public function __construct(
         private readonly SubtaskRepository $subtasks,
-        private readonly TaskService $tasks,
+        private readonly object $tasks,
         private readonly ?TaskKeyService $taskKeys = null,
         private readonly ?HtmlSanitizer $htmlSanitizer = null,
-        private readonly ?ProjectService $projects = null
+        private readonly ?ProjectService $projects = null,
+        private readonly ?SettingService $settings = null
     ) {
     }
 
@@ -103,6 +105,18 @@ final class SubtaskService
         }
         $clientPublicId = $directClientPublicId ?? ($parentClientPublicId ?? ($parentTask['client_public_id'] ?? null));
 
+        $startAt = !empty($input['start_at'])
+            ? $this->normalizeDueAt((string)$input['start_at'])
+            : (!array_key_exists('start_at', $input) && !empty($parentTask['start_at']) ? (string)$parentTask['start_at'] : (!array_key_exists('start_at', $input) && !empty($task['start_at']) ? (string)$task['start_at'] : null));
+
+        $dueAt = !empty($input['due_at'])
+            ? $this->normalizeDueAt((string)$input['due_at'])
+            : (!empty($parentTask['due_at']) ? (string)$parentTask['due_at'] : (!empty($task['due_at']) ? (string)$task['due_at'] : null));
+
+        $endAt = !empty($input['end_at'])
+            ? $this->normalizeDueAt((string)$input['end_at'])
+            : null;
+
         for ($attempt = 1; ; $attempt++) {
             try {
                 $this->subtasks->createTask([
@@ -123,9 +137,9 @@ final class SubtaskService
                     'description' => $description,
                     'status_code' => (string)($input['status'] ?? 'new'),
                     'priority_code' => (string)($input['priority'] ?? ($parentTask['priority_code'] ?? 'normal')),
-                    'due_at' => !empty($input['due_at']) ? $this->normalizeDueAt((string)$input['due_at']) : null,
-                    'start_at' => null,
-                    'end_at' => null,
+                    'due_at' => $dueAt,
+                    'start_at' => $startAt,
+                    'end_at' => $endAt,
                     'assignee_user_id' => $assigneeUserId,
                     'creator_user_id' => (int)($actor['id'] ?? 0) ?: (int)($parentTask['creator_user_id'] ?? 0),
                     'archived_at' => null,
@@ -162,6 +176,10 @@ final class SubtaskService
             'created_at' => $now,
             'updated_at' => $updatedAt,
         ]);
+
+        if ($this->shouldSyncParentDates($input)) {
+            $this->syncParentDateBounds((int)$parentTask['id'], (string)$taskPublicId);
+        }
 
         $created = $this->subtasks->findByPublicId($childPublicId);
         return $created ? $this->sanitizeSubtask($created) : null;
@@ -225,6 +243,12 @@ final class SubtaskService
         if (array_key_exists('due_at', $input)) {
             $taskSet['due_at'] = $input['due_at'] !== '' ? $this->normalizeDueAt((string)$input['due_at']) : null;
         }
+        if (array_key_exists('start_at', $input)) {
+            $taskSet['start_at'] = $input['start_at'] !== '' ? $this->normalizeDueAt((string)$input['start_at']) : null;
+        }
+        if (array_key_exists('end_at', $input)) {
+            $taskSet['end_at'] = $input['end_at'] !== '' ? $this->normalizeDueAt((string)$input['end_at']) : null;
+        }
         if (array_key_exists('assignee_user_public_id', $input)) {
             $taskSet['assignee_user_id'] = $input['assignee_user_public_id'] !== ''
                 ? $this->subtasks->userIdByPublicId((string)$input['assignee_user_public_id'])
@@ -251,6 +275,10 @@ final class SubtaskService
         if ($taskSet !== []) {
             $taskSet['updated_at'] = gmdate('Y-m-d H:i:s');
             $this->subtasks->updateTaskByPublicId((string)$current['public_id'], $taskSet);
+
+            if ($this->shouldSyncParentDates($input) && !empty($current['parent_task_id']) && !empty($current['parent_task_public_id'])) {
+                $this->syncParentDateBounds((int)$current['parent_task_id'], (string)$current['parent_task_public_id']);
+            }
         }
 
         $relationSet = [];
@@ -347,7 +375,74 @@ final class SubtaskService
             $item['description'] = $this->sanitizeDescription((string)$item['description']);
         }
 
+        $parentDue = $item['parent_due_at'] ?? null;
+        $dueAt = $item['due_at'] ?? null;
+        $item['is_overdue_vs_parent'] = false;
+        if (!empty($dueAt) && !empty($parentDue)) {
+            $subDueTime = strtotime((string)$dueAt);
+            $parentDueTime = strtotime((string)$parentDue);
+            if ($subDueTime !== false && $parentDueTime !== false && $subDueTime > $parentDueTime) {
+                $item['is_overdue_vs_parent'] = true;
+            }
+        }
+
         return $item;
+    }
+
+    public function shouldSyncParentDates(array $input): bool
+    {
+        if (isset($input['sync_parent_dates'])) {
+            return filter_var($input['sync_parent_dates'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($this->settings !== null) {
+            $setting = $this->settings->get('tasks', 'cascade_subtask_dates');
+            if (!empty($setting['value'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function syncParentDateBounds(int $parentTaskId, string $parentTaskPublicId): void
+    {
+        $bounds = $this->subtasks->calculateSubtaskDateBounds($parentTaskId);
+        if (!$bounds) {
+            return;
+        }
+
+        $parent = $this->subtasks->parentTaskByPublicId($parentTaskPublicId);
+        if (!$parent) {
+            return;
+        }
+
+        $updates = [];
+        if (!empty($bounds['max_due_at'])) {
+            $parentDue = !empty($parent['due_at']) ? (string)$parent['due_at'] : null;
+            if ($parentDue === null || strtotime((string)$bounds['max_due_at']) > strtotime($parentDue)) {
+                $updates['due_at'] = (string)$bounds['max_due_at'];
+            }
+        }
+
+        if (!empty($bounds['min_start_at'])) {
+            $parentStart = !empty($parent['start_at']) ? (string)$parent['start_at'] : null;
+            if ($parentStart === null || strtotime((string)$bounds['min_start_at']) < strtotime($parentStart)) {
+                $updates['start_at'] = (string)$bounds['min_start_at'];
+            }
+        }
+
+        if (!empty($bounds['max_end_at'])) {
+            $parentEnd = !empty($parent['end_at']) ? (string)$parent['end_at'] : null;
+            if ($parentEnd === null || strtotime((string)$bounds['max_end_at']) > strtotime($parentEnd)) {
+                $updates['end_at'] = (string)$bounds['max_end_at'];
+            }
+        }
+
+        if ($updates !== []) {
+            $updates['updated_at'] = gmdate('Y-m-d H:i:s');
+            $this->subtasks->updateTaskByPublicId($parentTaskPublicId, $updates);
+        }
     }
 
     private function isDuplicateTaskKey(\PDOException $exception): bool
