@@ -9781,6 +9781,9 @@ window.CRM.br1 = (function () {
 
       renderTaskDetailOverview();
 
+      bindSubtaskFlow(taskId, canWorkTask, canEditTask);
+      bindChecklistFlow(taskId, canWorkTask);
+
       // Jira-style Linked Tasks
       loadAndRenderTaskRelations(taskId, canEditTask);
 
@@ -9802,8 +9805,6 @@ window.CRM.br1 = (function () {
     bindTaskFileUpload(taskId);
     bindTaskEditFlow(taskId);
     bindTaskDetailDelete(taskId);
-    bindSubtaskFlow(taskId, canWorkTask, canEditTask);
-    bindChecklistFlow(taskId, canWorkTask);
     populateWorklogActivitySelects(currentTask && currentTask.activity_code);
     bindTaskWorklogFlow(taskId);
     bindTaskTimerFlow(taskId);
