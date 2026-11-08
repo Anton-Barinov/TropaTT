@@ -10815,6 +10815,8 @@ return array (
   'todo_list' => 'Список задач',
   'table' => 'Таблица',
   'js.br1.subtask_status' => 'Статус подзадачи',
+  'js.br1.subtask_exceeds_parent_due' => 'Дедлайн подзадачи позже дедлайна родительской задачи',
+  'js.br1.subtask_later_than_parent' => 'позже задачи',
   'intake.result_summary_dynamic_fallback' => 'Показано {shown} из {total} заявок',
   'knowledge.search_placeholder' => 'Поиск по материалам...',
   'knowledge.empty' => 'Нет материалов команды',

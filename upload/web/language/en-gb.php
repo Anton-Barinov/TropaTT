@@ -10815,6 +10815,8 @@ return array (
   'todo_list' => 'To-do list',
   'table' => 'Table',
   'js.br1.subtask_status' => 'Subtask status',
+  'js.br1.subtask_exceeds_parent_due' => 'Subtask deadline is later than the parent task deadline',
+  'js.br1.subtask_later_than_parent' => 'exceeds parent',
   'intake.result_summary_dynamic_fallback' => 'Showing {shown} of {total} requests',
   'knowledge.search_placeholder' => 'Search materials...',
   'knowledge.empty' => 'No team materials',

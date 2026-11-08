@@ -10843,6 +10843,8 @@ return array (
   'todo_list' => '待办事项',
   'table' => '表格',
   'js.br1.subtask_status' => '子任务状态',
+  'js.br1.subtask_exceeds_parent_due' => '子任务截止时间晚于主任务截止时间',
+  'js.br1.subtask_later_than_parent' => '晚于主任务',
   'intake.result_summary_dynamic_fallback' => '显示 {shown} / {total} 个请求',
   'knowledge.search_placeholder' => '搜索材料...',
   'knowledge.empty' => '暂无团队材料',
