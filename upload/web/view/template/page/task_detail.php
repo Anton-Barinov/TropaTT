@@ -624,6 +624,8 @@
             <div class="col-md-4">
               <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_due"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_due', 'Дедлайн'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
+              <div class="form-text" data-i18n="task_detail.modal_create_subtask_due_hint"><?= htmlspecialchars($t('task_detail.modal_create_subtask_due_hint', 'По умолчанию совпадает с дедлайном задачи.'), ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="subtask-due-warning text-warning small mt-1 d-none"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i><span class="subtask-due-warning-text" data-i18n="task_detail.modal_subtask_due_warning"><?= htmlspecialchars($t('task_detail.modal_subtask_due_warning', 'Дедлайн подзадачи позже дедлайна родительской задачи'), ENT_QUOTES, 'UTF-8') ?></span></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" data-i18n="task_detail.modal_create_subtask_label_end"><?= htmlspecialchars($t('task_detail.modal_create_subtask_label_end', 'Плановое завершение'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -689,6 +691,7 @@
             <div class="col-md-4">
               <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_due"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_due', 'Дедлайн'), ENT_QUOTES, 'UTF-8') ?></label>
               <input class="form-control" name="due_at" type="date" min="<?= date('Y-m-d') ?>">
+              <div class="subtask-due-warning text-warning small mt-1 d-none"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i><span class="subtask-due-warning-text" data-i18n="task_detail.modal_subtask_due_warning"><?= htmlspecialchars($t('task_detail.modal_subtask_due_warning', 'Дедлайн подзадачи позже дедлайна родительской задачи'), ENT_QUOTES, 'UTF-8') ?></span></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" data-i18n="task_detail.modal_edit_subtask_label_end"><?= htmlspecialchars($t('task_detail.modal_edit_subtask_label_end', 'Плановое завершение'), ENT_QUOTES, 'UTF-8') ?></label>
