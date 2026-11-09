@@ -314,6 +314,13 @@ final class UpdaterKernel
         if ($limited !== null) {
             return $limited;
         }
+        try {
+            $retention = $this->retention();
+            $installedJob = (string)((new LocalState($this->storageDir))->read()['last_job_id'] ?? '');
+            $retention->prune($installedJob !== '' ? $installedJob : null);
+        } catch (\Throwable) {
+            // Preflight prune must not interrupt update planning
+        }
         $jobId = $this->jobId($input);
         $logger = new UpdateLogger($this->storageDir, $jobId);
         $state = new JobState($this->storageDir, $jobId);
@@ -1310,6 +1317,8 @@ final class UpdaterKernel
         // (thousands of files per update). Free the quota a cheap host cares
         // about before returning.
         $retention = $this->retention();
+        $retention->dropStaging($jobId);
+        $retention->dropPackage($jobId);
         $this->pruneOldJobs($retention, (string)($manifest['to_build'] ?? ''), $jobId);
 
         return [
@@ -1326,7 +1335,8 @@ final class UpdaterKernel
             $this->storageDir,
             max(1, (int)($config['keep_jobs'] ?? 3)),
             max(0, (int)($config['max_age_days'] ?? 30)) * 86400,
-            max(0, (int)($config['rollback_grace_days'] ?? 14)) * 86400
+            max(0, (int)($config['rollback_grace_days'] ?? 14)) * 86400,
+            max(3600, (int)($config['stale_job_ttl_hours'] ?? 24) * 3600)
         );
     }
 
@@ -1344,15 +1354,10 @@ final class UpdaterKernel
     {
         try {
             $installedJob = (string)((new LocalState($this->storageDir))->read()['last_job_id'] ?? '');
-            $removed = $retention->prune($installedJob !== '' ? $installedJob : null);
-            if ($installedJob !== '' && $installedJob !== $justFinishedJob) {
-                // An OLDER installation point (this run did not produce it) may
-                // have outlived the rollback grace period; only then release
-                // its heavy artefacts.
-                $retention->pruneRollbackPoint($installedJob);
-            }
+            $protectJob = $installedJob !== '' ? $installedJob : ($justFinishedJob !== '' ? $justFinishedJob : null);
+            $removed = $retention->prune($protectJob);
             if ($removed !== []) {
-                (new UpdateLogger($this->storageDir, $installedJob))->info('retention_pruned', 'Old updater jobs removed', [
+                (new UpdateLogger($this->storageDir, $protectJob ?? ''))->info('retention_pruned', 'Old updater jobs removed', [
                     'count' => count($removed),
                     'build' => $currentBuild,
                 ]);
