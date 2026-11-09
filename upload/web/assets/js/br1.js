@@ -4565,6 +4565,7 @@ window.CRM.br1 = (function () {
 
     renderSubtaskFormProjectOption(formNode, selectedProjectId, selectedProjectTitle);
     if (isEditForm) formNode.dataset.initialProject = selectedProjectId;
+    if (subtask.parent_due_at) formNode.dataset.parentDueAt = subtask.parent_due_at;
     renderSubtaskFormStatusOptions(formNode, String(subtask.status_code || 'new'));
     renderSubtaskFormPriorityOptions(formNode, String(subtask.priority_code || 'normal'));
     renderSubtaskFormAssigneeOptions(formNode, String(subtask.assignee_user_public_id || ''));
@@ -4595,7 +4596,7 @@ window.CRM.br1 = (function () {
     var warnEl = formNode.querySelector('.subtask-due-warning');
     if (!dueInput || !warnEl) return;
     var subVal = String(dueInput.value || '').trim();
-    var parentVal = String((currentTask && currentTask.due_at) || '').trim();
+    var parentVal = String((currentTask && currentTask.due_at) || formNode.dataset.parentDueAt || '').trim();
     var parentDay = parentVal ? toDateInputValue(parentVal) : '';
     if (subVal && parentDay && subVal > parentDay) {
       warnEl.classList.remove('d-none');
@@ -4605,6 +4606,12 @@ window.CRM.br1 = (function () {
   }
 
   function isSubtaskAuthor(item) {
+    if (window.CRM.api && typeof window.CRM.api.isRootUser === 'function' && window.CRM.api.isRootUser()) {
+      return true;
+    }
+    if (typeof hasPermission === 'function' && hasPermission('task.manage')) {
+      return true;
+    }
     var actorId = getCurrentUserPublicId();
     if (!actorId) return false;
     return String(item && item.creator_user_public_id || '') === actorId;
@@ -5645,13 +5652,27 @@ window.CRM.br1 = (function () {
         priority_code: (currentTask && currentTask.priority_code) || 'normal',
         start_at: (currentTask && currentTask.start_at) || '',
         due_at: (currentTask && currentTask.due_at) || '',
-        end_at: (currentTask && currentTask.end_at) || ''
+        end_at: (currentTask && currentTask.end_at) || '',
+        parent_due_at: (currentTask && currentTask.due_at) || ''
       };
     };
 
+    var populateSubtaskCreateDefaults = function () {
+      if (createForm) {
+        createForm.dataset.parentDueAt = (currentTask && currentTask.due_at) || '';
+      }
+      fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
+    };
+
+    populateSubtaskCreateDefaults();
+
+    createModalEl.addEventListener('show.bs.modal', function () {
+      populateSubtaskCreateDefaults();
+    });
+
     var bootSubtaskDictionaries = async function () {
       await ensureCreateTaskDictionaries();
-      fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
+      populateSubtaskCreateDefaults();
     };
 
     bootSubtaskDictionaries();
@@ -5659,10 +5680,27 @@ window.CRM.br1 = (function () {
     if (openCreateBtn.dataset.bound !== '1') {
       openCreateBtn.addEventListener('click', async function () {
         if (!canCreateTask) return;
+        populateSubtaskCreateDefaults();
         await ensureCreateTaskDictionaries();
-        fillSubtaskForm(createForm, getSubtaskCreateDefaults(), []);
+        populateSubtaskCreateDefaults();
       });
       openCreateBtn.dataset.bound = '1';
+    }
+
+    var createDueInput = createForm.querySelector('[name="due_at"]');
+    if (createDueInput && createDueInput.dataset.warnBound !== '1') {
+      var onCreateDueChange = function () { checkSubtaskDueWarning(createForm); };
+      createDueInput.addEventListener('input', onCreateDueChange);
+      createDueInput.addEventListener('change', onCreateDueChange);
+      createDueInput.dataset.warnBound = '1';
+    }
+
+    var editDueInput = editForm.querySelector('[name="due_at"]');
+    if (editDueInput && editDueInput.dataset.warnBound !== '1') {
+      var onEditDueChange = function () { checkSubtaskDueWarning(editForm); };
+      editDueInput.addEventListener('input', onEditDueChange);
+      editDueInput.addEventListener('change', onEditDueChange);
+      editDueInput.dataset.warnBound = '1';
     }
 
     if (createForm.dataset.bound !== '1') {
@@ -5828,6 +5866,7 @@ window.CRM.br1 = (function () {
       }
 
       var tagIds = await loadTaskTagIds(subtaskPublicId);
+      editForm.dataset.parentDueAt = (currentTask && currentTask.due_at) || '';
       fillSubtaskForm(editForm, subtaskItem, tagIds);
       editForm.dataset.initialTags = tagIds.join(',');
       var publicIdInput = editForm.querySelector('[name="public_id"]');
@@ -9747,6 +9786,9 @@ window.CRM.br1 = (function () {
 
       renderTaskDetailOverview();
 
+      bindSubtaskFlow(taskId, canWorkTask, canEditTask);
+      bindChecklistFlow(taskId, canWorkTask);
+
       // Jira-style Linked Tasks
       loadAndRenderTaskRelations(taskId, canEditTask);
 
@@ -9768,8 +9810,6 @@ window.CRM.br1 = (function () {
     bindTaskFileUpload(taskId);
     bindTaskEditFlow(taskId);
     bindTaskDetailDelete(taskId);
-    bindSubtaskFlow(taskId, canWorkTask, canEditTask);
-    bindChecklistFlow(taskId, canWorkTask);
     populateWorklogActivitySelects(currentTask && currentTask.activity_code);
     bindTaskWorklogFlow(taskId);
     bindTaskTimerFlow(taskId);

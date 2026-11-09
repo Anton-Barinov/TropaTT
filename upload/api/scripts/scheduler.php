@@ -80,6 +80,32 @@ $args = array_slice($argv, 2);
 function out(string $line): void { fwrite(STDOUT, $line . PHP_EOL); }
 function err(string $line): void { fwrite(STDERR, $line . PHP_EOL); }
 
+$runUpdaterRetention = function(string $projectRoot): void {
+    try {
+        $storageUpdates = $projectRoot . '/storage_api/updates';
+        if (is_dir($storageUpdates)) {
+            \Api\System\Library\Update\UpdaterBridge::registerUpdaterAutoloader($projectRoot);
+            $updateConfig = is_file($projectRoot . '/api/config/update.php') ? require $projectRoot . '/api/config/update.php' : [];
+            $retConfig = is_array($updateConfig['retention'] ?? null) ? $updateConfig['retention'] : [];
+            $retention = new \Updater\State\JobRetention(
+                $storageUpdates,
+                max(1, (int)($retConfig['keep_jobs'] ?? 3)),
+                max(0, (int)($retConfig['max_age_days'] ?? 30)) * 86400,
+                max(0, (int)($retConfig['rollback_grace_days'] ?? 14)) * 86400,
+                max(3600, (int)($retConfig['stale_job_ttl_hours'] ?? 24) * 3600)
+            );
+            $local = (new \Updater\State\LocalState($storageUpdates))->read();
+            $installedJob = (string)($local['last_job_id'] ?? '');
+            $pruned = $retention->prune($installedJob !== '' ? $installedJob : null);
+            if ($pruned !== []) {
+                out('Updater retention: pruned ' . count($pruned) . ' old jobs/artefacts');
+            }
+        }
+    } catch (\Throwable $e) {
+        // Non-blocking: updater cleanup must not break cron
+    }
+};
+
 switch ($command) {
     case 'run':
         $result = $scheduler->run();
@@ -118,6 +144,9 @@ switch ($command) {
         } catch (\Throwable $e) {
             // Non-blocking: table might not exist yet or transient DB issue
         }
+
+        // Cleanup old update backups, staging extractions, and abandoned updater jobs
+        $runUpdaterRetention($projectRoot);
         break;
 
     case 'list':
@@ -174,6 +203,7 @@ switch ($command) {
         $days = (int)($args[0] ?? 30);
         $deleted = $scheduler->cleanupOldExecutions($days);
         out("Cleaned up {$deleted} old execution records.");
+        $runUpdaterRetention($projectRoot);
         break;
 
     default:

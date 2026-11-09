@@ -8,19 +8,19 @@ namespace Updater\State;
  *
  * A shared-hosting account has a small disk quota, and the updater used to keep
  * everything it ever produced: every job directory, every staged extraction
- * (1429 files, 24 MiB on the demo), every package archive and every file/DB
- * backup. Nothing removed them, so a long-lived installation slowly filled its
- * quota — and a full disk breaks the NEXT update in the worst possible way
- * (a partially applied copy).
+ * (thousands of files), every package archive and every file/DB backup.
+ * Nothing removed old backups, so a long-lived installation slowly filled its
+ * quota — and a full disk breaks the NEXT update in the worst possible way.
  *
  * Policy:
- *  - the staged extraction is deleted as soon as the apply succeeds; it is the
- *    largest artefact and the one that is never needed again;
- *  - a terminal job keeps its directory and backup while it is one of the most
- *    recent ones, or while it is the rollback point LocalState points at;
- *  - only terminal jobs (applied / rolled_back / failed) are pruned, and only
- *    their own job directory, staging, packages and backups subdirectories are
- *    touched — never the live installation, never a lock, lease or session.
+ *  - the staged extraction and package zip are deleted as soon as the apply succeeds;
+ *  - only the active rollback point (LocalState's last_job_id) keeps its heavy file/DB
+ *    backup, and only while within the rollback grace period (default 14 days);
+ *  - older terminal jobs keep their directory/state for audit logs, but their heavy
+ *    backups, staging, and package archives are purged;
+ *  - abandoned in-flight jobs (>24h without an active lock) are transitioned to failed
+ *    and their temporary artefacts removed;
+ *  - orphan backups and packages without a valid active job are swept.
  */
 final class JobRetention
 {
@@ -28,7 +28,8 @@ final class JobRetention
         private readonly string $storageDir,
         private readonly int $keepJobs = 3,
         private readonly int $maxAgeSeconds = 604800,
-        private readonly int $rollbackGraceSeconds = 1209600
+        private readonly int $rollbackGraceSeconds = 1209600,
+        private readonly int $staleJobTtlSeconds = 86400
     ) {
     }
 
@@ -39,9 +40,8 @@ final class JobRetention
      * is kept for `rollback_grace_days` (default 14) after it finished. A
      * rollback is only meaningful while the applied build is still the current
      * one and something is still visibly wrong; after two weeks the backup is
-     * the largest single artefact on the account (26 MiB of 59 MiB on the demo)
-     * and is worth the quota. The job directory and its state stay, so the
-     * updates page still shows what was installed.
+     * the largest single artefact on the account (100+ MiB) and is worth the quota.
+     * The job directory and its state stay, so the updates page still shows what was installed.
      *
      * Returns the paths freed.
      */
@@ -59,11 +59,14 @@ final class JobRetention
         if (!is_array($state) || (string)($state['state'] ?? '') !== 'applied') {
             return [];
         }
-        $finished = (int)($state['finished_at'] ?? 0);
-        if ($finished === 0) {
+        $finished = 0;
+        if (!empty($state['finished_at'])) {
+            $finished = is_numeric($state['finished_at']) ? (int)$state['finished_at'] : (int)strtotime((string)$state['finished_at']);
+        }
+        if ($finished <= 0) {
             $finished = (int)@filemtime($stateFile);
         }
-        if ((time() - $finished) < $this->rollbackGraceSeconds) {
+        if ($finished <= 0 || (time() - $finished) < $this->rollbackGraceSeconds) {
             return [];
         }
         $freed = [];
@@ -100,13 +103,15 @@ final class JobRetention
     }
 
     /**
-     * Prune old terminal jobs. Returns the job ids that were removed.
+     * Prune old terminal jobs and release unnecessary backups. Returns the job ids that were removed.
      *
-     * @param string $protectJobId the currently installed job (rollback point)
+     * @param string $protectJobId the currently installed job (active rollback point)
      * @return array<int,string>
      */
     public function prune(?string $protectJobId = null): array
     {
+        $this->reconcileStaleInFlightJobs();
+
         $states = glob($this->storageDir . '/jobs/*/state.json') ?: [];
         $terminal = [];
         foreach ($states as $file) {
@@ -116,7 +121,7 @@ final class JobRetention
             }
             $status = (string)($state['state'] ?? '');
             if (!in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
-                continue; // in-flight work is never touched
+                continue; // active in-flight work is never touched
             }
             $jobId = (string)($state['job_id'] ?? basename(dirname($file)));
             if ($jobId === '') {
@@ -130,17 +135,30 @@ final class JobRetention
         $now = time();
         $removed = [];
         foreach ($terminal as $index => $job) {
-            if ($index < max(0, $this->keepJobs)) {
+            $isProtected = ($protectJobId !== null && $job['job_id'] === $protectJobId);
+
+            if ($index < max(1, $this->keepJobs) || $isProtected) {
+                // Job metadata is kept inside keepJobs (or if protected).
+                // But for terminal jobs that are NOT the active rollback point,
+                // purge their heavy file+DB backups, staging, and packages!
+                if (!$isProtected) {
+                    $this->removeTree($this->storageDir . '/backups/' . 'backup_' . $job['job_id'] . '_' . '*', true);
+                    $this->removeTree($this->storageDir . '/staging/' . basename($job['job_id']));
+                    $this->removeTree($this->storageDir . '/packages/' . basename($job['job_id']));
+                }
                 continue;
             }
+
+            // Beyond keepJobs: check if still inside grace period (index < keepJobs * 2 and age < maxAgeSeconds)
             if ($this->maxAgeSeconds > 0 && ($now - $job['mtime']) < $this->maxAgeSeconds && $index < max(1, $this->keepJobs) * 2) {
-                // Still inside the grace period: a recent failed job may be
-                // about to be rolled back by the admin.
+                // Still inside grace period: keep job metadata, but purge heavy backups/staging/packages
+                $this->removeTree($this->storageDir . '/backups/' . 'backup_' . $job['job_id'] . '_' . '*', true);
+                $this->removeTree($this->storageDir . '/staging/' . basename($job['job_id']));
+                $this->removeTree($this->storageDir . '/packages/' . basename($job['job_id']));
                 continue;
             }
-            if ($protectJobId !== null && $job['job_id'] === $protectJobId) {
-                continue;
-            }
+
+            // Aged out beyond keepJobs: prune completely
             $this->removeTree($this->storageDir . '/jobs/' . basename($job['job_id']));
             $this->removeTree($this->storageDir . '/backups/' . 'backup_' . $job['job_id'] . '_' . '*', true);
             $this->removeTree($this->storageDir . '/staging/' . basename($job['job_id']));
@@ -148,27 +166,75 @@ final class JobRetention
             $removed[] = $job['job_id'];
         }
 
-        // Leftovers whose job is gone entirely (pruned earlier, or a job
-        // directory lost to a crash) are invisible to the loop above and were
-        // what actually filled the quota: on the demo, 24 MiB of staged files
-        // and 4.6 MiB of archives belonged to jobs that no longer existed.
-        $this->dropOrphanArtefacts(array_column($terminal, 'job_id'));
+        // For the active rollback point, prune if aged beyond rollback grace days
+        if ($protectJobId !== null && $protectJobId !== '') {
+            $this->pruneRollbackPoint($protectJobId);
+        }
+
+        // Leftovers whose job is gone entirely or orphan backup/staging/packages
+        $this->dropOrphanArtefacts(array_column($terminal, 'job_id'), $protectJobId);
 
         return $removed;
     }
 
     /**
-     * Remove staging/packages directories that belong to no known job.
-     *
-     * Only those two directories are swept: they hold derived, re-creatable
-     * data. Job directories and backups are never removed blindly, because a
-     * job directory with a missing state file may still be the rollback point
-     * an older LocalState refers to.
+     * Mark abandoned in-flight jobs older than staleJobTtlSeconds as failed,
+     * and free their temporary files so they don't block disk cleanup indefinitely.
+     */
+    private function reconcileStaleInFlightJobs(): void
+    {
+        $now = time();
+        $lockFile = $this->storageDir . '/locks/update.lock';
+        $isSystemLocked = is_file($lockFile);
+
+        foreach (glob($this->storageDir . '/jobs/*', GLOB_ONLYDIR) ?: [] as $dir) {
+            $stateFile = $dir . '/state.json';
+            if (!is_file($stateFile)) {
+                if (($now - (int)@filemtime($dir)) > $this->staleJobTtlSeconds) {
+                    $this->removeTree($dir);
+                }
+                continue;
+            }
+
+            $state = json_decode((string)@file_get_contents($stateFile), true);
+            if (!is_array($state)) {
+                continue;
+            }
+
+            $status = (string)($state['state'] ?? '');
+            if (in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
+                continue; // Already terminal
+            }
+
+            $mtime = (int)@filemtime($stateFile);
+            if (($now - $mtime) > $this->staleJobTtlSeconds) {
+                if ($isSystemLocked) {
+                    $lockMtime = (int)@filemtime($lockFile);
+                    if (($now - $lockMtime) < 300) {
+                        continue;
+                    }
+                }
+
+                $jobId = (string)($state['job_id'] ?? basename($dir));
+                $state['state'] = 'failed';
+                $state['error'] = 'Update job abandoned or timed out.';
+                $state['finished_at'] = gmdate('c');
+                @file_put_contents($stateFile, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+                $this->removeTree($this->storageDir . '/staging/' . basename($jobId));
+                $this->removeTree($this->storageDir . '/packages/' . basename($jobId));
+                $this->removeTree($this->storageDir . '/backups/backup_' . basename($jobId) . '_*', true);
+            }
+        }
+    }
+
+    /**
+     * Remove staging/packages/backups directories that belong to no known job.
      *
      * @param array<int,string> $knownJobIds terminal job ids that still exist
      * @return array<int,string> the artefact paths removed
      */
-    private function dropOrphanArtefacts(array $knownJobIds): array
+    private function dropOrphanArtefacts(array $knownJobIds, ?string $protectJobId = null): array
     {
         $known = [];
         foreach ($knownJobIds as $jobId) {
@@ -176,8 +242,7 @@ final class JobRetention
                 $known[basename((string)$jobId)] = true;
             }
         }
-        // In-flight jobs keep their staging/packages: a failed apply resumes
-        // from the staged extraction, so deleting it would force a re-download.
+        // In-flight (non-stale) jobs keep their staging/packages
         foreach (glob($this->storageDir . '/jobs/*', GLOB_ONLYDIR) ?: [] as $dir) {
             $state = json_decode((string)@file_get_contents($dir . '/state.json'), true);
             $status = is_array($state) ? (string)($state['state'] ?? '') : '';
@@ -197,6 +262,47 @@ final class JobRetention
                 }
             }
         }
+
+        // Sweep orphan backups: only protectJobId or active in-flight jobs may keep backups
+        $validBackupJobIds = [];
+        if ($protectJobId !== null && $protectJobId !== '') {
+            $validBackupJobIds[basename($protectJobId)] = true;
+        }
+        foreach ($known as $jobId => $true) {
+            $stateFile = $this->storageDir . '/jobs/' . $jobId . '/state.json';
+            $state = is_file($stateFile) ? json_decode((string)@file_get_contents($stateFile), true) : null;
+            $status = is_array($state) ? (string)($state['state'] ?? '') : '';
+            if (!in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
+                $validBackupJobIds[$jobId] = true;
+            }
+        }
+
+        foreach (glob($this->storageDir . '/backups/backup_*', GLOB_ONLYDIR) ?: [] as $backupDir) {
+            $base = basename($backupDir);
+            $matched = false;
+            foreach (array_keys($validBackupJobIds) as $validJobId) {
+                if (str_starts_with($base, 'backup_' . $validJobId)) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                if ($this->removeTree($backupDir)) {
+                    $removed[] = $backupDir;
+                }
+            }
+        }
+
+        // Clean up orphan or stale .nonce_* files in backups/
+        $now = time();
+        foreach (glob($this->storageDir . '/backups/.nonce_*') ?: [] as $nonceFile) {
+            $nonceJobId = substr(basename($nonceFile), strlen('.nonce_'));
+            if (!isset($validBackupJobIds[$nonceJobId]) || ($now - (int)@filemtime($nonceFile)) > 86400) {
+                @unlink($nonceFile);
+                $removed[] = $nonceFile;
+            }
+        }
+
         return $removed;
     }
 

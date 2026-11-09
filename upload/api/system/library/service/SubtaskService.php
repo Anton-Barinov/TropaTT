@@ -455,17 +455,29 @@ final class SubtaskService
 
     private function normalizeDueAt(string $value): string
     {
-        $value = trim($value);
-        if ($value === '') {
-            return $value;
+        $raw = trim($value);
+        if ($raw === '') {
+            return $raw;
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+            return $raw;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/', $raw) === 1) {
+            return $raw;
         }
 
         try {
-            $date = new \DateTimeImmutable($value);
+            // A value without an explicit zone is treated as UTC, matching how the
+            // platform stores timestamps (gmdate()), so the result does not depend on
+            // the hosting timezone.
+            $hasZone = preg_match('/(?:[zZ]|[+-]\d{2}:?\d{2})$/', $raw) === 1;
+            $date = new \DateTimeImmutable($hasZone ? $raw : $raw . ' UTC', new \DateTimeZone('UTC'));
+
             return $date->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         } catch (\Throwable $e) {
             AppLog::error('[SubtaskService::normalizeDueAt] ' . $e->getMessage());
-            return $value;
+            return $raw;
         }
     }
 }

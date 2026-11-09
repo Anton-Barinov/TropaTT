@@ -17,6 +17,24 @@ final class CoreUpdateStatusService
     public function status(): array
     {
         UpdaterBridge::registerUpdaterAutoloader(dirname($this->storageDir, 2));
+
+        // Periodic safe retention sweep: prune stale jobs and old backups so disk doesn't fill up
+        try {
+            $local = (new \Updater\State\LocalState($this->storageDir))->read();
+            $installedJob = (string)($local['last_job_id'] ?? '');
+            $retConfig = is_array($this->config['retention'] ?? null) ? $this->config['retention'] : [];
+            $retention = new \Updater\State\JobRetention(
+                $this->storageDir,
+                max(1, (int)($retConfig['keep_jobs'] ?? 3)),
+                max(0, (int)($retConfig['max_age_days'] ?? 30)) * 86400,
+                max(0, (int)($retConfig['rollback_grace_days'] ?? 14)) * 86400,
+                max(3600, (int)($retConfig['stale_job_ttl_hours'] ?? 24) * 3600)
+            );
+            $retention->prune($installedJob !== '' ? $installedJob : null);
+        } catch (\Throwable) {
+            // Retention sweep in status check must never fail
+        }
+
         $audit = $this->read('update-center-audit.json');
         $latestJob = null;
         $jobs = glob($this->storageDir . '/jobs/*/state.json') ?: [];
