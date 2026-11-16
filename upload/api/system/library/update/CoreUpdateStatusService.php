@@ -38,10 +38,13 @@ final class CoreUpdateStatusService
         $audit = $this->read('update-center-audit.json');
         $latestJob = null;
         $jobs = glob($this->storageDir . '/jobs/*/state.json') ?: [];
-        // Newest state file first (mtime), never string sort on job ids: an
-        // old failed id like upd_e2e_... would otherwise surface as the
-        // "latest" job forever and keep showing its stale error in the UI.
-        usort($jobs, static fn(string $a, string $b): int => @filemtime($b) <=> @filemtime($a));
+        usort($jobs, static function (string $a, string $b): int {
+            $diff = \Updater\State\JobState::resolveJobTimestamp($b) <=> \Updater\State\JobState::resolveJobTimestamp($a);
+            if ($diff !== 0) {
+                return $diff;
+            }
+            return @filemtime($b) <=> @filemtime($a);
+        });
         if ($jobs) {
             $latestJob = json_decode((string)file_get_contents($jobs[0]), true);
             if (is_array($latestJob)) {
