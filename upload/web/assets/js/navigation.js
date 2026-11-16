@@ -244,10 +244,14 @@ window.CRM.navigation = (function () {
     ['tasks', 'projects', 'clients', 'companies', 'contacts', 'knowledge'].forEach(function (groupKey) {
       var list = Array.isArray(groups[groupKey]) ? groups[groupKey] : [];
       list.forEach(function (item) {
+        var label = String(item.title || item.full_name || item.public_id || '');
+        if (item.task_key) {
+          label = '[' + item.task_key + '] ' + label;
+        }
         results.push({
           entity_type: typeMap[groupKey] || groupKey.slice(0, -1),
           public_id: String(item.public_id || ''),
-          label: String(item.title || item.full_name || item.public_id || ''),
+          label: label,
           meta: item
         });
       });

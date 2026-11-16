@@ -296,40 +296,86 @@ final class TaskRelationRepository
     public function searchTasks(string $query, array $actor, int $limit = 20, string $projectPublicId = ''): array
     {
         $safeLimit = min(50, max(1, $limit));
-        $term = '%' . LikeEscaper::escape($query) . '%';
+        $parsed = $this->parseSearchQuery($query);
+        $hasTaskKey = $this->hasColumn('tasks', 'task_key');
+        $hasSeqNum = $this->hasColumn('tasks', 'task_sequence_number');
+
+        $selects = [
+            't.public_id',
+            't.title',
+            't.status_code',
+            'p.public_id AS project_public_id',
+            'p.title AS project_title',
+        ];
+        if ($hasTaskKey) {
+            $selects[] = 't.task_key';
+        }
 
         $qb = (new QueryBuilder($this->pdo))
             ->from('tasks t')
             ->leftJoin('projects p', 'p.id', '=', 't.project_id')
-            ->select([
-                't.public_id',
-                't.task_key',
-                't.title',
-                't.status_code',
-                'p.public_id AS project_public_id',
-                'p.title AS project_title',
-            ])
+            ->select($selects)
             ->whereNull('t.deleted_at')
-            ->whereNull('t.archived_at')
-            ->orderBy('t.updated_at', 'DESC')
-            ->limit($safeLimit);
+            ->whereNull('t.archived_at');
 
         if ($projectPublicId !== '') {
             $qb->where('p.public_id', '=', $projectPublicId);
         }
 
-        // Support search by task_key, public_id, or title
-        $isTaskKeySearch = preg_match('/^[A-Za-z][A-Za-z0-9]{1,9}-[0-9]+$/', $query) === 1;
-        $isPublicIdSearch = preg_match('/^[a-z]{3}_/', $query) === 1;
+        $conditions = [];
+        $params = [];
+        $term = '%' . LikeEscaper::escape($parsed['raw']) . '%';
+        $conditions[] = 't.title LIKE ?';
+        $params[] = $term;
 
-        if ($isTaskKeySearch) {
-            $normalizedKey = strtoupper($query);
-            $qb->whereRaw('(t.task_key = ? OR t.title LIKE ?)', [$normalizedKey, $term]);
-        } elseif ($isPublicIdSearch) {
-            $qb->whereRaw('(t.public_id LIKE ? OR t.title LIKE ? OR t.task_key LIKE ?)', [$term, $term, $term]);
-        } else {
-            $qb->whereRaw('(t.title LIKE ? OR t.task_key LIKE ?)', [$term, $term]);
+        if ($parsed['clean'] !== '' && $parsed['clean'] !== $parsed['raw']) {
+            $cleanTerm = '%' . LikeEscaper::escape($parsed['clean']) . '%';
+            $conditions[] = 't.title LIKE ?';
+            $params[] = $cleanTerm;
         }
+
+        $isPublicIdSearch = preg_match('/^[a-z]{3}_/', $parsed['raw']) === 1;
+
+        if ($parsed['canonical_key'] !== null) {
+            if ($hasTaskKey) {
+                $conditions[] = 't.task_key = ?';
+                $params[] = $parsed['canonical_key'];
+                $conditions[] = 't.task_key LIKE ?';
+                $params[] = $parsed['canonical_key'] . '%';
+            }
+            if ($hasSeqNum && $parsed['prefix'] !== null && $parsed['sequence'] !== null) {
+                $conditions[] = '(t.task_key_prefix = ? AND t.task_sequence_number = ?)';
+                $params[] = $parsed['prefix'];
+                $params[] = $parsed['sequence'];
+            }
+        } elseif ($parsed['numeric_id'] !== null) {
+            $conditions[] = 't.id = ?';
+            $params[] = $parsed['numeric_id'];
+            if ($hasSeqNum) {
+                $conditions[] = 't.task_sequence_number = ?';
+                $params[] = $parsed['numeric_id'];
+            }
+            if ($hasTaskKey) {
+                $conditions[] = 't.task_key = ?';
+                $params[] = (string)$parsed['numeric_id'];
+                $conditions[] = 't.task_key LIKE ?';
+                $params[] = '%-' . $parsed['numeric_id'];
+            }
+        } elseif ($isPublicIdSearch) {
+            $conditions[] = 't.public_id LIKE ?';
+            $params[] = $term;
+            if ($hasTaskKey) {
+                $conditions[] = 't.task_key LIKE ?';
+                $params[] = $term;
+            }
+        } else {
+            if ($hasTaskKey) {
+                $conditions[] = 't.task_key LIKE ?';
+                $params[] = $term;
+            }
+        }
+
+        $qb->whereRaw('(' . implode(' OR ', $conditions) . ')', $params);
 
         // Apply access filter similar to TaskRepository
         $actorUserId = (int)($actor['id'] ?? 0);
@@ -353,7 +399,12 @@ final class TaskRelationRepository
             $qb->whereRaw('1 = 0');
         }
 
-        return $qb->get();
+        $this->applyTaskSearchRelevanceOrder($qb, $query);
+
+        return $qb
+            ->orderBy('t.updated_at', 'DESC')
+            ->limit($safeLimit)
+            ->get();
     }
 
     /**
@@ -436,5 +487,124 @@ final class TaskRelationRepository
                 'updated_at' => $now,
                 'organization_id' => $orgId,
             ]);
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        static $columns = [];
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $columns)) {
+            return $columns[$key];
+        }
+        try {
+            $driver = (string)$this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $this->pdo->query('PRAGMA table_info(' . $table . ')');
+                foreach ($stmt?->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+                    if ((string)($row['name'] ?? '') === $column) {
+                        return $columns[$key] = true;
+                    }
+                }
+                return $columns[$key] = false;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :col LIMIT 1');
+            $stmt->execute(['table' => $table, 'col' => $column]);
+            return $columns[$key] = $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return $columns[$key] = false;
+        }
+    }
+
+    /**
+     * @return array{
+     *   raw: string,
+     *   clean: string,
+     *   canonical_key: ?string,
+     *   prefix: ?string,
+     *   sequence: ?int,
+     *   numeric_id: ?int
+     * }
+     */
+    private function parseSearchQuery(string $search): array
+    {
+        $raw = trim($search);
+        // Strip leading # or № and optional space
+        $clean = preg_replace('/^[#№]\s*/u', '', $raw) ?? $raw;
+        $clean = trim($clean);
+
+        $canonicalKey = null;
+        $prefix = null;
+        $sequence = null;
+        $numericId = null;
+
+        // Structured key pattern: e.g. "CRM-123", "CRM 123", "CRM_123", "crm-123"
+        if (preg_match('/^([A-Za-z][A-Za-z0-9]{0,9})[\s\-_#]+([0-9]+)$/u', $clean, $matches)) {
+            $prefix = strtoupper($matches[1]);
+            $sequence = (int)$matches[2];
+            $canonicalKey = $prefix . '-' . $sequence;
+        } elseif (preg_match('/^[A-Za-z][A-Za-z0-9]{0,9}-[0-9]+$/', $clean)) {
+            $canonicalKey = strtoupper($clean);
+            $parts = explode('-', $canonicalKey, 2);
+            $prefix = $parts[0];
+            $sequence = (int)$parts[1];
+        } elseif (ctype_digit($clean)) {
+            $numericId = (int)$clean;
+            $sequence = $numericId;
+        }
+
+        return [
+            'raw' => $raw,
+            'clean' => $clean,
+            'canonical_key' => $canonicalKey,
+            'prefix' => $prefix,
+            'sequence' => $sequence,
+            'numeric_id' => $numericId,
+        ];
+    }
+
+    private function applyTaskSearchRelevanceOrder(QueryBuilder $builder, string $search): void
+    {
+        $parsed = $this->parseSearchQuery($search);
+        $hasTaskKey = $this->hasColumn('tasks', 'task_key');
+        $hasSeqNum = $this->hasColumn('tasks', 'task_sequence_number');
+
+        if ($parsed['canonical_key'] !== null) {
+            $quotedKey = $this->pdo->quote($parsed['canonical_key']);
+            $quotedPrefix = $this->pdo->quote($parsed['canonical_key'] . '%');
+            $cases = [];
+            if ($hasTaskKey) {
+                $cases[] = "WHEN t.task_key = {$quotedKey} THEN 0";
+                $cases[] = "WHEN t.task_key LIKE {$quotedPrefix} THEN 1";
+            }
+            if ($hasSeqNum && $parsed['prefix'] !== null && $parsed['sequence'] !== null) {
+                $quotedPrefixCol = $this->pdo->quote($parsed['prefix']);
+                $seq = (int)$parsed['sequence'];
+                $cases[] = "WHEN t.task_key_prefix = {$quotedPrefixCol} AND t.task_sequence_number = {$seq} THEN 0";
+            }
+            if ($cases !== []) {
+                $builder->orderByRaw("CASE " . implode(' ', $cases) . " ELSE 2 END ASC");
+            }
+        } elseif ($parsed['numeric_id'] !== null) {
+            $num = (int)$parsed['numeric_id'];
+            $quotedKeyEnds = $this->pdo->quote('%-' . $num);
+            $cases = [];
+            if ($hasSeqNum) {
+                $cases[] = "WHEN t.task_sequence_number = {$num} THEN 0";
+            }
+            $cases[] = "WHEN t.id = {$num} THEN 1";
+            if ($hasTaskKey) {
+                $cases[] = "WHEN t.task_key LIKE {$quotedKeyEnds} THEN 2";
+            }
+            if ($cases !== []) {
+                $builder->orderByRaw("CASE " . implode(' ', $cases) . " ELSE 3 END ASC");
+            }
+        } else {
+            $clean = trim($parsed['clean']);
+            if ($clean !== '') {
+                $quotedExact = $this->pdo->quote($clean);
+                $quotedPrefix = $this->pdo->quote($clean . '%');
+                $builder->orderByRaw("CASE WHEN t.title = {$quotedExact} THEN 0 WHEN t.title LIKE {$quotedPrefix} THEN 1 ELSE 2 END ASC");
+            }
+        }
     }
 }
