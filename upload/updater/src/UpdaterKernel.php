@@ -160,18 +160,32 @@ final class UpdaterKernel
             }
             return $dispatch($input);
         } catch (\Throwable $e) {
-            if (str_contains($e->getMessage(), 'HOST_RELEASE_BUSY')
-                || str_contains($e->getMessage(), 'HOST_LEASE_BUSY')) {
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'HOST_RELEASE_BUSY')
+                || str_contains($msg, 'HOST_LEASE_BUSY')) {
                 return JsonResponse::error('HOST_RELEASE_BUSY', 'An automated release or update is currently in progress.', 409);
             }
-            if (str_contains($e->getMessage(), 'HOST_LEASE_RECONCILIATION_REQUIRED')) {
+            if (str_contains($msg, 'HOST_LEASE_RECONCILIATION_REQUIRED')) {
                 return JsonResponse::error('HOST_LEASE_RECONCILIATION_REQUIRED', 'The previous release must be reconciled before updating.', 409);
             }
-            if (str_contains($e->getMessage(), 'HOST_LEASE_FENCE_REJECTED')
-                || str_contains($e->getMessage(), 'HOST_LEASE_JOB_BINDING_REJECTED')) {
+            if (str_contains($msg, 'HOST_LEASE_FENCE_REJECTED')
+                || str_contains($msg, 'HOST_LEASE_JOB_BINDING_REJECTED')) {
                 return JsonResponse::error('HOST_LEASE_FENCE_REJECTED', 'Current release ownership is required.', 409);
             }
-            return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($e->getMessage()), 500);
+            if (str_contains($msg, 'HOST_LEASE_DIRECTORY_UNSAFE')
+                || str_contains($msg, 'HOST_LEASE_FILE_UNSAFE')
+                || str_contains($msg, 'HOST_LEASE_LOCK_SYMLINK')
+                || str_contains($msg, 'HOST_LEASE_DIRECTORY_UNAVAILABLE')
+                || str_contains($msg, 'HOST_LEASE_FILE_UNAVAILABLE')
+                || str_contains($msg, 'HOST_LEASE_STORAGE_UNAVAILABLE')
+                || str_contains($msg, 'HOST_LEASE_ROOT_UNAVAILABLE')) {
+                return JsonResponse::error('HOST_LEASE_PERMISSIONS_ERROR', $this->leaseErrorMessage($msg), 500);
+            }
+            if (str_contains($msg, 'Updater token is required')
+                || str_contains($msg, 'Updater token is invalid or expired')) {
+                return JsonResponse::error('UPDATER_TOKEN_INVALID', $msg, 401);
+            }
+            return JsonResponse::error('UPDATER_ERROR', $this->safeDiagnosticMessage($msg), 500);
         } finally {
             $deploymentMutex?->release();
         }
@@ -2286,6 +2300,23 @@ final class UpdaterKernel
         return $rows;
     }
 
+    private function leaseErrorMessage(string $msg): string
+    {
+        return match (true) {
+            str_contains($msg, 'HOST_LEASE_DIRECTORY_UNSAFE') =>
+                'Permission error: storage_api/release-coordinator directory has unsafe permissions or is owned by another user. Run: chmod 700 storage_api/release-coordinator',
+            str_contains($msg, 'HOST_LEASE_FILE_UNSAFE') =>
+                'Permission error: release lock or lease file in storage_api/release-coordinator has unsafe permissions or wrong ownership. Run: chmod 600 storage_api/release-coordinator/*',
+            str_contains($msg, 'HOST_LEASE_LOCK_SYMLINK') =>
+                'Security error: release-coordinator lock file is a symlink.',
+            str_contains($msg, 'HOST_LEASE_DIRECTORY_UNAVAILABLE') =>
+                'Filesystem error: unable to create or access storage_api/release-coordinator directory. Check write permissions.',
+            str_contains($msg, 'HOST_LEASE_STORAGE_UNAVAILABLE') =>
+                'Filesystem error: storage_api directory is missing or inaccessible.',
+            default => 'Host lease error: ' . $msg,
+        };
+    }
+
     /**
      * @return array<int,string> names of staged package files
      */
@@ -2295,8 +2326,8 @@ final class UpdaterKernel
         if ($value === '') {
             return 'Updater operation failed. Check the operation log for details.';
         }
-        foreach ([
-            'Unable to reach update center:' => 'Update center request failed.',
+        $known = [
+            'Unable to reach update center:' => 'Update center request failed: unable to connect.',
             'Update center returned HTTP ' => 'Update center returned an HTTP error.',
             'Update center returned invalid JSON' => 'Update center returned invalid data.',
             'Unable to download package.' => 'Package download failed.',
@@ -2305,10 +2336,35 @@ final class UpdaterKernel
             'Downloaded package is missing.' => 'Downloaded package is missing.',
             'Unable to open update package zip.' => 'Downloaded package could not be opened as a ZIP archive.',
             'Unable to extract update package.' => 'Downloaded package could not be extracted.',
-        ] as $prefix => $safe) {
+            'Staging directory is missing.' => 'Staging directory is missing. Please restart the update.',
+            'Package contains forbidden path:' => 'Package contains forbidden path: update rejected.',
+            'Applied file hash mismatch:' => 'Applied file hash mismatch: update rejected for safety.',
+            'Maintenance directory unavailable.' => 'Cannot write maintenance flag in storage_api/. Check permissions.',
+            'Maintenance flag write incomplete.' => 'Failed to write maintenance flag. Check disk space and permissions.',
+            'Unable to create package storage directory.' => 'Cannot create storage_api/updates/packages directory. Check permissions.',
+            'Package download is already running for this update.' => 'Package download is already running for this update.',
+            'Downloaded package size exceeds the manifest value.' => 'Downloaded package size exceeds the manifest value.',
+            'Downloaded package failed size or sha256 verification.' => 'Downloaded package failed integrity verification.',
+            'Unable to move the verified package into place.' => 'Cannot move downloaded package. Check disk space and permissions.',
+            'Unsafe project root' => 'Unsafe project root directory.',
+            'Module operation lock' => 'Module operation lock error. Check storage_api/locks permissions.',
+            'Cannot open database' => 'Cannot open SQLite database. Check storage/ permissions.',
+        ];
+        foreach ($known as $prefix => $safe) {
             if (str_starts_with($value, $prefix)) {
                 return $safe;
             }
+        }
+        if (str_contains($value, 'Permission denied')) {
+            return 'Permission denied: web server cannot access updater files. Check ownership and permissions.';
+        }
+        if (str_contains($value, 'No space left on device') || str_contains($value, 'disk full')) {
+            return 'Disk full: server has no free space left for updates and backups.';
+        }
+        // Mask raw base path to prevent leaking full server paths
+        $sanitized = str_replace([$this->basePath . '/', $this->basePath], '', $value);
+        if (strlen($sanitized) < 300 && !preg_match('/(password|secret|bearer|token\s*=\s*[a-f0-9]{16})/i', $sanitized)) {
+            return $sanitized;
         }
         return 'Updater operation failed. Check the operation log for details.';
     }

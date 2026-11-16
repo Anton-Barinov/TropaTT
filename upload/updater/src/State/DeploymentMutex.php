@@ -35,7 +35,7 @@ final class DeploymentMutex
         if ($directoryStat === false) { return false; }
         if (is_link($directory) || ($directoryStat['mode'] & 0170000) !== 0040000) { return true; }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($directoryStat['mode'] & 0077) !== 0
+            if (($directoryStat['mode'] & 0002) !== 0
                 || !self::isValidOwner((int)$directoryStat['uid'], (int)$storageStat['uid'])) { return true; }
         }
         $path = $directory . '/installation-release.lock';
@@ -44,7 +44,7 @@ final class DeploymentMutex
         if ($pathStat === false) { return false; }
         if (is_link($path) || ($pathStat['mode'] & 0170000) !== 0100000) { return true; }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($pathStat['mode'] & 0077) !== 0 || $pathStat['nlink'] !== 1
+            if (($pathStat['mode'] & 0002) !== 0 || $pathStat['nlink'] !== 1
                 || !self::isValidOwner((int)$pathStat['uid'], (int)$directoryStat['uid'])) { return true; }
         }
         $handle = @fopen($path, 'rb');
@@ -86,7 +86,15 @@ final class DeploymentMutex
             throw new \RuntimeException('Deployment mutex directory unavailable.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($directoryStat['mode'] & 0077) !== 0
+            if (($directoryStat['mode'] & 0002) !== 0) {
+                throw new \RuntimeException('Deployment mutex directory must be private.');
+            }
+            if (($directoryStat['mode'] & 0077) !== 0) {
+                @chmod($directory, 0700);
+                clearstatcache(true, $directory);
+                $directoryStat = @stat($directory);
+            }
+            if ($directoryStat === false || ($directoryStat['mode'] & 0002) !== 0
                 || !self::isValidOwner((int)$directoryStat['uid'], (int)@fileowner($storage))) {
                 throw new \RuntimeException('Deployment mutex directory must be private.');
             }
@@ -110,7 +118,12 @@ final class DeploymentMutex
             throw new \RuntimeException('Unsafe deployment mutex file.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
+            if (($fileStat['mode'] & 0077) !== 0) {
+                @chmod($path, 0600);
+                clearstatcache(true, $path);
+                $fileStat = fstat($handle);
+            }
+            if ($fileStat === false || ($fileStat['mode'] & 0002) !== 0 || $fileStat['nlink'] !== 1
                 || !self::isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])) {
                 fclose($handle);
                 throw new \RuntimeException('Unsafe deployment mutex file.');

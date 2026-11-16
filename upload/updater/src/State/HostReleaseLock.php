@@ -24,7 +24,7 @@ final class HostReleaseLock
         if ($stat === false) { return false; }
         if (is_link($path) || ($stat['mode'] & 0170000) !== 0100000) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
+            if (($stat['mode'] & 0002) !== 0 || $stat['nlink'] !== 1) { throw new \RuntimeException('Unsafe protocol-1 release guard file.'); }
         }
         $handle = @fopen($path, 'rb');
         if ($handle === false) { throw new \RuntimeException('Protocol-1 release guard unavailable.'); }
@@ -71,7 +71,15 @@ final class HostReleaseLock
             throw new \RuntimeException('Host release lock directory must be private.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
+            if (($directoryStat['mode'] & 0002) !== 0) {
+                throw new \RuntimeException('Host release lock directory must be private.');
+            }
             if (($directoryStat['mode'] & 0077) !== 0) {
+                @chmod($directory, 0700);
+                clearstatcache(true, $directory);
+                $directoryStat = @lstat($directory);
+            }
+            if ($directoryStat === false || ($directoryStat['mode'] & 0002) !== 0) {
                 throw new \RuntimeException('Host release lock directory must be private.');
             }
         }
@@ -105,7 +113,14 @@ final class HostReleaseLock
             throw new \RuntimeException('Unsafe host release lock metadata.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($fileStat['mode'] & 0077) !== 0 || $fileStat['nlink'] !== 1
+            if (($fileStat['mode'] & 0077) !== 0) {
+                @chmod($path, 0600);
+                clearstatcache(true, $path);
+                $fileStat = fstat($handle);
+                $pathStatAfter = @lstat($path);
+            }
+            if ($fileStat === false || $pathStatAfter === false
+                || ($fileStat['mode'] & 0002) !== 0 || $fileStat['nlink'] !== 1
                 || !$this->isValidOwner((int)$fileStat['uid'], (int)$directoryStat['uid'])
                 || $fileStat['dev'] !== $pathStatAfter['dev'] || $fileStat['ino'] !== $pathStatAfter['ino']
                 || $directoryStat['dev'] !== $directoryStatAfter['dev']
@@ -149,7 +164,15 @@ final class HostReleaseLock
         clearstatcache(true, $directory);
         $dir = @lstat($directory);
         if ($dir === false || is_link($directory) || ($dir['mode'] & 0170000) !== 0040000
-            || ($dir['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$dir['uid'], (int)fileowner($this->basePath))) {
+            || !$this->isValidOwner((int)$dir['uid'], (int)fileowner($this->basePath))) {
+            throw new \RuntimeException('BOOTSTRAP_INTENT_DIRECTORY_UNSAFE');
+        }
+        if (($dir['mode'] & 0077) !== 0) {
+            @chmod($directory, 0700);
+            clearstatcache(true, $directory);
+            $dir = @lstat($directory);
+        }
+        if ($dir === false || ($dir['mode'] & 0002) !== 0) {
             throw new \RuntimeException('BOOTSTRAP_INTENT_DIRECTORY_UNSAFE');
         }
         $leaseRecord = $directory . '/host-release.lease.json';
@@ -163,8 +186,16 @@ final class HostReleaseLock
             'created_at' => time(), 'expires_at' => time() + 900];
         $existing = @lstat($path);
         if ($existing !== false) {
-            if (is_link($path) || ($existing['mode'] & 0170000) !== 0100000 || ($existing['mode'] & 0077) !== 0
+            if (is_link($path) || ($existing['mode'] & 0170000) !== 0100000
                 || $existing['nlink'] !== 1 || !$this->isValidOwner((int)$existing['uid'], (int)$dir['uid']) || $existing['size'] > 4096) {
+                throw new \RuntimeException('BOOTSTRAP_INTENT_UNSAFE');
+            }
+            if (($existing['mode'] & 0077) !== 0) {
+                @chmod($path, 0600);
+                clearstatcache(true, $path);
+                $existing = @lstat($path);
+            }
+            if ($existing === false || ($existing['mode'] & 0002) !== 0) {
                 throw new \RuntimeException('BOOTSTRAP_INTENT_UNSAFE');
             }
             $prior = json_decode((string)@file_get_contents($path), true);

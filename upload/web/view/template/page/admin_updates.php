@@ -173,6 +173,12 @@ $auJs = [
   'errTimeout' => $au('err_timeout', 'Запрос превысил таймаут.'),
   'errPreflightRequired' => $au('err_preflight_required', 'Сначала успешно выполните проверку безопасности.'),
   'errNoPackage' => $au('err_no_package', 'Для этой операции пакет обновления недоступен.'),
+  'errDeploymentBusy' => $au('err_deployment_busy', 'Идёт другой процесс обновления или развёртывания. Попробуйте через минуту.'),
+  'errHostReleaseBusy' => $au('err_host_release_busy', 'Обновление заблокировано другим процессом (host release). Подождите завершения текущей операции.'),
+  'errHostLeaseReconcile' => $au('err_host_lease_reconcile', 'Предыдущее обновление было прервано или требует согласования. Нажмите «Принудительно разблокировать» или перезапустите обновление.'),
+  'errHostLeasePermissions' => $au('err_host_lease_permissions', 'Ошибка прав доступа: каталог storage_api/release-coordinator или файлы блокировок имеют некорректные права или принадлежат другому пользователю. Выполните: chmod -R 770 storage_api/release-coordinator'),
+  'errUpdaterToken' => $au('err_updater_token', 'Токен обновления недействителен или истёк. Обновите страницу.'),
+  'errUpdaterFailedWithMessage' => $au('err_updater_failed_with_message', 'Ошибка обновления: {message}'),
   'fieldTarget' => $au('field_target', 'Целевая сборка'),
   'fieldHealth' => $au('field_health', 'Проверка состояния'),
   'fieldStaging' => $au('field_staging', 'Подготовка архива'),
@@ -767,8 +773,18 @@ $auJs = [
   function errorMessage(payload, fallback) {
     const status = Number(payload && payload.http_status || 0);
     const code = String(payload && payload.code || '').toUpperCase();
-    if (status === 401) return tr('errSession', 'Сессия истекла. Обновите страницу и войдите в CRM снова.');
+    if (status === 401) {
+      if (code === 'UPDATER_TOKEN_INVALID') return tr('errUpdaterToken', 'Токен обновления недействителен или истёк. Обновите страницу.');
+      return tr('errSession', 'Сессия истекла. Обновите страницу и войдите в CRM снова.');
+    }
     if (status === 403) return tr('errForbidden', 'У пользователя нет прав на управление обновлениями. Нужен root/admin или право управления настройками.');
+    if (code === 'DEPLOYMENT_BUSY') return tr('errDeploymentBusy', 'Идёт другой процесс обновления или развёртывания. Попробуйте через минуту.');
+    if (code === 'HOST_RELEASE_BUSY') return tr('errHostReleaseBusy', 'Обновление заблокировано другим процессом (host release). Подождите завершения текущей операции.');
+    if (code === 'HOST_LEASE_RECONCILIATION_REQUIRED') return tr('errHostLeaseReconcile', 'Предыдущее обновление было прервано или требует согласования. Нажмите «Принудительно разблокировать» или перезапустите обновление.');
+    if (code === 'HOST_LEASE_PERMISSIONS_ERROR') {
+      const msg = String(payload && payload.message || '').trim();
+      return msg ? tr('errUpdaterFailedWithMessage', 'Ошибка обновления: {message}', {message: msg}) : tr('errHostLeasePermissions', 'Ошибка прав доступа: каталог storage_api/release-coordinator или файлы блокировок имеют некорректные права или принадлежат другому пользователю. Выполните: chmod -R 770 storage_api/release-coordinator');
+    }
     if (code === 'PREFLIGHT_REQUIRED') return tr('errPreflightRequired', 'Сначала успешно выполните проверку безопасности.');
     if (code === 'NO_PACKAGE') return tr('errNoPackage', 'Для этой операции пакет обновления недоступен.');
     if (code === 'PREFLIGHT_FAILED') return tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
@@ -776,8 +792,10 @@ $auJs = [
     if (code === 'APPLY_FAILED') return tr('errApply', 'Не удалось установить обновление.');
     if (code === 'ROLLBACK_FAILED') return tr('errRollback', 'Не удалось восстановить backup.');
     if (code === 'UPDATER_ERROR') {
+      const msg = String(payload && payload.message || '').trim();
       const safeDiagnostics = {
         'Update center request failed.': 'errCheck',
+        'Update center request failed: unable to connect.': 'errCheck',
         'Update center returned an HTTP error.': 'errCheck',
         'Update center returned invalid data.': 'errCheck',
         'Package download failed.': 'errDownload',
@@ -787,10 +805,13 @@ $auJs = [
         'Downloaded package could not be opened as a ZIP archive.': 'errDownload',
         'Downloaded package could not be extracted.': 'errDownload'
       };
-      const diagnosticKey = safeDiagnostics[String(payload && payload.message || '').trim()];
-      if (diagnosticKey === 'errCheck') return tr('errCheck', 'Не удалось проверить обновления.');
-      if (diagnosticKey === 'errDownload') return tr('errDownload', 'Не удалось подготовить архив.');
-      return tr('errGeneric', 'Не удалось выполнить действие.');
+      const diagnosticKey = safeDiagnostics[msg];
+      if (diagnosticKey === 'errCheck') return tr('errCheck', 'Не удалось проверить обновления.') + (msg ? ': ' + msg : '');
+      if (diagnosticKey === 'errDownload') return tr('errDownload', 'Не удалось подготовить архив.') + (msg ? ': ' + msg : '');
+      if (msg && msg !== 'Updater operation failed. Check the operation log for details.') {
+        return tr('errUpdaterFailedWithMessage', 'Ошибка обновления: {message}', {message: msg});
+      }
+      return fallback || tr('errGeneric', 'Не удалось выполнить действие.');
     }
     if (code === 'INVALID_JSON' && [408, 425, 429, 500, 502, 503, 504].includes(status)) {
       return tr('errTransientHttp', 'Сервер временно вернул ошибку HTTP {status}. Повторите попытку позже; состояние обновления сохранено.', {status});
@@ -811,7 +832,10 @@ $auJs = [
       APPLY_FAILED: 'errApply',
       ROLLBACK_FAILED: 'errRollback',
       PREFLIGHT_REQUIRED: 'errPreflightRequired',
-      NO_PACKAGE: 'errNoPackage'
+      NO_PACKAGE: 'errNoPackage',
+      DEPLOYMENT_BUSY: 'errDeploymentBusy',
+      HOST_RELEASE_BUSY: 'errHostReleaseBusy',
+      HOST_LEASE_PERMISSIONS_ERROR: 'errHostLeasePermissions'
     };
     if (knownByCode[code]) return tr(knownByCode[code], 'Не удалось выполнить действие.');
     const legacy = String(job.error || '');
@@ -820,7 +844,11 @@ $auJs = [
     if (legacy === 'Update package preparation failed.') return tr('errDownload', 'Не удалось подготовить архив.');
     if (legacy === 'Update apply failed.') return tr('errApply', 'Не удалось установить обновление.');
     if (legacy === 'Rollback failed.') return tr('errRollback', 'Не удалось восстановить backup.');
-    return legacy ? tr('errGeneric', 'Не удалось выполнить действие.') : '';
+    const errorText = String(job.error_message || legacy).trim();
+    if (errorText) {
+      return tr('errUpdaterFailedWithMessage', 'Ошибка обновления: {message}', {message: errorText});
+    }
+    return '';
   }
 
   function ensureSuccess(payload, fallback) {

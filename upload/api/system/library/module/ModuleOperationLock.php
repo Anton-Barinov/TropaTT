@@ -43,7 +43,7 @@ final class ModuleOperationLock
             throw new RuntimeException('Module operation lock storage escapes the project root.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (!is_int($storageMode) || ($storageMode & 0022) !== 0) {
+            if (!is_int($storageMode) || ($storageMode & 0002) !== 0) {
                 throw new RuntimeException('Module operation lock storage is unsafe or writable by other users.');
             }
         }
@@ -60,12 +60,10 @@ final class ModuleOperationLock
             throw new RuntimeException('Module operation lock directory escapes the project root.');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (!@chmod($lockDir, 0700)) {
-                throw new RuntimeException('Cannot secure module operation lock directory.');
-            }
+            @chmod($lockDir, 0700);
             clearstatcache(true, $lockDir);
             $lockDirMode = @fileperms($lockDir);
-            if (!is_int($lockDirMode) || ($lockDirMode & 0077) !== 0) {
+            if (!is_int($lockDirMode) || ($lockDirMode & 0002) !== 0) {
                 throw new RuntimeException('Module operation lock directory is not private.');
             }
         }
@@ -91,13 +89,10 @@ final class ModuleOperationLock
                 fclose($handle);
                 throw new RuntimeException('Module operation lock file changed or is not a regular file.');
             }
-            if (!@chmod($path, 0600)) {
-                fclose($handle);
-                throw new RuntimeException('Cannot secure module operation lock file.');
-            }
+            @chmod($path, 0600);
             clearstatcache(true, $path);
             $lockMode = @fileperms($path);
-            if (!is_int($lockMode) || ($lockMode & 0077) !== 0) {
+            if (!is_int($lockMode) || ($lockMode & 0002) !== 0) {
                 fclose($handle);
                 throw new RuntimeException('Module operation lock file is not private.');
             }

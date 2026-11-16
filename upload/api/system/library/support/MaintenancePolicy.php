@@ -249,6 +249,7 @@ if (!function_exists('tropatt_maintenance_auto_recover_if_abandoned')) {
                     $leaseFile,
                     json_encode($leaseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
                 );
+                @chmod($leaseFile, 0600);
             }
         }
 

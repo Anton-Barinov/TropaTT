@@ -53,9 +53,20 @@ final class DurableHostReleaseLease
         }
         clearstatcache(true, $directory);
         $dirStat = @lstat($directory);
-        if (!is_array($dirStat) || ($dirStat['mode'] & 0170000) !== 0040000
-            || ($dirStat['mode'] & 0077) !== 0 || is_link($directory)
+        if (!is_array($dirStat) || ($dirStat['mode'] & 0170000) !== 0040000 || is_link($directory)
             || !$this->isValidOwner((int)$dirStat['uid'], (int)$stat['uid'])) {
+            throw new \RuntimeException('HOST_LEASE_DIRECTORY_UNSAFE');
+        }
+        if (($dirStat['mode'] & 0002) !== 0) {
+            throw new \RuntimeException('HOST_LEASE_DIRECTORY_UNSAFE');
+        }
+        if (($dirStat['mode'] & 0077) !== 0) {
+            @chmod($directory, 0700);
+            clearstatcache(true, $directory);
+            $dirStat = @lstat($directory);
+        }
+        if (!is_array($dirStat) || ($dirStat['mode'] & 0002) !== 0
+            || (PHP_OS_FAMILY !== 'Windows' && ($dirStat['mode'] & 0007) !== 0 && ($dirStat['mode'] & 0077) !== 0)) {
             throw new \RuntimeException('HOST_LEASE_DIRECTORY_UNSAFE');
         }
         $this->directory = $directory;
@@ -225,14 +236,19 @@ final class DurableHostReleaseLease
             throw new \RuntimeException('HOST_LEASE_FILE_UNAVAILABLE');
         }
         try {
+            @chmod($this->lockPath, 0600);
             $meta = fstat($handle);
             clearstatcache(true, $this->lockPath);
             $pathMeta = @lstat($this->lockPath);
             if (!is_array($meta) || !is_array($pathMeta)
-                || ($meta['mode'] & 0170000) !== 0100000 || ($meta['mode'] & 0077) !== 0
+                || ($meta['mode'] & 0170000) !== 0100000
+                || ($meta['mode'] & 0002) !== 0
                 || $meta['nlink'] !== 1 || $meta['dev'] !== $pathMeta['dev']
                 || $meta['ino'] !== $pathMeta['ino'] || ($pathMeta['mode'] & 0170000) !== 0100000
                 || $meta['uid'] !== $pathMeta['uid'] || !$this->isValidOwner((int)$meta['uid'], $this->directoryUid())) {
+                throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
+            }
+            if (PHP_OS_FAMILY !== 'Windows' && ($meta['mode'] & 0007) !== 0 && ($meta['mode'] & 0077) !== 0) {
                 throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
             }
             if (!flock($handle, LOCK_EX | LOCK_NB)) {
@@ -254,9 +270,19 @@ final class DurableHostReleaseLease
         }
         clearstatcache(true, $this->path);
         $meta = @lstat($this->path);
-        if (!is_array($meta) || is_link($this->path) || ($meta['mode'] & 0170000) !== 0100000
-            || ($meta['mode'] & 0077) !== 0 || $meta['nlink'] !== 1 || $meta['size'] > 8192
+        if (!is_array($meta) || is_link($this->path) || ($meta['mode'] & 0170000) !== 0100000) {
+            throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
+        }
+        if (($meta['mode'] & 0077) !== 0) {
+            @chmod($this->path, 0600);
+            clearstatcache(true, $this->path);
+            $meta = @lstat($this->path);
+        }
+        if (!is_array($meta) || ($meta['mode'] & 0002) !== 0 || $meta['nlink'] !== 1 || $meta['size'] > 8192
             || !$this->isValidOwner((int)$meta['uid'], $this->directoryUid())) {
+            throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
+        }
+        if (PHP_OS_FAMILY !== 'Windows' && ($meta['mode'] & 0007) !== 0 && ($meta['mode'] & 0077) !== 0) {
             throw new \RuntimeException('HOST_LEASE_FILE_UNSAFE');
         }
         $raw = @file_get_contents($this->path);
@@ -825,8 +851,16 @@ final class DurableHostReleaseLease
         $stat = @lstat($path);
         $storage = @lstat(rtrim((string)$this->updaterStorageDir, '/'));
         if (!is_array($stat) || !is_array($storage) || is_link($path)
-            || ($stat['mode'] & 0170000) !== 0040000 || ($stat['mode'] & 0077) !== 0
+            || ($stat['mode'] & 0170000) !== 0040000
             || !$this->isValidOwner((int)$stat['uid'], (int)$storage['uid'])) {
+            throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
+        }
+        if (($stat['mode'] & 0077) !== 0) {
+            @chmod($path, 0700);
+            clearstatcache(true, $path);
+            $stat = @lstat($path);
+        }
+        if (!is_array($stat) || ($stat['mode'] & 0002) !== 0) {
             throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
         }
     }
@@ -840,9 +874,17 @@ final class DurableHostReleaseLease
         $stat = @lstat($path);
         $storage = @lstat(rtrim((string)$this->updaterStorageDir, '/'));
         if (!is_array($stat) || !is_array($storage) || is_link($path)
-            || ($stat['mode'] & 0170000) !== 0100000 || ($stat['mode'] & 0077) !== 0
+            || ($stat['mode'] & 0170000) !== 0100000
             || !$this->isValidOwner((int)$stat['uid'], (int)$storage['uid']) || $stat['nlink'] !== 1
             || $stat['size'] < 2 || $stat['size'] > $maxBytes) {
+            throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
+        }
+        if (($stat['mode'] & 0077) !== 0) {
+            @chmod($path, 0600);
+            clearstatcache(true, $path);
+            $stat = @lstat($path);
+        }
+        if (!is_array($stat) || ($stat['mode'] & 0002) !== 0) {
             throw new \RuntimeException('HOST_LEASE_SUCCESSOR_READBACK_INVALID');
         }
         $raw = @file_get_contents($path);
