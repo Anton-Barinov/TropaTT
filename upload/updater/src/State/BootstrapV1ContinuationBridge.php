@@ -102,7 +102,12 @@ final class BootstrapV1ContinuationBridge
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_DIRECTORY_UNSAFE');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($stat['mode'] & 0077) !== 0 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
+            if (($stat['mode'] & 0077) !== 0) {
+                @chmod($path, 0700);
+                clearstatcache(true, $path);
+                $stat = @lstat($path);
+            }
+            if ($stat === false || ($stat['mode'] & 0002) !== 0 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
                 throw new \RuntimeException('BOOTSTRAP_V1_READBACK_DIRECTORY_UNSAFE');
             }
         }
@@ -116,7 +121,12 @@ final class BootstrapV1ContinuationBridge
             throw new \RuntimeException('BOOTSTRAP_V1_READBACK_FILE_UNSAFE');
         }
         if (PHP_OS_FAMILY !== 'Windows') {
-            if (($stat['mode'] & 0077) !== 0 || $stat['nlink'] !== 1
+            if (($stat['mode'] & 0077) !== 0) {
+                @chmod($path, 0600);
+                clearstatcache(true, $path);
+                $stat = @lstat($path);
+            }
+            if ($stat === false || ($stat['mode'] & 0002) !== 0 || $stat['nlink'] !== 1
                 || !$this->isValidOwner((int)$stat['uid'], (int)fileowner($this->storageDir))) {
                 throw new \RuntimeException('BOOTSTRAP_V1_READBACK_FILE_UNSAFE');
             }
