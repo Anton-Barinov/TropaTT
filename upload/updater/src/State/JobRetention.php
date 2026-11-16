@@ -127,10 +127,20 @@ final class JobRetention
             if ($jobId === '') {
                 continue;
             }
-            $terminal[] = ['job_id' => $jobId, 'mtime' => (int)@filemtime($file)];
+            $terminal[] = [
+                'job_id' => $jobId,
+                'mtime' => (int)@filemtime($file),
+                'timestamp' => JobState::resolveJobTimestamp($file, $state),
+            ];
         }
-        // Newest first so "keep the most recent" is well defined.
-        usort($terminal, static fn(array $a, array $b): int => $b['mtime'] <=> $a['mtime']);
+        // Newest first by job creation/start timestamp so "keep the most recent" is well defined.
+        usort($terminal, static function (array $a, array $b): int {
+            $diff = $b['timestamp'] <=> $a['timestamp'];
+            if ($diff !== 0) {
+                return $diff;
+            }
+            return $b['mtime'] <=> $a['mtime'];
+        });
 
         $now = time();
         $removed = [];
@@ -150,7 +160,7 @@ final class JobRetention
             }
 
             // Beyond keepJobs: check if still inside grace period (index < keepJobs * 2 and age < maxAgeSeconds)
-            if ($this->maxAgeSeconds > 0 && ($now - $job['mtime']) < $this->maxAgeSeconds && $index < max(1, $this->keepJobs) * 2) {
+            if ($this->maxAgeSeconds > 0 && ($now - $job['timestamp']) < $this->maxAgeSeconds && $index < max(1, $this->keepJobs) * 2) {
                 // Still inside grace period: keep job metadata, but purge heavy backups/staging/packages
                 $this->removeTree($this->storageDir . '/backups/' . 'backup_' . $job['job_id'] . '_' . '*', true);
                 $this->removeTree($this->storageDir . '/staging/' . basename($job['job_id']));

@@ -37,16 +37,68 @@ final class JobState
         if (!$states) {
             return null;
         }
-        // Sort by the state file's modification time (newest first), NOT by
-        // the job id string: an old failed job id (e.g. upd_e2e_...) sorts
-        // ABOVE current upd_YYYYMMDD... ids under plain string rsort, which
-        // would surface a stale failed job as the "latest" forever and keep
-        // showing its error on the admin-updates page.
         usort($states, static function (string $a, string $b): int {
+            $diff = self::resolveJobTimestamp($b) <=> self::resolveJobTimestamp($a);
+            if ($diff !== 0) {
+                return $diff;
+            }
             return @filemtime($b) <=> @filemtime($a);
         });
         $data = json_decode((string)file_get_contents($states[0]), true);
         return is_array($data) ? $data : null;
+    }
+
+    /**
+     * Resolves the creation/start timestamp of an update job.
+     *
+     * Order of priority:
+     * 1. Standard job ID prefix: upd_YYYYMMDD_HHMMSS (zero-cost, avoids disk reads)
+     * 2. `started_at` or `created_at` in state data (parsed via strtotime)
+     * 3. Filesystem modification time (@filemtime)
+     *
+     * Sorting by this timestamp ensures that modifying an abandoned job's state.json
+     * (e.g. during retention cleanup or reconciliation) never falsely promotes it
+     * above newer updates.
+     */
+    public static function resolveJobTimestamp(string $stateFile, ?array $state = null): int
+    {
+        $jobId = basename(dirname($stateFile));
+        if (preg_match('/^upd_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/', $jobId, $m)) {
+            $t = (int)gmmktime((int)$m[4], (int)$m[5], (int)$m[6], (int)$m[2], (int)$m[3], (int)$m[1]);
+            if ($t > 0) {
+                return $t;
+            }
+        }
+        if ($state === null && is_file($stateFile)) {
+            $raw = @file_get_contents($stateFile);
+            if ($raw !== false) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $state = $decoded;
+                }
+            }
+        }
+        if (is_array($state)) {
+            if (!empty($state['started_at'])) {
+                $t = is_numeric($state['started_at']) ? (int)$state['started_at'] : (int)strtotime((string)$state['started_at']);
+                if ($t > 0) {
+                    return $t;
+                }
+            }
+            if (!empty($state['created_at'])) {
+                $t = is_numeric($state['created_at']) ? (int)$state['created_at'] : (int)strtotime((string)$state['created_at']);
+                if ($t > 0) {
+                    return $t;
+                }
+            }
+            if (!empty($state['job_id']) && preg_match('/^upd_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/', (string)$state['job_id'], $m)) {
+                $t = (int)gmmktime((int)$m[4], (int)$m[5], (int)$m[6], (int)$m[2], (int)$m[3], (int)$m[1]);
+                if ($t > 0) {
+                    return $t;
+                }
+            }
+        }
+        return (int)@filemtime($stateFile);
     }
 
     public function readFile(string $file): ?array
