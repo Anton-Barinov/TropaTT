@@ -126,11 +126,15 @@ final class SearchService
 
         $items = [];
         foreach ($taskRows as $row) {
+            $taskKey = trim((string)($row['task_key'] ?? ''));
+            $title = (string)($row['title'] ?? '');
+            $label = $taskKey !== '' ? "[{$taskKey}] {$title}" : $title;
             $items[] = [
                 'entity_type' => 'task',
                 'public_id' => (string)($row['public_id'] ?? ''),
-                'label' => (string)($row['title'] ?? ''),
+                'label' => $label,
                 'meta' => [
+                    'task_key' => $taskKey !== '' ? $taskKey : null,
                     'status_code' => $row['status_code'] ?? null,
                     'priority_code' => $row['priority_code'] ?? null,
                 ],

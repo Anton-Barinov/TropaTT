@@ -34864,7 +34864,8 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (results.tasks && results.tasks.length) {
         var tasksHtml = results.tasks.slice(0, 10).map(function(task) {
           var link = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
-          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + escapeHtml(task.title || _t('page.search_untitled', 'Без названия')) + '</a>'
+          var keyBadge = task.task_key ? '<span class="badge bg-secondary me-1">' + escapeHtml(task.task_key) + '</span>' : '';
+          return '<div class="crm-search-item"><a class="crm-search-item-title" href="' + link + '">' + keyBadge + escapeHtml(task.title || _t('page.search_untitled', 'Без названия')) + '</a>'
             + '<div class="crm-search-item-meta">' + _t('page.search_meta_task', 'Задача') + ' · ' + escapeHtml(task.project_title || '—') + '</div></div>';
         }).join('');
         sections.push('<div class="col-lg-6"><div class="crm-card crm-section-card"><div class="crm-section-head"><h2 class="h6 mb-0">' + _t('page.search_section_tasks', 'Задачи') + '</h2><span class="crm-chip">' + (counts?.tasks || results.tasks.length) + '</span></div><div class="crm-search-list">' + tasksHtml + '</div></div></div>');
