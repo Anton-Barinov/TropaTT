@@ -269,6 +269,12 @@
         <input id="kbSpaceEditTitle" class="form-control" type="text" required maxlength="255">
       </div>
       <div class="mb-3">
+        <label for="kbSpaceEditParent" class="form-label fw-semibold"><?= htmlspecialchars($t('knowledge.modal_label_parent', 'Родительский раздел'), ENT_QUOTES, 'UTF-8') ?></label>
+        <select id="kbSpaceEditParent" class="form-select">
+          <option value=""><?= htmlspecialchars($t('knowledge.modal_no_parent', 'Без родителя (корневой)'), ENT_QUOTES, 'UTF-8') ?></option>
+        </select>
+      </div>
+      <div class="mb-3">
         <label for="kbSpaceEditDesc" class="form-label fw-semibold"><?= htmlspecialchars($t('knowledge.modal_label_description', 'Описание'), ENT_QUOTES, 'UTF-8') ?></label>
         <textarea id="kbSpaceEditDesc" class="form-control" rows="3"></textarea>
       </div>
@@ -416,6 +422,44 @@
       if(s.children && s.children.length) flattenSpaces(s.children, result);
     });
     return result;
+  }
+
+  function findNodeInTree(nodes, id){
+    if(!nodes) return null;
+    for(var i = 0; i < nodes.length; i++){
+      if(nodes[i].public_id === id) return nodes[i];
+      if(nodes[i].children && nodes[i].children.length){
+        var found = findNodeInTree(nodes[i].children, id);
+        if(found) return found;
+      }
+    }
+    return null;
+  }
+
+  function collectSubtreeIds(node, set){
+    set = set || {};
+    if(!node) return set;
+    set[node.public_id] = true;
+    if(node.children && node.children.length){
+      node.children.forEach(function(ch){
+        collectSubtreeIds(ch, set);
+      });
+    }
+    return set;
+  }
+
+  function renderSpaceOptions(nodes, depth, excludeSet){
+    depth = depth || 0;
+    var out = '';
+    (nodes || []).forEach(function(s){
+      if(excludeSet && excludeSet[s.public_id]) return;
+      var prefix = depth > 0 ? '— '.repeat(depth) : '';
+      out += '<option value="' + esc(s.public_id) + '">' + prefix + esc(s.title) + '</option>';
+      if(s.children && s.children.length){
+        out += renderSpaceOptions(s.children, depth + 1, excludeSet);
+      }
+    });
+    return out;
   }
 
   function toggleSpaceNode(id){
@@ -775,7 +819,7 @@
 
   document.getElementById('btnCreateSpace').addEventListener('click', function(){
     var sel = document.getElementById('kbSpaceParent');
-    sel.innerHTML = '<option value="">' + esc(_t('knowledge.no_parent', 'Без родителя')) + '</option>' + flatSpaces.map(function(s){ return '<option value="'+esc(s.public_id)+'">'+esc(s.title)+'</option>'; }).join('');
+    sel.innerHTML = '<option value="">' + esc(_t('knowledge.modal_no_parent', 'Без родителя (корневой)')) + '</option>' + renderSpaceOptions(state.spaces, 0);
     document.getElementById('kbSpaceTitleInput').value='';
     document.getElementById('kbSpaceDescInput').value='';
     new bootstrap.Modal(document.getElementById('kbSpaceModal')).show();
@@ -923,6 +967,26 @@
     document.getElementById('kbSpaceEditVisibility').value = s.visibility || 'public';
     document.getElementById('kbSpaceEditAccess').value = s.default_access_level || 'view';
     document.getElementById('kbSpaceEditSort').value = String(s.sort_order != null ? s.sort_order : 100);
+
+    var excludeSet = {};
+    var node = findNodeInTree(state.spaces, id);
+    if(node){
+      collectSubtreeIds(node, excludeSet);
+    } else {
+      excludeSet[id] = true;
+    }
+    var parentSel = document.getElementById('kbSpaceEditParent');
+    if(parentSel){
+      parentSel.innerHTML = '<option value="">' + esc(_t('knowledge.modal_no_parent', 'Без родителя (корневой)')) + '</option>'
+        + renderSpaceOptions(state.spaces, 0, excludeSet);
+      var currentParentPub = s.parent_public_id || '';
+      if(!currentParentPub && s.parent_id){
+        var pObj = flatSpaces.find(function(p){ return Number(p.id) === Number(s.parent_id); });
+        if(pObj) currentParentPub = pObj.public_id || '';
+      }
+      parentSel.value = currentParentPub;
+    }
+
     new bootstrap.Modal(document.getElementById('kbSpaceEditModal')).show();
   }
 
@@ -962,18 +1026,28 @@
     var btn = document.getElementById('kbSpaceEditSubmit');
     btn.disabled = true;
     try {
-      await req('api/v1/knowledge/spaces/' + encodeURIComponent(id), {method:'PATCH', idempotent:true, body:{
+      var body = {
         title: title,
         description: document.getElementById('kbSpaceEditDesc').value,
         visibility: document.getElementById('kbSpaceEditVisibility').value,
         default_access_level: document.getElementById('kbSpaceEditAccess').value,
         sort_order: parseInt(document.getElementById('kbSpaceEditSort').value, 10) || 0,
-        row_version: parseInt(s.row_version || 1, 10)
-      }});
+        row_version: parseInt(s.row_version || 1, 10),
+        parent_public_id: document.getElementById('kbSpaceEditParent') ? document.getElementById('kbSpaceEditParent').value : ''
+      };
+      await req('api/v1/knowledge/spaces/' + encodeURIComponent(id), {method:'PATCH', idempotent:true, body: body});
       bootstrap.Modal.getInstance(document.getElementById('kbSpaceEditModal')).hide();
       await loadSpaces();
       updateSpaceHeader();
-    } catch(err){ alert(_t('knowledge.space_save_error', 'Не удалось сохранить раздел')); }
+    } catch(err){
+      if(err && err.data && err.data.code === 'KNOWLEDGE_SPACE_CYCLE_DETECTED'){
+        alert(_t('knowledge.cycle_detected', 'Нельзя сделать раздел подразделом самого себя или своего потомка'));
+      } else if(err && err.data && err.data.code === 'KNOWLEDGE_PARENT_SPACE_INVALID'){
+        alert(_t('knowledge.parent_not_found', 'Родительский раздел не найден'));
+      } else {
+        alert(_t('knowledge.space_save_error', 'Не удалось сохранить раздел'));
+      }
+    }
     btn.disabled = false;
   });
 

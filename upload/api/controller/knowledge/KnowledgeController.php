@@ -216,6 +216,12 @@ final class KnowledgeController extends BaseController
         if ($result === 'ROW_VERSION_CONFLICT') {
             return $this->error('ROW_VERSION_CONFLICT', $this->t('knowledge/messages.row_version_conflict', 'The record was changed by another user'), 409);
         }
+        if ($result === 'CYCLE_DETECTED') {
+            return $this->error('KNOWLEDGE_SPACE_CYCLE_DETECTED', $this->t('knowledge/messages.cycle_detected', 'Cannot set a space or its descendant as parent'), 422);
+        }
+        if ($result === 'PARENT_NOT_FOUND') {
+            return $this->error('KNOWLEDGE_PARENT_SPACE_INVALID', $this->t('knowledge/messages.parent_not_found', 'Parent space not found'), 404);
+        }
         if (!$result) {
             return $this->error('KNOWLEDGE_SPACE_NOT_FOUND', $this->t('knowledge/messages.space_not_found', 'Knowledge space not found'), 404);
         }

@@ -133,4 +133,6 @@ return [
     'validation_failed' => 'Validation failed. Check server logs for details.',
     'link_not_found' => 'Knowledge link not found',
     'trash_purged' => 'Recycled sections purged',
+    'cycle_detected' => 'Cannot set a space or its descendant as parent',
+    'parent_not_found' => 'Parent space not found',
 ];
