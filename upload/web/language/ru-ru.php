@@ -1029,6 +1029,8 @@ return array (
     'desc_client_note' => 'Заметки по клиенту.',
     'desc_project_note' => 'Документация проекта.',
     'desc_onboarding' => 'Онбординг нового сотрудника.',
+    'cycle_detected' => 'Нельзя сделать раздел подразделом самого себя или своего потомка',
+    'parent_not_found' => 'Родительский раздел не найден',
   ),
   'knowledge_page' => 
   array (

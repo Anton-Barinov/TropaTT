@@ -1029,6 +1029,8 @@ return array (
     'desc_client_note' => 'Client-specific notes.',
     'desc_project_note' => 'Project documentation.',
     'desc_onboarding' => 'New member onboarding.',
+    'cycle_detected' => 'Cannot set a space or its descendant as parent',
+    'parent_not_found' => 'Parent space not found',
   ),
   'knowledge_page' => 
   array (

@@ -172,12 +172,40 @@ final class KnowledgeRepository
         );
         $stmt->execute($params);
         $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $idToPublic = [];
+        $missingParentIds = [];
+        foreach ($spaces as $s) {
+            $idToPublic[(int)$s['id']] = (string)$s['public_id'];
+        }
         foreach ($spaces as &$space) {
             $space['pages_count'] = (int)($space['pages_count'] ?? 0);
             $space['is_archived'] = (int)($space['is_archived'] ?? 0);
-            $space['parent_id'] = isset($space['parent_id']) ? (int)$space['parent_id'] : null;
+            $space['parent_id'] = isset($space['parent_id']) && $space['parent_id'] !== null ? (int)$space['parent_id'] : null;
+            $pid = $space['parent_id'];
+            if ($pid !== null) {
+                if (isset($idToPublic[$pid])) {
+                    $space['parent_public_id'] = $idToPublic[$pid];
+                } else {
+                    $missingParentIds[$pid] = true;
+                    $space['parent_public_id'] = null;
+                }
+            } else {
+                $space['parent_public_id'] = null;
+            }
         }
         unset($space);
+        if (!empty($missingParentIds)) {
+            $missingStmt = $this->pdo->prepare('SELECT id, public_id FROM knowledge_spaces WHERE id IN (' . implode(',', array_map('intval', array_keys($missingParentIds))) . ')');
+            $missingStmt->execute();
+            $resolvedMissing = $missingStmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+            foreach ($spaces as &$space) {
+                $pid = $space['parent_id'];
+                if ($pid !== null && isset($resolvedMissing[$pid])) {
+                    $space['parent_public_id'] = (string)$resolvedMissing[$pid];
+                }
+            }
+            unset($space);
+        }
 
         return $spaces;
     }
@@ -311,6 +339,14 @@ final class KnowledgeRepository
             return null;
         }
         $space['pages_count'] = (int)($space['pages_count'] ?? 0);
+        $space['parent_id'] = isset($space['parent_id']) && $space['parent_id'] !== null ? (int)$space['parent_id'] : null;
+        if ($space['parent_id'] !== null) {
+            $parentStmt = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE id = :id LIMIT 1');
+            $parentStmt->execute(['id' => (int)$space['parent_id']]);
+            $space['parent_public_id'] = $parentStmt->fetchColumn() ?: null;
+        } else {
+            $space['parent_public_id'] = null;
+        }
         return $space;
     }
 
@@ -331,6 +367,14 @@ final class KnowledgeRepository
             return null;
         }
         $space['pages_count'] = (int)($space['pages_count'] ?? 0);
+        $space['parent_id'] = isset($space['parent_id']) && $space['parent_id'] !== null ? (int)$space['parent_id'] : null;
+        if ($space['parent_id'] !== null) {
+            $parentStmt = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE id = :id LIMIT 1');
+            $parentStmt->execute(['id' => (int)$space['parent_id']]);
+            $space['parent_public_id'] = $parentStmt->fetchColumn() ?: null;
+        } else {
+            $space['parent_public_id'] = null;
+        }
         return $space;
     }
 
@@ -417,6 +461,57 @@ final class KnowledgeRepository
         if (isset($payload['row_version']) && (int)$payload['row_version'] !== (int)($current['row_version'] ?? 1)) {
             return 'ROW_VERSION_CONFLICT';
         }
+
+        $parentUpdated = false;
+        $newParentId = null;
+        $hasParentCol = $this->columnExists('knowledge_spaces', 'parent_id');
+
+        if ($hasParentCol && (array_key_exists('parent_public_id', $payload) || array_key_exists('parent_id', $payload))) {
+            $parentUpdated = true;
+            $parentVal = array_key_exists('parent_public_id', $payload)
+                ? $payload['parent_public_id']
+                : $payload['parent_id'];
+            if ($parentVal !== null && $parentVal !== '' && $parentVal !== 0 && $parentVal !== '0') {
+                if (!empty($payload['parent_public_id'])) {
+                    $parent = $this->resolveSpace((string)$payload['parent_public_id'], $actor, 'view');
+                } else {
+                    $parentLookup = $this->pdo->prepare('SELECT public_id FROM knowledge_spaces WHERE id = :id LIMIT 1');
+                    $parentLookup->execute(['id' => (int)$payload['parent_id']]);
+                    $parentPub = $parentLookup->fetchColumn();
+                    $parent = $parentPub !== false ? $this->resolveSpace((string)$parentPub, $actor, 'view') : null;
+                }
+                if (!$parent) {
+                    return 'PARENT_NOT_FOUND';
+                }
+                $targetParentId = (int)$parent['id'];
+                $currentId = (int)$current['id'];
+                if ($targetParentId === $currentId) {
+                    return 'CYCLE_DETECTED';
+                }
+                // Verify organization scope if applicable
+                $organizationId = (int)($actor['organization_id'] ?? 0);
+                if ($organizationId > 0 && isset($parent['organization_id']) && (int)$parent['organization_id'] !== $organizationId) {
+                    return 'PARENT_NOT_FOUND';
+                }
+                // Check if targetParentId is a descendant of currentId to prevent circular nesting
+                $cursor = $targetParentId;
+                $visited = [$currentId => true];
+                while ($cursor > 0) {
+                    if (isset($visited[$cursor])) {
+                        return 'CYCLE_DETECTED';
+                    }
+                    $visited[$cursor] = true;
+                    $stmt = $this->pdo->prepare('SELECT parent_id FROM knowledge_spaces WHERE id = :id LIMIT 1');
+                    $stmt->execute(['id' => $cursor]);
+                    $next = $stmt->fetchColumn();
+                    $cursor = ($next !== false && $next !== null) ? (int)$next : 0;
+                }
+                $newParentId = $targetParentId;
+            } else {
+                $newParentId = null;
+            }
+        }
+
         $set = [
             'title' => trim((string)($payload['title'] ?? $current['title'])),
             'description' => $this->nullableText($payload['description'] ?? $current['description'] ?? null),
@@ -428,12 +523,26 @@ final class KnowledgeRepository
             'updated_at' => gmdate('Y-m-d H:i:s'),
             'public_id' => $publicId,
         ];
+        $fields = [
+            'title = :title',
+            'description = :description',
+            'icon = :icon',
+            'color = :color',
+            'visibility = :visibility',
+            'default_access_level = :default_access_level',
+            'sort_order = :sort_order',
+            'row_version = row_version + 1',
+            'updated_at = :updated_at',
+        ];
         if (!empty($payload['slug'])) {
             $set['slug'] = $this->uniqueSlug('knowledge_spaces', $this->slug((string)$payload['slug'], 'space'), (int)$current['id']);
-            $sql = 'UPDATE knowledge_spaces SET title = :title, slug = :slug, description = :description, icon = :icon, color = :color, visibility = :visibility, default_access_level = :default_access_level, sort_order = :sort_order, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id';
-        } else {
-            $sql = 'UPDATE knowledge_spaces SET title = :title, description = :description, icon = :icon, color = :color, visibility = :visibility, default_access_level = :default_access_level, sort_order = :sort_order, row_version = row_version + 1, updated_at = :updated_at WHERE public_id = :public_id';
+            $fields[] = 'slug = :slug';
         }
+        if ($parentUpdated) {
+            $set['parent_id'] = $newParentId;
+            $fields[] = 'parent_id = :parent_id';
+        }
+        $sql = 'UPDATE knowledge_spaces SET ' . implode(', ', $fields) . ' WHERE public_id = :public_id';
         $this->pdo->prepare($sql)->execute($set);
         return $this->space($publicId, $actor);
     }
