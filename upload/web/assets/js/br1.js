@@ -472,11 +472,13 @@ window.CRM.br1 = (function () {
   }
 
   function statusBadgeClass(code) {
-    if (code === 'done' || code === 'completed') return 'success';
-    if (code === 'in_progress' || code === 'active' || code === 'planning' || code === 'on_hold') return 'active';
-    if (code === 'blocked') return 'blocked';
-    if (code === 'overdue') return 'overdue';
-    return 'archived';
+    var key = String(code || '').trim().toLowerCase();
+    if (key === 'done' || key === 'completed' || key === 'closed' || key === 'resolved') return 'success';
+    if (key === 'in_progress' || key === 'active' || key === 'planning' || key === 'on_hold' || key === 'deploy' || key === 'review') return 'active';
+    if (key === 'blocked') return 'blocked';
+    if (key === 'overdue') return 'overdue';
+    if (key === 'archived' || key === 'canceled' || key === 'cancelled' || key === 'rejected') return 'archived';
+    return 'active';
   }
 
   function normalizeStatusColor(value) {
@@ -545,11 +547,13 @@ window.CRM.br1 = (function () {
     statusBadge.style.removeProperty('background-color');
     statusBadge.style.removeProperty('border-color');
     statusBadge.style.removeProperty('color');
+    statusBadge.classList.remove('has-custom-color');
     if (!color) return;
 
-    statusBadge.style.backgroundColor = color;
-    statusBadge.style.borderColor = color;
-    statusBadge.style.color = statusTextColor(color);
+    statusBadge.classList.add('has-custom-color');
+    statusBadge.style.setProperty('background-color', color, 'important');
+    statusBadge.style.setProperty('border-color', color, 'important');
+    statusBadge.style.setProperty('color', statusTextColor(color), 'important');
   }
 
   function statusLabel(code) {
@@ -4399,7 +4403,7 @@ window.CRM.br1 = (function () {
     var currentCode = String((item && item.status_code) || 'new');
     var color = statusColor(currentCode);
     var colorStyle = color
-      ? ' style="background-color:' + escapeHtml(color) + ';border-color:' + escapeHtml(color) + ';color:' + escapeHtml(statusTextColor(color)) + '"'
+      ? ' style="background-color:' + escapeHtml(color) + ' !important;border-color:' + escapeHtml(color) + ' !important;color:' + escapeHtml(statusTextColor(color)) + ' !important;"'
       : '';
     var options = orderedTaskStatuses(currentCode).map(function (status) {
       var code = String(status.code || '');
@@ -4408,7 +4412,7 @@ window.CRM.br1 = (function () {
     }).join('');
 
     return '<div class="dropdown crm-subtask-status-dropdown">'
-      + '<button class="crm-badge dropdown-toggle ' + statusBadgeClass(currentCode) + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + window.CRM.i18n.t('js.br1.subtask_status', 'Статус подзадачи') + '"' + colorStyle + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentCode)) + '</button>'
+      + '<button class="crm-badge dropdown-toggle ' + statusBadgeClass(currentCode) + (color ? ' has-custom-color' : '') + '" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + window.CRM.i18n.t('js.br1.subtask_status', 'Статус подзадачи') + '"' + colorStyle + (canChangeStatus ? '' : ' disabled aria-disabled="true"') + '>' + escapeHtml(statusLabel(currentCode)) + '</button>'
       + '<ul class="dropdown-menu crm-task-status-menu">' + options + '</ul>'
       + '</div>';
   }
@@ -10022,6 +10026,8 @@ window.CRM.br1 = (function () {
     init: init,
     notify: notify,
     statusBadgeClass: statusBadgeClass,
+    statusColor: statusColor,
+    statusTextColor: statusTextColor,
     statusLabel: statusLabel,
     formatDate: formatDate,
     escapeHtml: escapeHtml,
