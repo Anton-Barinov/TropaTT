@@ -539,7 +539,7 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function statusClass(code) {
-    if (window.CRM.br1 && typeof window.CRM.br1.statusBadgeClass === 'function') {
+    if (window.CRM && window.CRM.br1 && typeof window.CRM.br1.statusBadgeClass === 'function') {
       return window.CRM.br1.statusBadgeClass(code);
     }
     var key = String(code || '').trim().toLowerCase();
@@ -547,7 +547,8 @@ window.CRM.pageApiBindings = (function () {
     if (key === 'in_progress' || key === 'active' || key === 'planning' || key === 'on_hold' || key === 'deploy' || key === 'review') return 'active';
     if (key === 'blocked') return 'blocked';
     if (key === 'overdue') return 'overdue';
-    return 'archived';
+    if (key === 'archived' || key === 'canceled' || key === 'cancelled' || key === 'rejected') return 'archived';
+    return 'active';
   }
 
   function projectStatusLabel(code, fallbackTitle) {
@@ -15527,7 +15528,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         tbody.innerHTML = scopeItems.map(function (item) {
           var statusId = statusIdOf(item);
           var disabled = statusId ? '' : ' disabled';
-          var badgeTextColor = contrastTextColor(item.color || '');
+          var customColor = normalizeHexColor(item.color || '');
+          var badgeTextColor = contrastTextColor(customColor || '');
+          var badgeClass = customColor ? 'crm-badge has-custom-color' : ('crm-badge ' + statusClass(item.code));
+          var badgeStyle = customColor
+            ? ('style="background-color:' + safeText(customColor) + ' !important;color:' + safeText(badgeTextColor) + ' !important;border-color:' + safeText(customColor) + ' !important;"')
+            : '';
           var pctVal = (item.progress_percent !== null && item.progress_percent !== undefined && item.progress_percent !== '')
             ? '<span class="badge bg-primary-subtle text-primary">' + safeText(item.progress_percent) + '%</span>'
             : '<span class="text-muted small">' + safeText(tp('admin.status_progress_auto', 'Авто')) + '</span>';
@@ -15536,7 +15542,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             : '<span class="text-muted">' + safeText(tp('admin.status_closed_no', 'No')) + '</span>';
           return '<tr>'
             + '<td>' + safeText(item.title || item.code) + '<div class="small text-muted">' + safeText(item.code || '—') + '</div></td>'
-            + '<td><span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span></td>'
+            + '<td><span class="' + badgeClass + '" ' + badgeStyle + '>' + safeText(item.title || item.code) + '</span></td>'
             + '<td>' + safeText(item.sort_order || 0) + '</td>'
             + '<td>' + pctVal + '</td>'
             + '<td>' + closedBadge + '</td>'
@@ -15560,8 +15566,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var preview = document.getElementById('adminStatusesPreview') || document.querySelector('.crm-card .d-flex.flex-wrap.gap-2');
     if (preview) {
       preview.innerHTML = items.slice(0, 10).map(function (item) {
-        var badgeTextColor = contrastTextColor(item.color || '');
-        return '<span class="crm-badge ' + statusClass(item.code) + '" style="background:' + safeText(item.color || '') + ';color:' + safeText(badgeTextColor) + ';">' + safeText(item.title || item.code) + '</span>';
+        var customColor = normalizeHexColor(item.color || '');
+        var badgeTextColor = contrastTextColor(customColor || '');
+        var badgeClass = customColor ? 'crm-badge has-custom-color' : ('crm-badge ' + statusClass(item.code));
+        var badgeStyle = customColor
+          ? ('style="background-color:' + safeText(customColor) + ' !important;color:' + safeText(badgeTextColor) + ' !important;border-color:' + safeText(customColor) + ' !important;"')
+          : '';
+        return '<span class="' + badgeClass + '" ' + badgeStyle + '>' + safeText(item.title || item.code) + '</span>';
       }).join('');
     }
 
@@ -15577,8 +15588,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         var normalized = normalizeHexColor(rawColor) || fallback;
         picker.value = normalized;
         hexInput.value = normalized;
-        previewBadge.style.background = normalized;
-        previewBadge.style.color = contrastTextColor(normalized);
+        previewBadge.classList.add('has-custom-color');
+        previewBadge.style.setProperty('background-color', normalized, 'important');
+        previewBadge.style.setProperty('border-color', normalized, 'important');
+        previewBadge.style.setProperty('color', contrastTextColor(normalized), 'important');
       }
 
       if (picker.dataset.bound !== '1') {

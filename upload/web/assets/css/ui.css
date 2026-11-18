@@ -2688,9 +2688,9 @@ textarea.form-control:focus {
   letter-spacing: 0;
 }
 
-.crm-badge.archived,
-.badge.bg-secondary,
-.badge.text-bg-secondary {
+.crm-badge.archived:not([style*="background"]):not(.has-custom-color),
+.badge.bg-secondary:not([style*="background"]):not(.has-custom-color),
+.badge.text-bg-secondary:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-surface-2) !important;
   color: var(--crm-text-muted) !important;
 }
@@ -3111,45 +3111,51 @@ small.text-muted {
   font-variant-numeric: tabular-nums;
 }
 
-.badge.text-bg-primary,
-.crm-badge.active,
-.crm-badge-primary {
+.badge.text-bg-primary:not([style*="background"]):not(.has-custom-color),
+.crm-badge.active:not([style*="background"]):not(.has-custom-color),
+.crm-badge-primary:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-primary-soft) !important;
   border-color: color-mix(in srgb, var(--crm-accent) 24%, transparent) !important;
   color: var(--crm-primary-hover) !important;
 }
 
-.badge.text-bg-success,
-.crm-badge.success,
-.crm-badge-success {
+.badge.text-bg-success:not([style*="background"]):not(.has-custom-color),
+.crm-badge.success:not([style*="background"]):not(.has-custom-color),
+.crm-badge-success:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-success-soft) !important;
   border-color: color-mix(in srgb, var(--crm-success) 22%, transparent) !important;
   color: var(--crm-success) !important;
 }
 
-.badge.text-bg-warning,
-.crm-badge.warning,
-.crm-badge-warning {
+.badge.text-bg-warning:not([style*="background"]):not(.has-custom-color),
+.crm-badge.warning:not([style*="background"]):not(.has-custom-color),
+.crm-badge-warning:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-warning-soft) !important;
   border-color: color-mix(in srgb, var(--crm-warning) 24%, transparent) !important;
   color: var(--crm-warning) !important;
 }
 
-.badge.text-bg-danger,
-.crm-badge.danger,
-.crm-badge.overdue,
-.crm-badge-danger {
+.badge.text-bg-danger:not([style*="background"]):not(.has-custom-color),
+.crm-badge.danger:not([style*="background"]):not(.has-custom-color),
+.crm-badge.overdue:not([style*="background"]):not(.has-custom-color),
+.crm-badge-danger:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-danger-soft) !important;
   border-color: color-mix(in srgb, var(--crm-danger) 24%, transparent) !important;
   color: var(--crm-danger) !important;
 }
 
-.badge.text-bg-secondary,
-.crm-badge.archived,
-.crm-badge-muted {
+.badge.text-bg-secondary:not([style*="background"]):not(.has-custom-color),
+.crm-badge.archived:not([style*="background"]):not(.has-custom-color),
+.crm-badge-muted:not([style*="background"]):not(.has-custom-color) {
   background: var(--crm-surface-2) !important;
   border-color: color-mix(in srgb, var(--crm-ink) 9%, transparent) !important;
   color: var(--crm-text-muted) !important;
+}
+
+.crm-badge[style*="background"],
+.crm-badge[style*="background-color"],
+.crm-badge.has-custom-color {
+  border-color: transparent;
 }
 
 .crm-topbar [data-global-notifications] {
