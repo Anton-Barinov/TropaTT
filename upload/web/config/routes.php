@@ -79,6 +79,7 @@ return [
     'admin-modules-install' => [Web\Controller\Page\AdminModulesInstallController::class, 'index'],
     'admin-module-detail' => [Web\Controller\Page\AdminModuleDetailController::class, 'index'],
     'intake' => [Web\Controller\Page\IntakeController::class, 'index'],
+    'intake-detail' => [Web\Controller\Page\IntakeController::class, 'index'],
     'admin-estimates' => [Web\Controller\Page\AdminEstimatesController::class, 'index'],
     'project-modules' => [Web\Controller\Page\ProjectModulesController::class, 'index'],
 

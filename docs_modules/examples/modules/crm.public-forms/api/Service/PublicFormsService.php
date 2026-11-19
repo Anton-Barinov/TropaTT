@@ -1135,6 +1135,7 @@ final class PublicFormsService
         }
 
         $allowed = [];
+        $fieldTypes = [];
         foreach ($schema as $field) {
             if (!is_array($field)) {
                 throw new PublicFormSubmissionException('FORM_SCHEMA_INVALID', 'This form is not configured safely.', 503);
@@ -1146,6 +1147,7 @@ final class PublicFormsService
                 throw new PublicFormSubmissionException('FORM_SCHEMA_INVALID', 'This form is not configured safely.', 503);
             }
             $allowed[$name] = !empty($field['required']);
+            $fieldTypes[$name] = (string)($field['type'] ?? 'text');
         }
 
         if (count($data) > self::MAX_FIELDS) {
@@ -1181,6 +1183,11 @@ final class PublicFormsService
             }
             if ($required && $value === '') {
                 throw new PublicFormSubmissionException('REQUIRED_FIELD_MISSING', 'A required field is empty.', 422);
+            }
+            if ($value !== '' && (($fieldTypes[$name] ?? 'text') === 'email' || $name === 'email')) {
+                if (!filter_var($value, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/D', $value)) {
+                    throw new PublicFormSubmissionException('INVALID_EMAIL_FORMAT', 'Введите корректный адрес электронной почты.', 422);
+                }
             }
             $clean[$name] = $value;
         }

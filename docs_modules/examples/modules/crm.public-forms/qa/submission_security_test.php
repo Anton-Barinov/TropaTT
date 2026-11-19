@@ -30,6 +30,7 @@ $formId = publishIntake($forms, 'security-submission-form');
 expectCode(static fn() => $forms->submit('security-submission-form', ['full_name' => 'Ada', '_idempotency_key' => 'consent_missing_0001'], '192.0.2.1'), 'CONSENT_REQUIRED', 'submission without consent is rejected');
 expectCode(static fn() => $forms->submit('security-submission-form', submission('Ada', 'unexpected_field_0001', ['is_root' => '1']), '192.0.2.1'), 'UNEXPECTED_FIELD', 'unknown field injection is rejected');
 expectCode(static fn() => $forms->submit('security-submission-form', submission('Ada', 'invalid_value_type_001', ['email' => ['attacker@example.test']]), '192.0.2.1'), 'INVALID_FIELD_VALUE', 'nested field values are rejected');
+expectCode(static fn() => $forms->submit('security-submission-form', submission('Ada', 'invalid_email_format_001', ['email' => '1@1']), '192.0.2.1'), 'INVALID_EMAIL_FORMAT', 'invalid email format is rejected');
 expectCode(static fn() => $forms->submit('security-submission-form', submission('', 'required_field_empty_001'), '192.0.2.1'), 'REQUIRED_FIELD_MISSING', 'empty required field is rejected');
 expectCode(static fn() => $forms->submit('security-submission-form', submission('Ada', 'invalid_key_format_001', ['_idempotency_key' => 'short']), '192.0.2.1'), 'IDEMPOTENCY_KEY_REQUIRED', 'short idempotency key is rejected');
 expectCode(static fn() => $forms->submit('security-submission-form', submission(str_repeat('x', 33000), 'large_payload_key_0001'), '192.0.2.1'), 'PAYLOAD_TOO_LARGE', 'oversized decoded payload is rejected');

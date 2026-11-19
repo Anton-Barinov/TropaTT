@@ -530,6 +530,11 @@
         const type = allowedTypes.includes(String(field.type)) ? String(field.type) : 'text';
         const control = type === 'textarea' ? document.createElement('textarea') : document.createElement('input');
         if (type !== 'textarea') control.type = type;
+        if (type === 'email') {
+          control.pattern = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$';
+          control.title = 'Введите корректный email (например, name@example.com)';
+          control.addEventListener('input', () => control.setCustomValidity(''));
+        }
         control.className = 'form-control';
         control.id = 'public-field-' + name;
         control.name = name;
@@ -548,6 +553,16 @@
       $('publicFormSubmission').addEventListener('submit', async event => {
         event.preventDefault();
         const formElement = event.currentTarget;
+        for (const input of formElement.querySelectorAll('input[type="email"]')) {
+          const val = input.value.trim();
+          if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) {
+            input.setCustomValidity('Введите корректный адрес электронной почты (например, name@example.com).');
+            input.reportValidity();
+            return;
+          } else {
+            input.setCustomValidity('');
+          }
+        }
         if (!formElement.reportValidity()) return;
         const button = $('publicFormSubmitBtn');
         button.disabled = true;
@@ -571,9 +586,9 @@
           result.className = 'alert alert-success mt-3';
           result.textContent = form.form_type === 'booking' ? 'Спасибо. Встреча добавлена в календарь.' : 'Спасибо. Ваше обращение получено.';
           formElement.hidden = true;
-        } catch (_) {
+        } catch (err) {
           result.className = 'alert alert-danger mt-3';
-          result.textContent = 'Не удалось подтвердить отправку. Не меняйте данные и выбранное время и повторите попытку, чтобы не создать дубликат.';
+          result.textContent = (err && err.message) ? err.message : 'Не удалось подтвердить отправку. Не меняйте данные и выбранное время и повторите попытку, чтобы не создать дубликат.';
           button.disabled = false;
         }
       });
