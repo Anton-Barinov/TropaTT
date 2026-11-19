@@ -2429,7 +2429,7 @@ window.CRM.br1 = (function () {
       }
 
       function scheduleSaveTaskCreateDraft() {
-        if (isSubmittingTask) return;
+        if (isSubmittingTask || !modal.classList.contains('show')) return;
         if (draftTimer) clearTimeout(draftTimer);
         draftTimer = setTimeout(saveTaskCreateDraft, 350);
       }
@@ -2503,55 +2503,41 @@ window.CRM.br1 = (function () {
       }
 
       modal.addEventListener('show.bs.modal', async function () {
-        var titleIn = form.querySelector('[name="title"]');
-        var descIn = form.querySelector('[name="description"]');
-        var userAlreadyTyping = (titleIn && String(titleIn.value || '').trim() !== '')
-          || (descIn && !isRichTextEmpty(getVisualEditorTextareaValue(descIn)));
-
-        if (!userAlreadyTyping) {
-          primeCreateTaskDefaults();
-          applyCreateTaskPrefill();
-          restoreTaskCreateDraft();
-        }
+        primeCreateTaskDefaults();
+        applyCreateTaskPrefill();
+        restoreTaskCreateDraft();
 
         await ensureCreateTaskDictionaries();
 
         applyCreateTaskPrefill();
-        if (!userAlreadyTyping) {
-          restoreTaskCreateDraft();
-        }
+        restoreTaskCreateDraft();
       });
 
       modal.addEventListener('hidden.bs.modal', function () {
         window._taskClientPrefill = null;
         window._taskCreatePrefill = null;
         pendingTaskSource = null;
-        if (isSubmittingTask) {
-          clearTaskCreateDraft();
-          return;
-        }
         if (draftTimer) {
           clearTimeout(draftTimer);
           draftTimer = null;
         }
-        saveTaskCreateDraft();
+        if (isSubmittingTask) {
+          clearTaskCreateDraft();
+        } else {
+          saveTaskCreateDraft();
+        }
+        var notice = form.querySelector('#createTaskDraftAlert');
+        if (notice) notice.remove();
+        primeCreateTaskDefaults();
       });
 
       if (modal.classList.contains('show')) {
-        var initTitle = form.querySelector('[name="title"]');
-        var initDesc = form.querySelector('[name="description"]');
-        var initTyping = (initTitle && String(initTitle.value || '').trim() !== '')
-          || (initDesc && !isRichTextEmpty(getVisualEditorTextareaValue(initDesc)));
-        if (!initTyping) {
-          primeCreateTaskDefaults();
-          applyCreateTaskPrefill();
-          restoreTaskCreateDraft();
-        }
+        primeCreateTaskDefaults();
+        applyCreateTaskPrefill();
+        restoreTaskCreateDraft();
         ensureCreateTaskDictionaries().then(function () {
           applyCreateTaskPrefill();
-          if (!initTyping) {
-            restoreTaskCreateDraft();
-          }
+          restoreTaskCreateDraft();
         });
       }
 
