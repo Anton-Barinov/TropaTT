@@ -3804,6 +3804,9 @@ body {
 }
 
 .form-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
   background-color: var(--crm-surface) !important;
   background-image: var(--bs-form-select-bg-img) !important;
   background-repeat: no-repeat !important;
@@ -3813,7 +3816,27 @@ body {
   box-shadow: none !important;
 }
 
-.form-select:focus {
+select,
+.form-select,
+.crm-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+select::-ms-expand,
+.form-select::-ms-expand,
+.crm-select::-ms-expand {
+  display: none !important;
+}
+
+.form-select:hover,
+.crm-select:hover,
+.form-select:focus,
+.crm-select:focus {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
   background-color: var(--crm-surface) !important;
   background-image: var(--bs-form-select-bg-img) !important;
 }
