@@ -427,6 +427,15 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function isRichTextEmpty(html) {
+    if (!html) return true;
+    var str = String(html || '');
+    var stripped = str.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/\u200B/g, '').replace(/\uFEFF/g, '').trim();
+    if (stripped !== '') return false;
+    if (/<(img|figure|iframe|embed|object|video|audio)/i.test(str)) return false;
+    return true;
+  }
+
   function getVisualEditorTextareaValue(textarea) {
     if (!textarea) return '';
     if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function') {
@@ -438,6 +447,25 @@ window.CRM.br1 = (function () {
       }
     }
     return String(textarea.value || '');
+  }
+
+  function setVisualEditorTextareaValue(textarea, value) {
+    if (!textarea) return;
+    var val = typeof value === 'string' ? value : String(value || '');
+    textarea.value = val;
+    if (window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function') {
+      var instances = window.CRM.VisualEditor.getInstances();
+      for (var i = 0; i < instances.length; i += 1) {
+        if (instances[i] && instances[i]._textarea === textarea) {
+          if ((!val || isRichTextEmpty(val)) && typeof instances[i].clear === 'function') {
+            instances[i].clear();
+          } else if (typeof instances[i].setValue === 'function') {
+            instances[i].setValue(val);
+          }
+          return;
+        }
+      }
+    }
   }
 
   function notify(text, type) {
@@ -2067,19 +2095,61 @@ window.CRM.br1 = (function () {
 
     form.reset();
 
+    var titleIn = form.querySelector('[name="title"]');
+    if (titleIn) {
+      titleIn.value = '';
+      titleIn.classList.remove('is-invalid');
+      var feedback = titleIn.parentNode ? titleIn.parentNode.querySelector('.invalid-feedback') : null;
+      if (feedback) feedback.remove();
+    }
+
+    var descIn = form.querySelector('[name="description"]');
+    if (descIn) {
+      setVisualEditorTextareaValue(descIn, '');
+    }
+
     var projectSelect = form.querySelector('select[name="project_public_id"]');
+    var clientSelect = form.querySelector('select[name="client_public_id"]');
     var statusSelect = form.querySelector('select[name="status"]');
     var prioritySelect = form.querySelector('select[name="priority"]');
+    var assigneeSelect = form.querySelector('select[name="assignee_user_public_id"]');
+    var tagsSelect = form.querySelector('select[name="tag_public_ids"]');
+    var startInput = form.querySelector('input[name="start_at"]');
+    var dueInput = form.querySelector('input[name="due_at"]');
+    var endInput = form.querySelector('input[name="end_at"]');
     var routeProjectId = getProjectPublicIdFromUrl();
 
     if (projectSelect) {
       projectSelect.value = routeProjectId || '';
+    }
+    if (clientSelect) {
+      clientSelect.value = '';
     }
     if (statusSelect) {
       statusSelect.value = 'new';
     }
     if (prioritySelect) {
       prioritySelect.value = 'normal';
+    }
+    if (assigneeSelect) {
+      assigneeSelect.value = '';
+    }
+    if (tagsSelect) {
+      Array.prototype.slice.call(tagsSelect.options).forEach(function (opt) {
+        opt.selected = false;
+      });
+      if (window.jQuery && window.jQuery(tagsSelect).hasClass('select2-hidden-accessible')) {
+        window.jQuery(tagsSelect).val(null).trigger('change');
+      }
+    }
+    if (startInput) {
+      startInput.value = '';
+    }
+    if (dueInput) {
+      dueInput.value = '';
+    }
+    if (endInput) {
+      endInput.value = '';
     }
   }
 
@@ -2303,8 +2373,23 @@ window.CRM.br1 = (function () {
       }
 
       var DRAFT_KEY = 'crm_draft_task_create';
+      var isSubmittingTask = false;
+      var draftTimer = null;
+
+      function clearTaskCreateDraft() {
+        if (draftTimer) {
+          clearTimeout(draftTimer);
+          draftTimer = null;
+        }
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch (e) {}
+        var notice = form.querySelector('#createTaskDraftAlert');
+        if (notice) notice.remove();
+      }
 
       function saveTaskCreateDraft() {
+        if (isSubmittingTask) return;
         try {
           var titleIn = form.querySelector('[name="title"]');
           var descIn = form.querySelector('[name="description"]');
@@ -2317,7 +2402,8 @@ window.CRM.br1 = (function () {
           var dueIn = form.querySelector('[name="due_at"]');
 
           var titleVal = titleIn ? String(titleIn.value || '').trim() : '';
-          var descVal = descIn ? getVisualEditorTextareaValue(descIn).trim() : '';
+          var rawDesc = descIn ? getVisualEditorTextareaValue(descIn).trim() : '';
+          var descVal = isRichTextEmpty(rawDesc) ? '' : rawDesc;
 
           if (!titleVal && !descVal) {
             localStorage.removeItem(DRAFT_KEY);
@@ -2342,8 +2428,8 @@ window.CRM.br1 = (function () {
         }
       }
 
-      var draftTimer = null;
       function scheduleSaveTaskCreateDraft() {
+        if (isSubmittingTask) return;
         if (draftTimer) clearTimeout(draftTimer);
         draftTimer = setTimeout(saveTaskCreateDraft, 350);
       }
@@ -2352,11 +2438,15 @@ window.CRM.br1 = (function () {
       form.addEventListener('change', scheduleSaveTaskCreateDraft);
 
       function restoreTaskCreateDraft() {
+        if (isSubmittingTask) return false;
         try {
           var raw = localStorage.getItem(DRAFT_KEY);
           if (!raw) return false;
           var draft = JSON.parse(raw);
-          if (!draft || (!draft.title && !draft.description)) return false;
+          if (!draft) return false;
+          var hasTitle = draft.title && String(draft.title).trim() !== '';
+          var hasDesc = draft.description && !isRichTextEmpty(draft.description);
+          if (!hasTitle && !hasDesc) return false;
 
           var titleIn = form.querySelector('[name="title"]');
           var descIn = form.querySelector('[name="description"]');
@@ -2368,8 +2458,8 @@ window.CRM.br1 = (function () {
           var startIn = form.querySelector('[name="start_at"]');
           var dueIn = form.querySelector('[name="due_at"]');
 
-          if (titleIn && !titleIn.value && draft.title) titleIn.value = draft.title;
-          if (descIn && draft.description) {
+          if (titleIn && !titleIn.value && hasTitle) titleIn.value = draft.title;
+          if (descIn && hasDesc) {
             try {
               setVisualEditorTextareaValue(descIn, draft.description);
             } catch (err) {
@@ -2389,13 +2479,19 @@ window.CRM.br1 = (function () {
             var alertDiv = document.createElement('div');
             alertDiv.id = 'createTaskDraftAlert';
             alertDiv.className = 'alert alert-info py-1 px-2 d-flex justify-content-between align-items-center mb-2 small';
-            alertDiv.innerHTML = '<span><i class="fa-solid fa-clock-rotate-left me-1"></i> Восстановлен несохранённый черновик задачи</span><button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="discardTaskDraftBtn">Очистить</button>';
+            var timeStr = '';
+            if (draft.updated_at) {
+              try {
+                var d = new Date(draft.updated_at);
+                timeStr = ' (' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')';
+              } catch (e) {}
+            }
+            alertDiv.innerHTML = '<span><i class="fa-solid fa-clock-rotate-left me-1"></i> Восстановлен несохранённый черновик задачи' + timeStr + '</span><button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="discardTaskDraftBtn">Очистить</button>';
             form.insertBefore(alertDiv, form.firstChild);
             var discardBtn = alertDiv.querySelector('#discardTaskDraftBtn');
             if (discardBtn) {
               discardBtn.addEventListener('click', function () {
-                localStorage.removeItem(DRAFT_KEY);
-                alertDiv.remove();
+                clearTaskCreateDraft();
                 primeCreateTaskDefaults();
               });
             }
@@ -2422,7 +2518,15 @@ window.CRM.br1 = (function () {
         window._taskClientPrefill = null;
         window._taskCreatePrefill = null;
         pendingTaskSource = null;
-        primeCreateTaskDefaults();
+        if (isSubmittingTask) {
+          clearTaskCreateDraft();
+          return;
+        }
+        if (draftTimer) {
+          clearTimeout(draftTimer);
+          draftTimer = null;
+        }
+        saveTaskCreateDraft();
       });
 
       if (modal.classList.contains('show')) {
@@ -2478,6 +2582,12 @@ window.CRM.br1 = (function () {
         }
         if (!hasPermission('task.manage')) {
           return;
+        }
+
+        isSubmittingTask = true;
+        if (draftTimer) {
+          clearTimeout(draftTimer);
+          draftTimer = null;
         }
 
         var selectedAssigneePublicId = assigneeSelect ? String(assigneeSelect.value || '').trim() : '';
@@ -2538,21 +2648,18 @@ window.CRM.br1 = (function () {
           }
 
           notify(window.CRM.i18n.t('js.br1.zadacha_sozdana', 'Задача создана'));
-          try {
-            localStorage.removeItem(DRAFT_KEY);
-            var notice = form.querySelector('#createTaskDraftAlert');
-            if (notice) notice.remove();
-          } catch (ignore) { void ignore; }
+          clearTaskCreateDraft();
+          primeCreateTaskDefaults();
 
           if (window.bootstrap) {
             window.bootstrap.Modal.getOrCreateInstance(modal).hide();
           }
-          primeCreateTaskDefaults();
 
           if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.refreshCurrentPage === 'function') {
             window.CRM.pageApiBindings.refreshCurrentPage();
           }
         } catch (error) {
+          isSubmittingTask = false;
           var envelope = error && error.envelope ? error.envelope : null;
           var is401 = (error && (error.status === 401 || error.code === 'UNAUTHORIZED'))
             || (envelope && (envelope.code === 'UNAUTHORIZED' || envelope.status === 401));
@@ -2563,6 +2670,7 @@ window.CRM.br1 = (function () {
             notify((envelope && envelope.message) || window.CRM.i18n.t('js.br1.ne_udalos_sozdat_zadachu', 'Не удалось создать задачу'), 'error');
           }
         } finally {
+          isSubmittingTask = false;
           if (submitBtn) submitBtn.disabled = false;
         }
       });
