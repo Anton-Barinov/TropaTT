@@ -167,7 +167,11 @@ final class UserService
             }
         }
 
-        $this->assignToTeam($publicId, $input['team_public_id'] ?? null);
+        $orgId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        if ($orgId !== null && $orgId <= 0) {
+            $orgId = null;
+        }
+        $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
 
         $this->logger->audit([
             'action' => 'user_create',
@@ -289,7 +293,11 @@ final class UserService
             $this->users->replaceRoles((int)$target['id'], $rolePublicIds);
         }
 
-        $this->assignToTeam($publicId, $input['team_public_id'] ?? null);
+        $orgId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+        if ($orgId !== null && $orgId <= 0) {
+            $orgId = null;
+        }
+        $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
 
         $now = gmdate('Y-m-d H:i:s');
         $set['updated_at'] = $now;
@@ -510,13 +518,13 @@ final class UserService
         return $this->policy->canManageUser($actor, $target);
     }
 
-    private function assignToTeam(string $userPublicId, ?string $teamPublicId): void
+    private function assignToTeam(string $userPublicId, ?string $teamPublicId, ?int $organizationId = null): void
     {
-        if ($teamPublicId === null || $teamPublicId === '') {
+        if ($teamPublicId === null || trim((string)$teamPublicId) === '') {
             return;
         }
 
-        $team = $this->teams->findByPublicId($teamPublicId);
+        $team = $this->teams->findByPublicId(trim((string)$teamPublicId), $organizationId);
         if (!$team) {
             return;
         }
@@ -533,10 +541,10 @@ final class UserService
 
         if (!in_array($userIdInt, $memberIds, true)) {
             $memberIds[] = $userIdInt;
-            $this->teams->updateByPublicId($teamPublicId, [
+            $this->teams->updateByPublicId(trim((string)$teamPublicId), [
                 'member_user_ids' => json_encode($memberIds),
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ]);
+            ], $organizationId);
         }
     }
 

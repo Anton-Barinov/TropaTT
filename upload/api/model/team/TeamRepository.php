@@ -324,19 +324,25 @@ final class TeamRepository
     }
 
     /** @param string[] $publicIds @return int[] */
-    public function userIdsByPublicIds(array $publicIds): array
+    public function userIdsByPublicIds(array $publicIds, ?int $organizationId = null): array
     {
         $normalized = array_values(array_unique(array_filter(array_map(static fn($v): string => trim((string)$v), $publicIds), static fn(string $v): bool => $v !== '')));
         if ($normalized === []) {
             return [];
         }
 
-        $rows = (new QueryBuilder($this->pdo))
-            ->from('users')
-            ->select(['id'])
-            ->whereIn('public_id', $normalized)
-            ->whereNull('deleted_at')
-            ->get();
+        $query = (new QueryBuilder($this->pdo))
+            ->from('users u')
+            ->select(['u.id'])
+            ->whereIn('u.public_id', $normalized)
+            ->whereNull('u.deleted_at');
+
+        if ($organizationId !== null && $organizationId > 0) {
+            $query->join('organization_memberships om', 'om.user_id', '=', 'u.id')
+                ->where('om.organization_id', '=', $organizationId);
+        }
+
+        $rows = $query->get();
 
         return array_values(array_map(static fn(array $row): int => (int)$row['id'], $rows));
     }

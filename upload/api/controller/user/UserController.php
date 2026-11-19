@@ -111,6 +111,19 @@ final class UserController extends BaseController
             ->require($input, 'password', $this->t('common/messages.field_required'))
             ->maxLen($input, 'login', 120, $this->t('user/messages.max_120'));
 
+        if (!empty($input['team_public_id'])) {
+            /** @var \Api\Model\Team\TeamRepository $teamRepo */
+            $teamRepo = $this->container->get('repository.team');
+            $teamOrgId = isset($scopedActor['organization_id']) ? (int)$scopedActor['organization_id'] : null;
+            if ($teamOrgId !== null && $teamOrgId <= 0) {
+                $teamOrgId = null;
+            }
+            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId);
+            if (!$foundTeam) {
+                $v->addError('team_public_id', $this->t('common/messages.validation_error'));
+            }
+        }
+
         if ($v->fails()) {
             return $this->error('VALIDATION_ERROR', $this->t('common/messages.validation_error'), 422, $v->errors());
         }
@@ -194,6 +207,21 @@ final class UserController extends BaseController
         // Financial rates require root OR finance.rate.manage permission
         if (!$this->isCurrentUserRoot() && !$this->hasRateManagePerm()) {
             unset($input['cost_rate'], $input['bill_rate'], $input['payout_rate']);
+        }
+
+        if (array_key_exists('team_public_id', $input) && !empty($input['team_public_id'])) {
+            /** @var \Api\Model\Team\TeamRepository $teamRepo */
+            $teamRepo = $this->container->get('repository.team');
+            $teamOrgId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+            if ($teamOrgId !== null && $teamOrgId <= 0) {
+                $teamOrgId = null;
+            }
+            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId);
+            if (!$foundTeam) {
+                return $this->error('VALIDATION_ERROR', $this->t('user/messages.update_failed'), 422, [
+                    'team_public_id' => [$this->t('common/messages.validation_error')],
+                ]);
+            }
         }
 
         /** @var UserService $service */
