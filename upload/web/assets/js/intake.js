@@ -386,7 +386,7 @@ window.CRM.intake = (function () {
 
   function secondaryMenu(id, actions) {
     return '<div class="dropdown crm-intake-row-menu">'
-      + '<button class="btn crm-btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' + esc(t('intake.more_actions', 'Ещё действия')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
+      + '<button class="btn crm-btn-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config=\'{"strategy":"fixed"}\' aria-expanded="false" title="' + esc(t('intake.more_actions', 'Ещё действия')) + '"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>'
       + '<ul class="dropdown-menu dropdown-menu-end">'
       + actions.map(function (action) {
         return '<li><button class="dropdown-item" type="button" data-intake-action="' + esc(action[0]) + '" data-intake-id="' + id + '"><i class="fa-solid ' + esc(action[1]) + ' me-2"></i>' + esc(action[2]) + '</button></li>';
