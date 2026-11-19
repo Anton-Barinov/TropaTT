@@ -108,6 +108,7 @@ namespace PublicFormsQa {
         return [
             ['name' => 'full_name', 'label' => 'Имя', 'type' => 'text', 'required' => true],
             ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => false],
+            ['name' => 'phone', 'label' => 'Телефон', 'type' => 'tel', 'required' => false],
         ];
     }
 

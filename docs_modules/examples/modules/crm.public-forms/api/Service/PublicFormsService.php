@@ -1189,6 +1189,13 @@ final class PublicFormsService
                     throw new PublicFormSubmissionException('INVALID_EMAIL_FORMAT', 'Введите корректный адрес электронной почты.', 422);
                 }
             }
+            if ($value !== '' && (($fieldTypes[$name] ?? 'text') === 'tel' || $name === 'phone' || $name === 'tel')) {
+                $digits = preg_replace('/\D+/', '', $value);
+                $digitCount = strlen($digits);
+                if (!preg_match('/^\+?[0-9\s\-\(\)\.]{7,32}$/D', $value) || $digitCount < 7 || $digitCount > 16) {
+                    throw new PublicFormSubmissionException('INVALID_PHONE_FORMAT', 'Введите корректный номер телефона.', 422);
+                }
+            }
             $clean[$name] = $value;
         }
 
