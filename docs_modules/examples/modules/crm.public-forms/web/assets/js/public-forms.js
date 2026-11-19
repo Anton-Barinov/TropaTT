@@ -535,6 +535,11 @@
           control.title = 'Введите корректный email (например, name@example.com)';
           control.addEventListener('input', () => control.setCustomValidity(''));
         }
+        if (type === 'tel' || name === 'phone' || name === 'tel') {
+          control.pattern = '^\\+?[0-9\\s\\-\\(\\)]{7,32}$';
+          control.title = 'Введите корректный номер телефона (например, +7 (999) 123-45-67)';
+          control.addEventListener('input', () => control.setCustomValidity(''));
+        }
         control.className = 'form-control';
         control.id = 'public-field-' + name;
         control.name = name;
@@ -561,6 +566,19 @@
             return;
           } else {
             input.setCustomValidity('');
+          }
+        }
+        for (const input of formElement.querySelectorAll('input[type="tel"], input[name="phone"], input[name="tel"]')) {
+          const val = input.value.trim();
+          if (val) {
+            const digits = val.replace(/\D/g, '');
+            if (!/^\+?[0-9\s\-().]{7,32}$/.test(val) || digits.length < 7 || digits.length > 16) {
+              input.setCustomValidity('Введите корректный номер телефона (например, +7 (999) 123-45-67).');
+              input.reportValidity();
+              return;
+            } else {
+              input.setCustomValidity('');
+            }
           }
         }
         if (!formElement.reportValidity()) return;
