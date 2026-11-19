@@ -10422,6 +10422,7 @@ return array (
     'spoiler_summary' => 'Expand',
     'bullet_list' => 'Bullet list',
     'ordered_list' => 'Numbered list',
+    'paragraph' => 'Paragraph',
     'heading2' => 'Heading H2',
     'heading3' => 'Heading H3',
     'quote' => 'Quote',

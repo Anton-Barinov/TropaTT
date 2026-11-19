@@ -310,6 +310,58 @@ window.CRM.VisualEditor = (function () {
           if (node.parentNode) node.parentNode.removeChild(node);
           return;
         }
+
+        // Convert inline styles on spans/elements to semantic formatting tags before stripping styles
+        if (node.hasAttribute('style')) {
+          var styleStr = node.getAttribute('style') || '';
+          var styleObj = node.style || null;
+          var fw = (styleObj && styleObj.fontWeight) ? styleObj.fontWeight : '';
+          if (!fw) {
+            var mFw = styleStr.match(/font-weight\s*:\s*([^;]+)/i);
+            if (mFw) fw = mFw[1].trim();
+          }
+          var isBold = fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600;
+
+          var fs = (styleObj && styleObj.fontStyle) ? styleObj.fontStyle : '';
+          if (!fs) {
+            var mFs = styleStr.match(/font-style\s*:\s*([^;]+)/i);
+            if (mFs) fs = mFs[1].trim();
+          }
+          var isItalic = fs === 'italic' || fs === 'oblique';
+
+          var td = (styleObj && (styleObj.textDecoration || styleObj.textDecorationLine)) ? (styleObj.textDecoration || styleObj.textDecorationLine) : '';
+          if (!td) {
+            var mTd = styleStr.match(/text-decoration(?:-line)?\s*:\s*([^;]+)/i);
+            if (mTd) td = mTd[1].trim();
+          }
+          var isStrike = td.indexOf('line-through') !== -1;
+
+          if (isBold && tag !== 'B' && tag !== 'STRONG' && tag !== 'H1' && tag !== 'H2' && tag !== 'H3') {
+            var b = document.createElement('b');
+            while (node.firstChild) {
+              b.appendChild(node.firstChild);
+            }
+            node.appendChild(b);
+            if (styleObj) styleObj.fontWeight = '';
+          }
+          if (isItalic && tag !== 'I' && tag !== 'EM') {
+            var it = document.createElement('i');
+            while (node.firstChild) {
+              it.appendChild(node.firstChild);
+            }
+            node.appendChild(it);
+            if (styleObj) styleObj.fontStyle = '';
+          }
+          if (isStrike && tag !== 'S' && tag !== 'DEL' && tag !== 'STRIKE') {
+            var s = document.createElement('s');
+            while (node.firstChild) {
+              s.appendChild(node.firstChild);
+            }
+            node.appendChild(s);
+            if (styleObj) styleObj.textDecoration = '';
+          }
+        }
+
         if (!ALLOWED_TAGS[tag]) {
           var parent = node.parentNode;
           if (!parent) return;
@@ -1298,13 +1350,22 @@ window.CRM.VisualEditor = (function () {
       if (typeof cmd === 'string') {
         btn.setAttribute('data-cmd', cmd);
       }
+      if (value) {
+        btn.setAttribute('data-value', String(value).toLowerCase());
+      }
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         self._content.focus();
         if (typeof cmd === 'function') {
           cmd();
         } else if (cmd === 'formatBlock') {
-          document.execCommand('formatBlock', false, '<' + value + '>');
+          var targetVal = String(value || 'p').toLowerCase();
+          var currentBlock = self._getCurrentBlockTag();
+          if (targetVal !== 'p' && currentBlock === targetVal) {
+            document.execCommand('formatBlock', false, '<p>');
+          } else {
+            document.execCommand('formatBlock', false, '<' + targetVal + '>');
+          }
         } else if (cmd === 'createLink') {
           self._execLink();
         } else if (cmd === 'insertImage') {
@@ -1352,6 +1413,7 @@ window.CRM.VisualEditor = (function () {
       'createLink'
     );
     addSep();
+    addBtn('P', t('visual_editor.paragraph', 'Обычный текст'), 'formatBlock', 'p');
     addBtn('H2', t('visual_editor.heading2', 'Heading 2'), 'formatBlock', 'h2');
     addBtn('H3', t('visual_editor.heading3', 'Heading 3'), 'formatBlock', 'h3');
     addSep();
@@ -1964,6 +2026,7 @@ window.CRM.VisualEditor = (function () {
   // ---------------------------------------------------------------------------
 
   var SLASH_COMMANDS = [
+    { id: 'paragraph', label: 'Paragraph', icon: 'P', desc: 'Normal body text', keywords: 'paragraph text body p normal обычный текст', action: 'formatBlock', value: 'p', group: 'Blocks' },
     { id: 'h2', label: 'Heading 2', icon: 'H2', desc: 'Large section heading', keywords: 'heading h2 title', action: 'formatBlock', value: 'h2', group: 'Blocks' },
     { id: 'h3', label: 'Heading 3', icon: 'H3', desc: 'Smaller section heading', keywords: 'heading h3 subtitle', action: 'formatBlock', value: 'h3', group: 'Blocks' },
     { id: 'bullet', label: 'Bullet list', icon: '\u2022', desc: 'Unordered list', keywords: 'list bullet unordered', action: 'insertUnorderedList', group: 'Lists' },
@@ -2940,14 +3003,76 @@ window.CRM.VisualEditor = (function () {
     this._wrapper.classList.toggle('is-empty', this._isEmpty());
   };
 
+  Editor.prototype._getCurrentBlockTag = function () {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    var node = sel.anchorNode;
+    if (!node) return null;
+    if (node.nodeType === 3) node = node.parentNode;
+    while (node && node !== this._content) {
+      var tag = (node.tagName || '').toLowerCase();
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'blockquote' || tag === 'p' || tag === 'pre') {
+        return tag;
+      }
+      node = node.parentNode;
+    }
+    return null;
+  };
+
   Editor.prototype._updateActiveButtons = function () {
+    var self = this;
+    if (!this._toolbar || !this._content) return;
+    var sel = window.getSelection();
+    var hasFocus = Boolean(sel && sel.rangeCount && this._content.contains(sel.anchorNode));
+    var currentBlock = hasFocus ? self._getCurrentBlockTag() : null;
+    var isParagraph = !currentBlock || currentBlock === 'p';
+
     var buttons = this._toolbar.querySelectorAll('.crm-ve-toolbar-btn');
     buttons.forEach(function (btn) {
       var cmd = btn.getAttribute('data-cmd');
+      var val = (btn.getAttribute('data-value') || '').toLowerCase();
       if (!cmd) return;
+
+      if (cmd === 'formatBlock' && val) {
+        if (!hasFocus) {
+          btn.classList.remove('is-active');
+          return;
+        }
+        if (val === 'p') {
+          btn.classList.toggle('is-active', isParagraph);
+        } else {
+          btn.classList.toggle('is-active', currentBlock === val);
+        }
+        return;
+      }
+
+      if (!hasFocus) {
+        btn.classList.remove('is-active');
+        return;
+      }
+
       try {
         var state = document.queryCommandState(cmd);
-        btn.classList.toggle('is-active', !!state);
+        // In headings (h1, h2, h3), user-agent stylesheets apply bold font-weight,
+        // causing queryCommandState('bold') to return true even when no <b> or <strong> tag exists.
+        // Keep bold button active only if there is an explicit bold element around the selection:
+        if (cmd === 'bold' && (currentBlock === 'h1' || currentBlock === 'h2' || currentBlock === 'h3')) {
+          var isExplicitBold = false;
+          if (sel && sel.rangeCount) {
+            var n = sel.anchorNode;
+            if (n && n.nodeType === 3) n = n.parentNode;
+            while (n && n !== self._content && n.tagName !== 'H1' && n.tagName !== 'H2' && n.tagName !== 'H3') {
+              if (n.tagName === 'B' || n.tagName === 'STRONG') {
+                isExplicitBold = true;
+                break;
+              }
+              n = n.parentNode;
+            }
+          }
+          btn.classList.toggle('is-active', isExplicitBold);
+          return;
+        }
+        btn.classList.toggle('is-active', Boolean(state));
       } catch (e) { /* queryCommandState not supported for this cmd */ }
     });
   };
@@ -3013,19 +3138,38 @@ window.CRM.VisualEditor = (function () {
       }
     }
 
-    // 3. Strip any styles that block interaction / selection
+    // 3. Convert styled spans/elements to semantic formatting tags and strip blocking styles
     var styled = this._content.querySelectorAll('[style]');
     for (var s = 0; s < styled.length; s++) {
       var sel = styled[s];
       if (sel.classList.contains('crm-ve-image-figure') || sel.tagName === 'FIGURE') continue;
+      var style = sel.style;
+      var fw = style.fontWeight;
+      if (fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600) {
+        if (sel.tagName !== 'B' && sel.tagName !== 'STRONG' && sel.tagName !== 'H1' && sel.tagName !== 'H2' && sel.tagName !== 'H3') {
+          var b = document.createElement('b');
+          while (sel.firstChild) b.appendChild(sel.firstChild);
+          sel.appendChild(b);
+          style.fontWeight = '';
+        }
+      }
+      var fs = style.fontStyle;
+      if (fs === 'italic' || fs === 'oblique') {
+        if (sel.tagName !== 'I' && sel.tagName !== 'EM') {
+          var it = document.createElement('i');
+          while (sel.firstChild) it.appendChild(sel.firstChild);
+          sel.appendChild(it);
+          style.fontStyle = '';
+        }
+      }
       var styleStr = sel.getAttribute('style') || '';
       if (/user-select|pointer-events|display\s*:\s*none|visibility\s*:\s*hidden/i.test(styleStr)) {
         sel.style.userSelect = '';
         sel.style.pointerEvents = '';
         if (/display\s*:\s*none/i.test(styleStr)) sel.style.display = '';
         if (/visibility\s*:\s*hidden/i.test(styleStr)) sel.style.visibility = '';
-        if (!sel.getAttribute('style')) sel.removeAttribute('style');
       }
+      if (!sel.getAttribute('style')) sel.removeAttribute('style');
     }
   };
 

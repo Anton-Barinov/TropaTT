@@ -9932,6 +9932,7 @@ return array (
     'link' => '链接',
     'bullet_list' => '项目符号列表',
     'ordered_list' => '编号列表',
+    'paragraph' => '普通文本',
     'heading2' => '标题 H2',
     'heading3' => '标题 H3',
     'quote' => '引用',

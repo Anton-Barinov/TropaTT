@@ -94,6 +94,26 @@ details.crm-ve-spoiler[open] > summary {
 
 /* Rendered rich text (read-only surfaces: comments, task descriptions,
    knowledge pages). .crm-ve-rendered is added by VisualEditor.renderReadonly(). */
+.crm-ve-rendered h1,
+.crm-ve-rendered h2,
+.crm-ve-rendered h3 {
+  margin: 12px 0 8px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--crm-ve-text);
+}
+
+.crm-ve-rendered h1 { font-size: 1.5em; }
+.crm-ve-rendered h2 { font-size: 1.25em; }
+.crm-ve-rendered h3 { font-size: 1.1em; }
+
+.crm-ve-rendered b,
+.crm-ve-rendered strong,
+.crm-ve-content b,
+.crm-ve-content strong {
+  font-weight: 700 !important;
+}
+
 .crm-ve-rendered pre {
   margin: 8px 0;
   padding: 12px 14px;
@@ -176,6 +196,8 @@ details.crm-ve-spoiler[open] > summary {
 .crm-ve-toolbar-btn.is-active {
   background: var(--crm-ve-accent-light);
   color: var(--crm-ve-accent);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--crm-ve-accent) 40%, transparent);
 }
 
 .crm-ve-toolbar-btn:disabled {
