@@ -152,6 +152,9 @@ window.CRM.br1 = (function () {
   }
 
   function sanitizeRichTextHtml(value) {
+    if (window.CRM && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.sanitizeHtml === 'function') {
+      return window.CRM.VisualEditor.sanitizeHtml(value);
+    }
     var raw = String(value || '').trim();
     if (!raw) return '';
     var template = document.createElement('template');
@@ -167,6 +170,10 @@ window.CRM.br1 = (function () {
       EM: true,
       FIGCAPTION: true,
       FIGURE: true,
+      H1: true,
+      H2: true,
+      H3: true,
+      HR: true,
       I: true,
       IMG: true,
       DETAILS: true,
@@ -178,6 +185,12 @@ window.CRM.br1 = (function () {
       S: true,
       SPAN: true,
       STRONG: true,
+      TABLE: true,
+      THEAD: true,
+      TBODY: true,
+      TR: true,
+      TH: true,
+      TD: true,
       U: true,
       UL: true
     };

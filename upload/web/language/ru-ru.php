@@ -10422,6 +10422,7 @@ return array (
     'spoiler_summary' => 'Разворачивание',
     'bullet_list' => 'Маркированный список',
     'ordered_list' => 'Нумерованный список',
+    'paragraph' => 'Обычный текст',
     'heading2' => 'Заголовок H2',
     'heading3' => 'Заголовок H3',
     'quote' => 'Цитата',

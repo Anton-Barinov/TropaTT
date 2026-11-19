@@ -6392,6 +6392,24 @@ body.modal-open {
   word-break: break-word;
 }
 
+.crm-task-detail-page #taskDescriptionContent b,
+.crm-task-detail-page #taskDescriptionContent strong {
+  font-weight: 700 !important;
+}
+
+.crm-task-detail-page #taskDescriptionContent h1,
+.crm-task-detail-page #taskDescriptionContent h2,
+.crm-task-detail-page #taskDescriptionContent h3 {
+  margin: 0.75rem 0 0.5rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--crm-text);
+}
+
+.crm-task-detail-page #taskDescriptionContent h1 { font-size: 1.35rem; }
+.crm-task-detail-page #taskDescriptionContent h2 { font-size: 1.2rem; }
+.crm-task-detail-page #taskDescriptionContent h3 { font-size: 1.05rem; }
+
 .crm-task-detail-page .crm-task-source-chat {
   padding: 0.85rem 0.95rem;
   border: 1px solid var(--crm-border);
