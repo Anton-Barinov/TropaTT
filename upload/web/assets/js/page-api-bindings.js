@@ -15080,14 +15080,12 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         participantList.innerHTML = participants.map(function (p) {
           var initials = getUserInitials(p.full_name || p.login || p.public_id);
           var isManager = currentManagerId && p.public_id === currentManagerId;
-          var unmappedBadge = p.is_unmapped ? '<span class="team-participant-badge text-muted" style="border-style:dashed">' + safeText(tp('teams.unmapped_member', 'Participant')) + '</span>' : '';
           return '<div class="team-participant-row is-adding" data-user-id="' + safeText(p.public_id) + '" role="option">'
             + '<div class="team-participant-avatar">' + safeText(initials) + '</div>'
             + '<div class="team-participant-info">'
             + '<div class="team-participant-name">' + safeText(p.full_name || p.login || p.public_id) + '</div>'
             + '<div class="team-participant-detail">' + safeText(p.login || '') + '</div>'
             + '</div>'
-            + unmappedBadge
             + (isManager ? '<span class="team-participant-badge team-badge-manager">' + safeText(tp('teams.manager_badge', 'Manager')) + '</span>' : '')
             + '<button type="button" class="team-participant-remove" data-remove="' + safeText(p.public_id) + '" aria-label="' + safeText(tp('teams.remove', 'Remove')) + '"><span class="crm-icon" aria-hidden="true"><i class="fa-solid fa-xmark" aria-hidden="true"></i></span></button>'
             + '</div>';
