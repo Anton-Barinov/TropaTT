@@ -133,4 +133,6 @@ return [
     'validation_failed' => '验证失败。请查看服务器日志了解详情。',
     'link_not_found' => '知识库链接未找到',
     'trash_purged' => '回收站栏目已清除',
+    'cycle_detected' => '无法将空间或其后代设置为父空间',
+    'parent_not_found' => '未找到父空间',
 ];
