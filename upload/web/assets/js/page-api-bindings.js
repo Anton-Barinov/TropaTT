@@ -1290,7 +1290,12 @@ window.CRM.pageApiBindings = (function () {
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td class="crm-cell-state">'
       + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
-      + '<div class="crm-state-line"><span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span></div>'
+      + (function() {
+          var customColor = (window.CRM.br1 && typeof window.CRM.br1.statusColor === 'function') ? window.CRM.br1.statusColor(item.status_code) : null;
+          var badgeStyle = customColor ? ' style="background-color:' + safeText(customColor) + ' !important;border-color:' + safeText(customColor) + ' !important;color:' + safeText(window.CRM.br1.statusTextColor(customColor)) + ' !important;"' : '';
+          var badgeClass = 'crm-badge ' + (customColor ? 'has-custom-color' : statusClass(item.status_code));
+          return '<div class="crm-state-line"><span class="' + badgeClass + '"' + badgeStyle + '>' + safeText(statusLabel(item.status_code)) + '</span></div>';
+        })()
       + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(window.CRM.i18n.t('tasks.th_priority', 'Приоритет')) + ':</span> <span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
       + '</td>'
       + '<td>'
