@@ -14624,9 +14624,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
 
           var memberIds = Array.isArray(team.member_user_public_ids) ? team.member_user_public_ids : [];
-          if (editPM) {
-            editPM.setManagerId(managerId);
-            editPM.setParticipants(memberIds, userMapForParticipants);
+          var activeEditPM = (editForm && editForm._pm) || editPM;
+          if (activeEditPM) {
+            activeEditPM.setManagerId(managerId);
+            activeEditPM.setParticipants(memberIds, userMapForParticipants);
           }
 
           var metaId = editForm.querySelector('[data-edit-meta-id]');
@@ -14637,7 +14638,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           if (metaCount) metaCount.textContent = memberIds.length + ' ' + tpPlural('teams.participant', memberIds.length, { one: 'participant', few: 'participants', many: 'participants' });
 
           setTimeout(function() {
-            editFormOriginalState = captureEditFormState();
+            if (editForm) editForm._originalState = captureEditFormState();
           }, 50);
 
           if (editModal) editModal.show();
@@ -15280,27 +15281,30 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       initSegmentedControl(createForm.querySelector('[data-field="team_type"]'), createForm.querySelector('[name="team_type"]'));
 
       var createPM = createParticipantManager('create', users, '');
+      createForm._pm = createPM;
 
       // Update manager badge when manager select changes
       var createManagerSelect = createForm.querySelector('[name="manager_user_public_id"]');
-      if (createManagerSelect) {
+      if (createManagerSelect && createManagerSelect.dataset.bound !== '1') {
         createManagerSelect.addEventListener('change', function() {
-          createPM.setManagerId(createManagerSelect.value);
+          var pm = createForm._pm;
+          if (pm) pm.setManagerId(createManagerSelect.value);
         });
+        createManagerSelect.dataset.bound = '1';
       }
 
-      var isCreatingTeam = false;
       if (createForm.dataset.bound !== '1') {
         createForm.addEventListener('submit', async function (e) {
           e.preventDefault();
-          if (isCreatingTeam) return;
+          if (createForm._isSaving) return;
+          var curPM = createForm._pm;
           var payload = {
             title: String((createForm.querySelector('[name="title"]') || {}).value || '').trim(),
             team_type: String((createForm.querySelector('[name="team_type"]') || {}).value || 'team'),
             code: String((createForm.querySelector('[name="code"]') || {}).value || '').trim(),
             parent_public_id: String((createForm.querySelector('[name="parent_public_id"]') || {}).value || '').trim(),
             manager_user_public_id: String((createForm.querySelector('[name="manager_user_public_id"]') || {}).value || '').trim(),
-            member_user_public_ids: createPM.getParticipantIds()
+            member_user_public_ids: curPM ? curPM.getParticipantIds() : []
           };
           if (!payload.title) {
             showFormErrors(createForm, { title: [tp('teams.validation_title_required', 'Enter a name')] });
@@ -15309,7 +15313,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
           clearFormErrors(createForm);
 
-          isCreatingTeam = true;
+          createForm._isSaving = true;
           var saveBtn = createForm.querySelector('[data-create-save]');
           var saveText = createForm.querySelector('[data-create-save-text]');
           var saveSpinner = createForm.querySelector('[data-create-save-spinner]');
@@ -15326,61 +15330,57 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             }
             if (createModal) createModal.hide();
             createForm.reset();
-            createPM.setParticipants([], {});
+            if (createForm._pm) createForm._pm.setParticipants([], {});
             await refreshCurrentPage();
           } catch (error) {
             var envelope = error && error.envelope ? error.envelope : null;
             showFormErrors(createForm, mapApiErrors(envelope));
             notify((envelope && envelope.message) || tp('teams.create_fail', 'Failed to create team'), 'error');
           } finally {
-            isCreatingTeam = false;
+            createForm._isSaving = false;
             if (saveBtn) saveBtn.disabled = false;
             if (saveText) saveText.textContent = tp('teams.create', 'Create');
             if (saveSpinner) saveSpinner.hidden = true;
           }
         });
-      createForm.dataset.bound = '1';
-    }
+        createForm.dataset.bound = '1';
+      }
 
-      if (createModalNode) {
+      if (createModalNode && createModalNode.dataset.bound !== '1') {
         createModalNode.addEventListener('show.bs.modal', function () {
           createForm.reset();
-          createPM.setParticipants([], {});
+          if (createForm._pm) createForm._pm.setParticipants([], {});
           clearFormErrors(createForm);
         });
+        createModalNode.dataset.bound = '1';
       }
     }
 
     // EDIT MODAL
     var editForm = document.getElementById('teamEditForm');
-    var editFormOriginalState = null;
-    // Set right before hiding the modal after a successful save so the
-    // unsaved-changes confirm can never fire on the happy path (even if the
-    // captured original state is somehow stale).
-    var teamEditJustSaved = false;
-    var isSavingTeam = false;
 
     function captureEditFormState() {
       if (!editForm) return null;
+      var pm = editForm._pm || editPM;
       return {
         title: String((editForm.querySelector('[name="title"]') || {}).value || ''),
         team_type: String((editForm.querySelector('[name="team_type"]') || {}).value || ''),
         code: String((editForm.querySelector('[name="code"]') || {}).value || ''),
         parent_public_id: String((editForm.querySelector('[name="parent_public_id"]') || {}).value || ''),
         manager_user_public_id: String((editForm.querySelector('[name="manager_user_public_id"]') || {}).value || ''),
-        member_ids: editPM ? editPM.getParticipantIds().join(',') : ''
+        member_ids: pm ? pm.getParticipantIds().join(',') : ''
       };
     }
 
     function checkEditFormChanges() {
-      if (!editFormOriginalState || !editPM) return false;
+      if (!editForm || !editForm._originalState) return false;
       var current = captureEditFormState();
-      return current.title !== editFormOriginalState.title
-        || current.team_type !== editFormOriginalState.team_type
-        || current.code !== editFormOriginalState.code
-        || current.parent_public_id !== editFormOriginalState.parent_public_id
-        || current.manager_user_public_id !== editFormOriginalState.manager_user_public_id
-        || current.member_ids !== editFormOriginalState.member_ids;
+      return current.title !== editForm._originalState.title
+        || current.team_type !== editForm._originalState.team_type
+        || current.code !== editForm._originalState.code
+        || current.parent_public_id !== editForm._originalState.parent_public_id
+        || current.manager_user_public_id !== editForm._originalState.manager_user_public_id
+        || current.member_ids !== editForm._originalState.member_ids;
     }
 
     if (editForm) {
@@ -15389,28 +15389,32 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       initSegmentedControl(editForm.querySelector('[data-field="team_type"]'), editForm.querySelector('[name="team_type"]'));
 
       var editPM = createParticipantManager('edit', users, '');
+      editForm._pm = editPM;
 
       // Update manager badge when manager select changes
       var editManagerSelect = editForm.querySelector('[name="manager_user_public_id"]');
-      if (editManagerSelect) {
+      if (editManagerSelect && editManagerSelect.dataset.bound !== '1') {
         editManagerSelect.addEventListener('change', function() {
-          editPM.setManagerId(editManagerSelect.value);
+          var pm = editForm._pm;
+          if (pm) pm.setManagerId(editManagerSelect.value);
         });
+        editManagerSelect.dataset.bound = '1';
       }
 
       if (editForm.dataset.bound !== '1') {
         editForm.addEventListener('submit', async function (e) {
           e.preventDefault();
-          if (isSavingTeam) return;
+          if (editForm._isSaving) return;
           var teamId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
           if (!teamId) { notify(tp('teams.select_first', 'Select a team first'), 'warning'); return; }
+          var curPM = editForm._pm || editPM;
           var payload = {
             title: String((editForm.querySelector('[name="title"]') || {}).value || '').trim(),
             team_type: String((editForm.querySelector('[name="team_type"]') || {}).value || 'team'),
             code: String((editForm.querySelector('[name="code"]') || {}).value || '').trim(),
             parent_public_id: String((editForm.querySelector('[name="parent_public_id"]') || {}).value || '').trim(),
             manager_user_public_id: String((editForm.querySelector('[name="manager_user_public_id"]') || {}).value || '').trim(),
-            member_user_public_ids: editPM.getParticipantIds()
+            member_user_public_ids: curPM ? curPM.getParticipantIds() : []
           };
           if (!payload.title) {
             showFormErrors(editForm, { title: [tp('teams.validation_title_required', 'Enter a name')] });
@@ -15419,7 +15423,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
           clearFormErrors(editForm);
 
-          isSavingTeam = true;
+          editForm._isSaving = true;
           var saveBtn = editForm.querySelector('[data-edit-save]');
           var saveText = editForm.querySelector('[data-edit-save-text]');
           var saveSpinner = editForm.querySelector('[data-edit-save-spinner]');
@@ -15431,19 +15435,19 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
           try {
             await request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'PATCH', body: payload });
-            editFormOriginalState = captureEditFormState();
-            teamEditJustSaved = true;
-            isSavingTeam = false;
+            editForm._originalState = captureEditFormState();
+            editForm._justSaved = true;
+            editForm._isSaving = false;
             if (editModal) editModal.hide();
             notify(tp('teams.updated', 'Team updated'));
             await refreshCurrentPage();
           } catch (error) {
-            isSavingTeam = false;
+            editForm._isSaving = false;
             var envelope = error && error.envelope ? error.envelope : null;
             showFormErrors(editForm, mapApiErrors(envelope));
             notify((envelope && envelope.message) || tp('teams.update_fail', 'Failed to update team'), 'error');
           } finally {
-            isSavingTeam = false;
+            editForm._isSaving = false;
             if (saveBtn) saveBtn.disabled = false;
             if (saveText) saveText.textContent = tp('teams.save', 'Save');
             if (saveSpinner) saveSpinner.hidden = true;
@@ -15470,19 +15474,35 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         deleteBtn.dataset.bound = '1';
       }
 
-      if (editModalNode) {
+      var dirtyDot = editForm.querySelector('[data-edit-dirty-dot]');
+      function updateDirtyDot() {
+        if (dirtyDot) {
+          dirtyDot.hidden = !checkEditFormChanges();
+        }
+      }
+
+      if (editPM) {
+        var origGetIds = editPM.getParticipantIds;
+        var captureInProgress = false;
+        editPM.getParticipantIds = function() {
+          if (!captureInProgress) { updateDirtyDot(); }
+          return origGetIds.call(editPM);
+        };
+      }
+
+      if (editModalNode && editModalNode.dataset.bound !== '1') {
         editModalNode.addEventListener('show.bs.modal', function () {
           clearFormErrors(editForm);
         });
 
         // Confirm before close if there are unsaved changes
         editModalNode.addEventListener('hide.bs.modal', function (e) {
-          if (isSavingTeam) {
+          if (editForm && editForm._isSaving) {
             e.preventDefault();
             return;
           }
-          if (teamEditJustSaved) {
-            teamEditJustSaved = false;
+          if (editForm && editForm._justSaved) {
+            editForm._justSaved = false;
             return;
           }
           var hasChanges = checkEditFormChanges();
@@ -15491,52 +15511,37 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
         });
 
-        // Update dirty dot indicator
-        var dirtyDot = editForm.querySelector('[data-edit-dirty-dot]');
-        function updateDirtyDot() {
-          if (dirtyDot) {
-            dirtyDot.hidden = !checkEditFormChanges();
-          }
-        }
-
         // Watch for changes
         editForm.addEventListener('input', updateDirtyDot);
         editForm.addEventListener('change', updateDirtyDot);
-        if (editPM) {
-          var origGetIds = editPM.getParticipantIds;
-          var captureInProgress = false;
-          editPM.getParticipantIds = function() {
-            if (!captureInProgress) { updateDirtyDot(); }
-            return origGetIds.call(editPM);
-          };
-          var origCapture = captureEditFormState;
-          captureEditFormState = function() {
-            captureInProgress = true;
-            var result = origCapture();
-            captureInProgress = false;
-            return result;
-          };
-        }
-
-        // Keyboard shortcut: Ctrl/Cmd + S to save
-        var teamShortcutHandler = function(e) {
-          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            var modalInstance = editModalNode && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getInstance(editModalNode) : null;
-            if (modalInstance && modalInstance._isShown) {
-              e.preventDefault();
-              editForm.dispatchEvent(new Event('submit', { cancelable: true }));
-            }
-          }
-        };
-        document.addEventListener('keydown', teamShortcutHandler);
 
         // Cleanup on modal hidden
         editModalNode.addEventListener('hidden.bs.modal', function() {
-          document.removeEventListener('keydown', teamShortcutHandler);
-          editFormOriginalState = null;
-          teamEditJustSaved = false;
+          if (editForm) {
+            editForm._originalState = null;
+            editForm._justSaved = false;
+            editForm._isSaving = false;
+          }
           if (dirtyDot) dirtyDot.hidden = true;
         });
+
+        editModalNode.dataset.bound = '1';
+      }
+
+      // Keyboard shortcut: Ctrl/Cmd + S to save
+      if (!document._teamShortcutBound) {
+        document.addEventListener('keydown', function(e) {
+          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            var modalNode = document.getElementById('teamEditModal');
+            var formNode = document.getElementById('teamEditForm');
+            var modalInstance = modalNode && window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getInstance(modalNode) : null;
+            if (modalInstance && modalInstance._isShown && formNode) {
+              e.preventDefault();
+              formNode.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+          }
+        });
+        document._teamShortcutBound = true;
       }
     }
 
