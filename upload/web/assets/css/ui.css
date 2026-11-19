@@ -564,13 +564,19 @@ a.btn {
 }
 
 .form-control,
-.form-select,
-.crm-input,
-.crm-select {
+.crm-input {
   height: 46px;
   min-height: 46px;
   padding-left: 14px;
   padding-right: 14px;
+}
+
+.form-select,
+.crm-select {
+  height: 46px;
+  min-height: 46px;
+  padding-left: 14px;
+  padding-right: 2.25rem;
 }
 
 textarea.form-control,
@@ -3792,10 +3798,24 @@ body {
 .btn-light,
 .btn-outline-secondary,
 .form-control,
-.form-select,
 .input-group-text {
   background: var(--crm-surface) !important;
   box-shadow: none !important;
+}
+
+.form-select {
+  background-color: var(--crm-surface) !important;
+  background-image: var(--bs-form-select-bg-img) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px 12px !important;
+  padding-right: 2.25rem !important;
+  box-shadow: none !important;
+}
+
+.form-select:focus {
+  background-color: var(--crm-surface) !important;
+  background-image: var(--bs-form-select-bg-img) !important;
 }
 
 .btn::after {
