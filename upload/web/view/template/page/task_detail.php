@@ -246,7 +246,7 @@
           </div>
           <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_date_label"><?= htmlspecialchars($t('task_detail.worklog_date_label', 'Дата/время'), ENT_QUOTES, 'UTF-8') ?></label>
-            <input class="form-control" name="logged_at" type="datetime-local">
+            <input class="form-control" name="logged_at" type="datetime-local" data-date-no-min>
           </div>
           <div class="col-lg-3">
             <label class="form-label" data-i18n="task_detail.worklog_activity_label"><?= htmlspecialchars($t('task_detail.worklog_activity_label', 'Вид работ'), ENT_QUOTES, 'UTF-8') ?></label>
