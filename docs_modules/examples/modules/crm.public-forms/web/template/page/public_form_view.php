@@ -3,13 +3,16 @@ declare(strict_types=1);
 /** @var array $data */
 $slug = (string)($data['form_slug'] ?? '');
 $safeSlug = htmlspecialchars($slug, ENT_QUOTES, 'UTF-8');
+$hideBrand = !empty($_GET['embed']) || !empty($_GET['hide_brand']) || (isset($_GET['brand']) && in_array($_GET['brand'], ['0', 'false', 'none'], true));
 ?>
 <body data-page="public-form" data-protected="0" data-form-slug="<?= $safeSlug ?>">
 <div class="crm-app"><div class="crm-main-wrap">
 <main class="crm-content crm-module-page pform-public-page">
     <section class="crm-card pform-public-card" aria-labelledby="publicFormHeading">
         <div class="crm-card-body">
-            <a class="crm-brand pform-public-brand" href="index.php?route=login"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></a>
+            <?php if (!$hideBrand): ?>
+            <div class="crm-brand pform-public-brand"><span class="crm-brand-mark"></span> <?= htmlspecialchars($t('app.name', 'TropaTT'), ENT_QUOTES, 'UTF-8') ?></div>
+            <?php endif; ?>
             <div id="publicFormState" class="alert alert-info mt-4" role="status">Загружаем форму…</div>
             <div id="publicFormContent" hidden>
                 <h1 class="h3" id="publicFormHeading"></h1>
