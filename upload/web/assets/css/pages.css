@@ -856,6 +856,10 @@ body[data-page="organizations"] .crm-table tbody tr:hover {
   text-overflow: ellipsis;
 }
 
+.crm-intake-page .crm-table tbody td.crm-intake-actions {
+  overflow: visible;
+}
+
 .crm-intake-page .crm-table tbody td:nth-child(2),
 .crm-intake-page .crm-table tbody td:nth-child(4) {
   min-width: 0;
@@ -1009,10 +1013,12 @@ body[data-page="organizations"] .crm-table tbody tr:hover {
 
 .crm-intake-row-menu {
   display: inline-flex;
+  position: relative;
 }
 
 .crm-intake-row-menu .dropdown-menu {
   min-width: 180px;
+  z-index: 1060;
 }
 
 .crm-intake-empty {
