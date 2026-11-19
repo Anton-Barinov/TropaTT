@@ -68,7 +68,7 @@
 .pform-public-page .pform-public-card { margin-inline: auto; }
 .pform-public-card { width: min(100%, 680px); }
 .pform-public-description { white-space: pre-line; word-break: break-word; }
-.pform-public-brand { color: inherit; text-decoration: none; font-weight: 700; }
+.pform-public-brand { color: inherit; text-decoration: none; font-weight: 700; cursor: default; user-select: none; }
 .pform-public-fields { margin-top: 1.5rem; }
 .pform-honeypot { position: absolute; inset-inline-start: -10000px; width: 1px; height: 1px; overflow: hidden; }
 @media (max-width: 767px) {
