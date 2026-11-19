@@ -14499,6 +14499,26 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var users = mapItems(results[1]);
     var userMap = {};
     users.forEach(function (user) { userMap[String(user.public_id || '')] = user; });
+    teams.forEach(function (t) {
+      if (Array.isArray(t.member_users)) {
+        t.member_users.forEach(function (mu) {
+          var pid = String(mu.public_id || '').trim();
+          if (pid && !userMap[pid]) {
+            userMap[pid] = mu;
+          }
+        });
+      }
+      if (t.manager_user_public_id) {
+        var mpid = String(t.manager_user_public_id).trim();
+        if (mpid && !userMap[mpid]) {
+          userMap[mpid] = {
+            public_id: mpid,
+            full_name: String(t.manager_name || mpid),
+            login: String(t.manager_login || '')
+          };
+        }
+      }
+    });
     var teamsMap = {};
     teams.forEach(function (t) { teamsMap[String(t.public_id || '')] = t; });
 
@@ -14579,11 +14599,33 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           if (typeHidden) typeHidden.value = teamType;
 
           editForm.querySelector('[name="parent_public_id"]').value = String(team.parent_team_public_id || '');
-          editForm.querySelector('[name="manager_user_public_id"]').value = String(team.manager_user_public_id || '');
+
+          var managerSelect = editForm.querySelector('[name="manager_user_public_id"]');
+          var managerId = String(team.manager_user_public_id || '').trim();
+          if (managerSelect) {
+            if (managerId) {
+              var hasOpt = false;
+              for (var oi = 0; oi < managerSelect.options.length; oi++) {
+                if (managerSelect.options[oi].value === managerId) {
+                  hasOpt = true;
+                  break;
+                }
+              }
+              if (!hasOpt) {
+                var newOpt = document.createElement('option');
+                newOpt.value = managerId;
+                newOpt.textContent = team.manager_name || userLabelById(managerId) || managerId;
+                managerSelect.appendChild(newOpt);
+              }
+            }
+            managerSelect.value = managerId;
+            syncSearchableSingleSelect(managerSelect);
+            managerSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          }
 
           var memberIds = Array.isArray(team.member_user_public_ids) ? team.member_user_public_ids : [];
           if (editPM) {
-            editPM.setManagerId(team.manager_user_public_id || '');
+            editPM.setManagerId(managerId);
             editPM.setParticipants(memberIds, userMapForParticipants);
           }
 
@@ -15036,7 +15078,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       function renderParticipants() {
         if (!participantList) return;
         participantList.innerHTML = participants.map(function (p) {
-          var initials = getUserInitials(p.full_name || p.login);
+          var initials = getUserInitials(p.full_name || p.login || p.public_id);
           var isManager = currentManagerId && p.public_id === currentManagerId;
           return '<div class="team-participant-row is-adding" data-user-id="' + safeText(p.public_id) + '" role="option">'
             + '<div class="team-participant-avatar">' + safeText(initials) + '</div>'
@@ -15094,8 +15136,21 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
       function setParticipants(userIds, userMap) {
         participants = [];
-        userIds.forEach(function (id) {
-          if (userMap[id]) participants.push(userMap[id]);
+        var seen = {};
+        (Array.isArray(userIds) ? userIds : []).forEach(function (id) {
+          var strId = String(id || '').trim();
+          if (!strId || seen[strId]) return;
+          seen[strId] = true;
+          if (userMap && userMap[strId]) {
+            participants.push(userMap[strId]);
+          } else {
+            participants.push({
+              public_id: strId,
+              full_name: strId,
+              login: '',
+              is_unmapped: true
+            });
+          }
         });
         renderParticipants();
       }
@@ -15215,7 +15270,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
     // Build user map for participants
     var userMapForParticipants = {};
-    users.forEach(function (u) { userMapForParticipants[String(u.public_id || '')] = u; });
+    Object.keys(userMap).forEach(function (k) { userMapForParticipants[k] = userMap[k]; });
 
     // CREATE MODAL
     var createForm = document.getElementById('teamCreateForm');
@@ -15234,9 +15289,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         });
       }
 
+      var isCreatingTeam = false;
       if (createForm.dataset.bound !== '1') {
         createForm.addEventListener('submit', async function (e) {
           e.preventDefault();
+          if (isCreatingTeam) return;
           var payload = {
             title: String((createForm.querySelector('[name="title"]') || {}).value || '').trim(),
             team_type: String((createForm.querySelector('[name="team_type"]') || {}).value || 'team'),
@@ -15252,6 +15309,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
           clearFormErrors(createForm);
 
+          isCreatingTeam = true;
           var saveBtn = createForm.querySelector('[data-create-save]');
           var saveText = createForm.querySelector('[data-create-save-text]');
           var saveSpinner = createForm.querySelector('[data-create-save-spinner]');
@@ -15275,6 +15333,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             showFormErrors(createForm, mapApiErrors(envelope));
             notify((envelope && envelope.message) || tp('teams.create_fail', 'Failed to create team'), 'error');
           } finally {
+            isCreatingTeam = false;
             if (saveBtn) saveBtn.disabled = false;
             if (saveText) saveText.textContent = tp('teams.create', 'Create');
             if (saveSpinner) saveSpinner.hidden = true;
@@ -15299,6 +15358,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     // unsaved-changes confirm can never fire on the happy path (even if the
     // captured original state is somehow stale).
     var teamEditJustSaved = false;
+    var isSavingTeam = false;
 
     function captureEditFormState() {
       if (!editForm) return null;
@@ -15341,6 +15401,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (editForm.dataset.bound !== '1') {
         editForm.addEventListener('submit', async function (e) {
           e.preventDefault();
+          if (isSavingTeam) return;
           var teamId = String((editForm.querySelector('[name="public_id"]') || {}).value || '').trim();
           if (!teamId) { notify(tp('teams.select_first', 'Select a team first'), 'warning'); return; }
           var payload = {
@@ -15358,28 +15419,35 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           }
           clearFormErrors(editForm);
 
+          isSavingTeam = true;
           var saveBtn = editForm.querySelector('[data-edit-save]');
           var saveText = editForm.querySelector('[data-edit-save-text]');
           var saveSpinner = editForm.querySelector('[data-edit-save-spinner]');
+          var modalCloseBtns = editModalNode ? editModalNode.querySelectorAll('[data-bs-dismiss="modal"]') : [];
           if (saveBtn) saveBtn.disabled = true;
           if (saveText) saveText.textContent = tp('teams.saving', 'Saving...');
           if (saveSpinner) saveSpinner.hidden = false;
+          modalCloseBtns.forEach(function (b) { b.disabled = true; });
 
           try {
             await request('api/v1/teams/' + encodeURIComponent(teamId), { method: 'PATCH', body: payload });
-            editFormOriginalState = null;
+            editFormOriginalState = captureEditFormState();
             teamEditJustSaved = true;
-            notify(tp('teams.updated', 'Team updated'));
+            isSavingTeam = false;
             if (editModal) editModal.hide();
+            notify(tp('teams.updated', 'Team updated'));
             await refreshCurrentPage();
           } catch (error) {
+            isSavingTeam = false;
             var envelope = error && error.envelope ? error.envelope : null;
             showFormErrors(editForm, mapApiErrors(envelope));
             notify((envelope && envelope.message) || tp('teams.update_fail', 'Failed to update team'), 'error');
           } finally {
+            isSavingTeam = false;
             if (saveBtn) saveBtn.disabled = false;
             if (saveText) saveText.textContent = tp('teams.save', 'Save');
             if (saveSpinner) saveSpinner.hidden = true;
+            modalCloseBtns.forEach(function (b) { b.disabled = false; });
           }
         });
         editForm.dataset.bound = '1';
@@ -15409,6 +15477,10 @@ tableBody.innerHTML = counterparties.map(function (cp) {
 
         // Confirm before close if there are unsaved changes
         editModalNode.addEventListener('hide.bs.modal', function (e) {
+          if (isSavingTeam) {
+            e.preventDefault();
+            return;
+          }
           if (teamEditJustSaved) {
             teamEditJustSaved = false;
             return;
