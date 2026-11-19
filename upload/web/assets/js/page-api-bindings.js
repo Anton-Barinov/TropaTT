@@ -15481,15 +15481,6 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         }
       }
 
-      if (editPM) {
-        var origGetIds = editPM.getParticipantIds;
-        var captureInProgress = false;
-        editPM.getParticipantIds = function() {
-          if (!captureInProgress) { updateDirtyDot(); }
-          return origGetIds.call(editPM);
-        };
-      }
-
       if (editModalNode && editModalNode.dataset.bound !== '1') {
         editModalNode.addEventListener('show.bs.modal', function () {
           clearFormErrors(editForm);
