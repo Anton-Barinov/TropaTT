@@ -104,6 +104,7 @@ $needsTaskEstimates = in_array($currentRoute, [
 ], true);
 $needsIntake = in_array($currentRoute, [
   'intake',
+  'intake-detail',
 ], true);
 $needsProjectModules = in_array($currentRoute, [
   'project-modules',

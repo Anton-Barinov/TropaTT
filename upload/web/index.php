@@ -972,6 +972,7 @@ $adminRoutePermissions = [
     'recycle-bin' => ['recycle_bin.manage'],
     'approvals' => ['approval.manage'],
     'intake' => ['intake.view'],
+    'intake-detail' => ['intake.view'],
     'project-modules' => ['project.manage'],
     // Core features gated by permissions: shell 403s when the API would deny.
     'ideas' => ['idea.view'],

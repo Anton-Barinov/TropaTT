@@ -411,7 +411,7 @@ window.CRM.intake = (function () {
       order: state.order,
       with_status_counts: '1'
     }, filters);
-    request('api/v1/intake-items', { query: query })
+    return request('api/v1/intake-items', { query: query })
       .then(function (envelope) {
         state.items = extractItems(envelope);
         state.total = extractTotal(envelope, state.items.length);
@@ -717,9 +717,9 @@ window.CRM.intake = (function () {
     return (error && error.message) || fallback;
   }
 
-  function openDetail(publicId) {
-    var item = itemById(publicId);
+  function renderDetail(item) {
     if (!item) return;
+    var publicId = item.public_id || item.id;
     var title = qs(selectors.detailTitle);
     var body = qs(selectors.detailBody);
     var footer = qs(selectors.detailFooter);
@@ -732,7 +732,31 @@ window.CRM.intake = (function () {
     }
     var instance = modal(selectors.detailModal);
     if (instance) instance.show();
-    loadActivities(publicId);
+    if (publicId) loadActivities(publicId);
+  }
+
+  function openDetail(publicId) {
+    if (!publicId) return;
+    var item = itemById(publicId);
+    if (item) {
+      renderDetail(item);
+      return;
+    }
+    request('api/v1/intake-items/' + encodeURIComponent(publicId), { method: 'GET' })
+      .then(function (envelope) {
+        var fetched = (envelope && envelope.data && (envelope.data.item || envelope.data)) || (envelope && envelope.item);
+        if (fetched) {
+          if (!itemById(fetched.public_id || fetched.id)) {
+            state.items.push(fetched);
+          }
+          renderDetail(fetched);
+        } else {
+          notify(t('intake.not_found', 'Заявка не найдена'), 'warning');
+        }
+      })
+      .catch(function (error) {
+        notify(formatError(error, t('intake.load_error', 'Не удалось загрузить данные заявки')), 'error');
+      });
   }
 
   function detailHtml(item) {
@@ -1120,7 +1144,15 @@ window.CRM.intake = (function () {
         return;
       }
       started = true;
-      loadReferences().then(loadItems);
+      loadReferences().then(function () {
+        return loadItems();
+      }).finally(function () {
+        var params = new URLSearchParams(window.location.search);
+        var targetId = params.get('public_id') || params.get('id');
+        if (targetId) {
+          openDetail(targetId);
+        }
+      });
     }
     startWhenApiReady();
   }
