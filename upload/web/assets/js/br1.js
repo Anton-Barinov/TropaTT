@@ -2503,15 +2503,23 @@ window.CRM.br1 = (function () {
       }
 
       modal.addEventListener('show.bs.modal', async function () {
-        await ensureCreateTaskDictionaries();
-        primeCreateTaskDefaults();
-        applyCreateTaskPrefill();
-        /* Re-apply prefill after Bootstrap finishes its animation in case
-           the async dictionary load caused a render cycle that cleared it. */
-        setTimeout(function () {
+        var titleIn = form.querySelector('[name="title"]');
+        var descIn = form.querySelector('[name="description"]');
+        var userAlreadyTyping = (titleIn && String(titleIn.value || '').trim() !== '')
+          || (descIn && !isRichTextEmpty(getVisualEditorTextareaValue(descIn)));
+
+        if (!userAlreadyTyping) {
+          primeCreateTaskDefaults();
           applyCreateTaskPrefill();
           restoreTaskCreateDraft();
-        }, 150);
+        }
+
+        await ensureCreateTaskDictionaries();
+
+        applyCreateTaskPrefill();
+        if (!userAlreadyTyping) {
+          restoreTaskCreateDraft();
+        }
       });
 
       modal.addEventListener('hidden.bs.modal', function () {
@@ -2530,16 +2538,19 @@ window.CRM.br1 = (function () {
       });
 
       if (modal.classList.contains('show')) {
+        var initTitle = form.querySelector('[name="title"]');
+        var initDesc = form.querySelector('[name="description"]');
+        var initTyping = (initTitle && String(initTitle.value || '').trim() !== '')
+          || (initDesc && !isRichTextEmpty(getVisualEditorTextareaValue(initDesc)));
+        if (!initTyping) {
+          primeCreateTaskDefaults();
+          applyCreateTaskPrefill();
+          restoreTaskCreateDraft();
+        }
         ensureCreateTaskDictionaries().then(function () {
-          var titleInput = form.querySelector('[name="title"]');
-          var userStartedTyping = titleInput && String(titleInput.value || '').trim() !== '';
-          if (!userStartedTyping) {
-            primeCreateTaskDefaults();
-            applyCreateTaskPrefill();
-            setTimeout(function () {
-              applyCreateTaskPrefill();
-              restoreTaskCreateDraft();
-            }, 150);
+          applyCreateTaskPrefill();
+          if (!initTyping) {
+            restoreTaskCreateDraft();
           }
         });
       }
