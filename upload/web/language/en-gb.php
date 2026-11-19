@@ -10246,6 +10246,7 @@ return array (
     'no_description' => 'No description.',
     'no_results_text' => 'No requests match the selected filters.',
     'no_results_title' => 'Nothing found',
+    'not_found' => 'Request not found',
     'notifications_loading' => 'Loading notifications...',
     'profile_link' => 'My profile',
     'refresh' => 'Refresh',

@@ -10246,6 +10246,7 @@ return array (
     'no_description' => 'Описание не заполнено.',
     'no_results_text' => 'По выбранным фильтрам заявок нет.',
     'no_results_title' => 'Ничего не найдено',
+    'not_found' => 'Заявка не найдена',
     'notifications_loading' => 'Загрузка уведомлений...',
     'profile_link' => 'Мой профиль',
     'refresh' => 'Обновить',

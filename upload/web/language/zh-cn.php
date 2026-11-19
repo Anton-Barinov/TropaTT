@@ -10415,6 +10415,7 @@ return array (
     'no_description' => 'No description.',
     'no_results_text' => 'No requests match the selected filters.',
     'no_results_title' => 'Nothing found',
+    'not_found' => '未找到请求',
     'notifications_loading' => 'Loading notifications...',
     'page_title' => 'Intake',
     'profile_link' => 'My profile',
