@@ -35301,10 +35301,16 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var today = new Date();
     var dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     var datetimeStr = dateStr + 'T' + String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0');
-    // Apply to all date/datetime inputs not in filter areas
+    function shouldSkipDateMin(input) {
+      if (!input) return true;
+      if (input.hasAttribute('data-date-no-min')) return true;
+      if (input.name === 'logged_at' || input.closest('#worklogCreateForm') || input.closest('.crm-worklog-create-form') || input.closest('.crm-worklog-edit-form') || input.closest('#taskWorklogsList')) return true;
+      var isFilter = input.closest('[data-analytics-filters]') || input.closest('.crm-kanban-filters') || input.closest('.crm-toolbar-surface') || (input.id && (input.id.indexOf('timeAnalytics') >= 0 || input.id.indexOf('kanban') >= 0 || input.id.indexOf('filter') >= 0)) || input.closest('#timeAnalyticsLockForm');
+      return !!isFilter;
+    }
+    // Apply to all date/datetime inputs not in filter areas or worklogs
     document.querySelectorAll('input[type="date"]:not([data-date-no-min]), input[type="datetime-local"]:not([data-date-no-min])').forEach(function(input) {
-      var isFilter = input.closest('[data-analytics-filters]') || input.closest('.crm-kanban-filters') || input.closest('.crm-toolbar-surface') || input.id.indexOf('timeAnalytics') >= 0 || input.id.indexOf('kanban') >= 0 || input.id.indexOf('filter') >= 0 || input.closest('#timeAnalyticsLockForm');
-      if (isFilter) return;
+      if (shouldSkipDateMin(input)) return;
       if (input.type === 'date') input.setAttribute('min', dateStr);
       else input.setAttribute('min', datetimeStr);
     });
@@ -35313,6 +35319,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var modal = e.target;
       if (!modal) return;
       modal.querySelectorAll('input[type="date"]:not([data-date-no-min]), input[type="datetime-local"]:not([data-date-no-min])').forEach(function(input) {
+        if (shouldSkipDateMin(input)) return;
         if (input.getAttribute('min')) return;
         if (input.type === 'date') input.setAttribute('min', dateStr);
         else input.setAttribute('min', datetimeStr);
