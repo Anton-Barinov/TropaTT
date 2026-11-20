@@ -2370,7 +2370,19 @@ window.CRM.VisualEditor = (function () {
     } else if (cmd.action === 'removeFormat') {
       this._execRemoveFormat();
     } else if (cmd.action === 'formatBlock') {
-      document.execCommand('formatBlock', false, '<' + cmd.value + '>');
+      var curBlock = node ? (node.nodeType === 1 ? node : node.parentNode).closest('p, h1, h2, h3, div') : null;
+      if (curBlock && curBlock.parentNode && curBlock !== this._content) {
+        var newHeading = document.createElement(cmd.value);
+        newHeading.innerHTML = '<br>';
+        curBlock.parentNode.replaceChild(newHeading, curBlock);
+        var rH = document.createRange();
+        rH.setStart(newHeading, 0);
+        rH.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(rH);
+      } else {
+        document.execCommand('formatBlock', false, '<' + cmd.value + '>');
+      }
     } else {
       document.execCommand(cmd.action, false, cmd.value || null);
     }
