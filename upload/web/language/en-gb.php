@@ -1652,6 +1652,12 @@ return array (
   ),
   'js' => 
   array (
+    'lightbox' => 
+    array (
+      'view_image' => 'View image',
+      'zoom_toggle' => 'Zoom 1:1 / Fit to screen',
+      'open_new_tab' => 'Open original in new tab',
+    ),
     'user' => 
     array (
       'load_fail' => 'Failed to load users',
@@ -10415,6 +10421,7 @@ return array (
   ),
   'visual_editor' => 
   array (
+    'zoom_image' => 'Zoom / View full size',
     'bold' => 'Bold',
     'italic' => 'Italic',
     'strike' => 'Strikethrough',
