@@ -1643,6 +1643,12 @@ return array (
   ),
   'js' => 
   array (
+    'lightbox' => 
+    array (
+      'view_image' => '查看图片',
+      'zoom_toggle' => '缩放 1:1 / 适应屏幕',
+      'open_new_tab' => '在新标签页中打开原图',
+    ),
     'user' => 
     array (
       'load_fail' => '加载用户失败',
@@ -9924,6 +9930,7 @@ return array (
   ),
   'visual_editor' => 
   array (
+    'zoom_image' => '放大 / 查看大图',
     'bold' => '加粗',
     'italic' => '斜体',
     'paste_hint' => '复制截图，然后在编辑器中按 Ctrl+V',

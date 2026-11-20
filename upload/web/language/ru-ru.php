@@ -1652,6 +1652,12 @@ return array (
   ),
   'js' => 
   array (
+    'lightbox' => 
+    array (
+      'view_image' => 'Просмотр изображения',
+      'zoom_toggle' => 'Масштаб 1:1 / По размеру экрана',
+      'open_new_tab' => 'Открыть оригинал в новой вкладке',
+    ),
     'user' => 
     array (
       'load_fail' => 'Не удалось загрузить пользователей',
@@ -10415,6 +10421,7 @@ return array (
   ),
   'visual_editor' => 
   array (
+    'zoom_image' => 'Увеличить / Просмотр',
     'bold' => 'Жирный',
     'italic' => 'Курсив',
     'strike' => 'Зачеркнутый',
