@@ -1358,6 +1358,8 @@ window.CRM.VisualEditor = (function () {
         self._content.focus();
         if (typeof cmd === 'function') {
           cmd();
+        } else if (cmd === 'removeFormat') {
+          self._execRemoveFormat();
         } else if (cmd === 'formatBlock') {
           var targetVal = String(value || 'p').toLowerCase();
           var currentBlock = self._getCurrentBlockTag();
@@ -1411,6 +1413,11 @@ window.CRM.VisualEditor = (function () {
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
       t('visual_editor.link', 'Link'),
       'createLink'
+    );
+    addBtn(
+      '<i class="fa-solid fa-remove-format" aria-hidden="true"></i>',
+      t('visual_editor.remove_format', 'Отмена форматирования'),
+      'removeFormat'
     );
     addSep();
     addBtn('P', t('visual_editor.paragraph', 'Обычный текст'), 'formatBlock', 'p');
@@ -2027,6 +2034,7 @@ window.CRM.VisualEditor = (function () {
 
   var SLASH_COMMANDS = [
     { id: 'paragraph', label: 'Paragraph', icon: 'P', desc: 'Normal body text', keywords: 'paragraph text body p normal обычный текст', action: 'formatBlock', value: 'p', group: 'Blocks' },
+    { id: 'clear_format', label: 'Clear formatting', icon: 'Tx', desc: 'Remove formatting and return to normal text', keywords: 'clear format remove plain normal обычный текст отмена форматирования очистить', action: 'removeFormat', group: 'Formatting' },
     { id: 'h2', label: 'Heading 2', icon: 'H2', desc: 'Large section heading', keywords: 'heading h2 title', action: 'formatBlock', value: 'h2', group: 'Blocks' },
     { id: 'h3', label: 'Heading 3', icon: 'H3', desc: 'Smaller section heading', keywords: 'heading h3 subtitle', action: 'formatBlock', value: 'h3', group: 'Blocks' },
     { id: 'bullet', label: 'Bullet list', icon: '\u2022', desc: 'Unordered list', keywords: 'list bullet unordered', action: 'insertUnorderedList', group: 'Lists' },
@@ -2166,6 +2174,8 @@ window.CRM.VisualEditor = (function () {
       this._execTable(3, 3);
     } else if (cmd.action === 'codeBlock') {
       this._execCodeBlock();
+    } else if (cmd.action === 'removeFormat') {
+      this._execRemoveFormat();
     } else if (cmd.action === 'formatBlock') {
       document.execCommand('formatBlock', false, '<' + cmd.value + '>');
     } else {
@@ -2248,6 +2258,80 @@ window.CRM.VisualEditor = (function () {
       return true;
     }
     return false;
+  };
+
+  // Clear formatting / return to normal text:
+  // Strips inline formatting (bold, italic, strike, colors, links, code, spoilers)
+  // and resets block formatting to standard paragraph <p>.
+  Editor.prototype._execRemoveFormat = function () {
+    this._content.focus();
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+
+    var range = sel.getRangeAt(0);
+
+    // 1. Native removeFormat strips standard inline formatting (bold, italic, strike, font, etc.)
+    document.execCommand('removeFormat', false, null);
+
+    // 2. Unlink any links in the selection
+    document.execCommand('unlink', false, null);
+
+    // 3. Reset block heading / quote / code back to normal paragraph <p>
+    var currentBlock = this._getCurrentBlockTag();
+    if (currentBlock && currentBlock !== 'p') {
+      document.execCommand('formatBlock', false, '<p>');
+    }
+
+    // 4. Convert any heading / blockquote / pre elements contained in selection
+    var container = range.commonAncestorContainer;
+    if (container && container.nodeType === 3) container = container.parentNode;
+    if (container && this._content.contains(container)) {
+      if (container.querySelectorAll) {
+        var headings = container.querySelectorAll('h1, h2, h3, blockquote, pre');
+        for (var h = 0; h < headings.length; h++) {
+          var hEl = headings[h];
+          if (sel.containsNode(hEl, true)) {
+            var p = document.createElement('p');
+            while (hEl.firstChild) p.appendChild(hEl.firstChild);
+            if (hEl.parentNode) hEl.parentNode.replaceChild(p, hEl);
+          }
+        }
+
+        // Unwrap code, mark, details.crm-ve-spoiler, and strip inline styles
+        var inlines = container.querySelectorAll('code, mark, details.crm-ve-spoiler, [style]');
+        for (var i = 0; i < inlines.length; i++) {
+          var el = inlines[i];
+          if (range.collapsed || sel.containsNode(el, true)) {
+            if (el.tagName === 'CODE' || el.tagName === 'MARK') {
+              var parentNode = el.parentNode;
+              if (parentNode) {
+                while (el.firstChild) parentNode.insertBefore(el.firstChild, el);
+                parentNode.removeChild(el);
+              }
+            } else if (el.tagName === 'DETAILS' && el.classList.contains('crm-ve-spoiler')) {
+              var summary = el.querySelector('summary');
+              if (summary) el.removeChild(summary);
+              var parentSpoiler = el.parentNode;
+              if (parentSpoiler) {
+                while (el.firstChild) parentSpoiler.insertBefore(el.firstChild, el);
+                parentSpoiler.removeChild(el);
+              }
+            } else if (el.hasAttribute('style')) {
+              el.removeAttribute('style');
+              if (el.tagName === 'SPAN' && !el.attributes.length && el.parentNode) {
+                var parentSpan = el.parentNode;
+                while (el.firstChild) parentSpan.insertBefore(el.firstChild, el);
+                parentSpan.removeChild(el);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    this._sync();
+    this._history.push(this._content.innerHTML, false);
+    this._updateActiveButtons();
   };
 
   // Inline code (</>): wraps the current selection in <code> or, without a

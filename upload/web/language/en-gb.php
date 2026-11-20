@@ -10425,6 +10425,7 @@ return array (
     'bullet_list' => 'Bullet list',
     'ordered_list' => 'Numbered list',
     'paragraph' => 'Paragraph',
+    'remove_format' => 'Clear formatting',
     'heading2' => 'Heading H2',
     'heading3' => 'Heading H3',
     'quote' => 'Quote',

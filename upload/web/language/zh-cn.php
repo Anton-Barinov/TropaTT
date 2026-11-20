@@ -9935,6 +9935,7 @@ return array (
     'bullet_list' => '项目符号列表',
     'ordered_list' => '编号列表',
     'paragraph' => '普通文本',
+    'remove_format' => '清除格式',
     'heading2' => '标题 H2',
     'heading3' => '标题 H3',
     'quote' => '引用',

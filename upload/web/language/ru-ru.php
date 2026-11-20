@@ -10425,6 +10425,7 @@ return array (
     'bullet_list' => 'Маркированный список',
     'ordered_list' => 'Нумерованный список',
     'paragraph' => 'Обычный текст',
+    'remove_format' => 'Отмена форматирования',
     'heading2' => 'Заголовок H2',
     'heading3' => 'Заголовок H3',
     'quote' => 'Цитата',
