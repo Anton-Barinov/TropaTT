@@ -718,6 +718,25 @@ window.CRM.VisualEditor = (function () {
     toolbar.appendChild(sep());
 
     toolbar.appendChild(btn(
+      '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/><path d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5z"/></svg>',
+      t('visual_editor.zoom_image', 'Увеличить / Просмотр'),
+      function () {
+        var block = getSelectedImageBlock(editorInstance);
+        if (!block) return;
+        var img = block.querySelector('.crm-ve-image');
+        if (!img || !img.src) return;
+        var capEl = block.querySelector('.crm-ve-image-caption');
+        var caption = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
+        if (window.CRM && typeof window.CRM.showImageLightbox === 'function') {
+          window.CRM.showImageLightbox(img.src, caption);
+        } else {
+          window.open(img.src, '_blank');
+        }
+      },
+      { 'data-action': 'zoom' }
+    ));
+
+    toolbar.appendChild(btn(
       'Alt',
       t('visual_editor.edit_alt', 'Edit alt text'),
       function () { editImageAlt(editorInstance); },
@@ -3006,6 +3025,16 @@ window.CRM.VisualEditor = (function () {
           // Allow caption editing directly
           return;
         }
+        if (self._options.readonly) {
+          var img = imageBlock.querySelector('.crm-ve-image');
+          if (img && img.src && window.CRM && typeof window.CRM.showImageLightbox === 'function') {
+            var capEl = imageBlock.querySelector('.crm-ve-image-caption');
+            var capText = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
+            window.CRM.showImageLightbox(img.src, capText);
+            e.preventDefault();
+            return;
+          }
+        }
         selectImageBlock(self, imageBlock);
         e.preventDefault();
         return;
@@ -3047,6 +3076,21 @@ window.CRM.VisualEditor = (function () {
 
     content.addEventListener('drop', function (e) {
       self._onDrop(e);
+    });
+
+    content.addEventListener('dblclick', function (e) {
+      var imageBlock = e.target.closest('.crm-ve-image-block');
+      if (imageBlock) {
+        var caption = e.target.closest('.crm-ve-image-caption');
+        if (caption) return;
+        var img = imageBlock.querySelector('.crm-ve-image');
+        if (img && img.src && window.CRM && typeof window.CRM.showImageLightbox === 'function') {
+          var capEl = imageBlock.querySelector('.crm-ve-image-caption');
+          var capText = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
+          window.CRM.showImageLightbox(img.src, capText);
+          e.preventDefault();
+        }
+      }
     });
 
     content.addEventListener('dragover', function (e) {

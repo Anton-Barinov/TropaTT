@@ -21517,3 +21517,178 @@ body[data-page="admin-settings"] [data-settings-group] {
   .crm-workspace-trigger-icon { flex: 0 0 32px; width: 32px; height: 32px; }
   .crm-workspace-menu { position: fixed; top: 4.2rem; right: .75rem; width: min(310px, calc(100vw - 1.5rem)); }
 }
+
+/* ==========================================================================
+   Image Lightbox / Zoom Overlay (User request 19.11.2026)
+   ========================================================================== */
+.crm-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.22s ease-out;
+  user-select: none;
+  overflow: hidden;
+}
+
+.crm-image-lightbox.is-open {
+  opacity: 1;
+}
+
+.crm-image-lightbox-header {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10510;
+}
+
+.crm-image-lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(30, 41, 59, 0.75);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.crm-image-lightbox-btn:hover {
+  background: rgba(51, 65, 85, 0.95);
+  color: #ffffff;
+  transform: scale(1.06);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.crm-image-lightbox-btn:active {
+  transform: scale(0.96);
+}
+
+.crm-image-lightbox-body {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 68px 24px 68px 24px;
+  overflow: auto;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+.crm-image-lightbox-img {
+  display: block;
+  max-width: 92vw;
+  max-height: 84vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  cursor: zoom-in;
+  transition: transform 0.2s ease, max-width 0.2s ease, max-height 0.2s ease;
+  user-select: none;
+  margin: auto;
+}
+
+.crm-image-lightbox-img.is-zoomed {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+  transform: none;
+}
+
+.crm-image-lightbox-caption {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(85vw, 680px);
+  padding: 7px 20px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 10510;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Hover hint and zoom cursor for all content images */
+#taskDescriptionContent img,
+.crm-task-description-summary img,
+#commentsList img,
+.crm-comment-body img,
+[data-comment-body] img,
+.crm-file-thumb img,
+.crm-ve-editor.is-readonly .crm-ve-image,
+.crm-ve-content[contenteditable="false"] .crm-ve-image,
+.crm-task-deliverable-content img,
+.crm-rich-text-content img,
+#taskKnowledgeContent img {
+  cursor: zoom-in;
+  transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+#taskDescriptionContent img:hover,
+.crm-task-description-summary img:hover,
+#commentsList img:hover,
+.crm-comment-body img:hover,
+[data-comment-body] img:hover,
+.crm-file-thumb img:hover,
+.crm-ve-editor.is-readonly .crm-ve-image:hover,
+.crm-ve-content[contenteditable="false"] .crm-ve-image:hover,
+.crm-task-deliverable-content img:hover,
+.crm-rich-text-content img:hover,
+#taskKnowledgeContent img:hover {
+  filter: brightness(1.03);
+}
+
+@media (max-width: 575.98px) {
+  .crm-image-lightbox-header {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+  .crm-image-lightbox-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .crm-image-lightbox-body {
+    padding: 54px 12px 54px 12px;
+  }
+  .crm-image-lightbox-img {
+    max-width: 96vw;
+    max-height: 82vh;
+  }
+  .crm-image-lightbox-caption {
+    bottom: 10px;
+    font-size: 0.8rem;
+    padding: 5px 14px;
+    max-width: 92vw;
+  }
+}
+

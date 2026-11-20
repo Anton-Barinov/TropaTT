@@ -10140,7 +10140,176 @@ window.CRM.br1 = (function () {
     tabsNav.dataset.overflowBound = '1';
   }
 
+  /* ==========================================================================
+     Image Lightbox / Zoom Overlay (User request 19.11.2026)
+     ========================================================================== */
+  function showImageLightbox(src, caption) {
+    if (!src) return;
+    var existing = document.getElementById('crmImageLightbox');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'crmImageLightbox';
+    overlay.className = 'crm-image-lightbox';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t('js.lightbox.view_image', 'Просмотр изображения') : 'Просмотр изображения');
+
+    var header = document.createElement('div');
+    header.className = 'crm-image-lightbox-header';
+
+    // Zoom toggle button (1:1 / Fit)
+    var zoomBtn = document.createElement('button');
+    zoomBtn.type = 'button';
+    zoomBtn.className = 'crm-image-lightbox-btn';
+    zoomBtn.title = (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t('js.lightbox.zoom_toggle', 'Масштаб 1:1 / По размеру экрана') : 'Масштаб 1:1 / По размеру экрана';
+    zoomBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/><path d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5z"/></svg>';
+
+    // Open original in new tab
+    var openBtn = document.createElement('a');
+    openBtn.href = src;
+    openBtn.target = '_blank';
+    openBtn.rel = 'noopener noreferrer';
+    openBtn.className = 'crm-image-lightbox-btn';
+    openBtn.title = (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t('js.lightbox.open_new_tab', 'Открыть оригинал в новой вкладке') : 'Открыть оригинал в новой вкладке';
+    openBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/></svg>';
+
+    // Close button
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'crm-image-lightbox-btn';
+    closeBtn.title = (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t('page.close', 'Закрыть') : 'Закрыть';
+    closeBtn.setAttribute('aria-label', (window.CRM && window.CRM.i18n) ? window.CRM.i18n.t('page.close', 'Закрыть') : 'Закрыть');
+    closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>';
+
+    header.appendChild(zoomBtn);
+    header.appendChild(openBtn);
+    header.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'crm-image-lightbox-body';
+
+    var img = document.createElement('img');
+    img.className = 'crm-image-lightbox-img';
+    img.src = src;
+    img.alt = caption || '';
+
+    body.appendChild(img);
+    overlay.appendChild(header);
+    overlay.appendChild(body);
+
+    if (caption && caption.trim()) {
+      var cap = document.createElement('div');
+      cap.className = 'crm-image-lightbox-caption';
+      cap.textContent = caption.trim();
+      overlay.appendChild(cap);
+    }
+
+    function toggleZoom(e) {
+      if (e) e.stopPropagation();
+      img.classList.toggle('is-zoomed');
+    }
+
+    zoomBtn.addEventListener('click', toggleZoom);
+    img.addEventListener('click', toggleZoom);
+
+    function closeLightbox() {
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKeyDown);
+      setTimeout(function () {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      }, 220);
+    }
+
+    closeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeLightbox();
+    });
+
+    body.addEventListener('click', function (e) {
+      if (e.target === body) {
+        closeLightbox();
+      }
+    });
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        closeLightbox();
+      }
+    });
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        closeLightbox();
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+      overlay.classList.add('is-open');
+    });
+  }
+
+  function initImageLightbox() {
+    if (document.body && document.body.dataset.imageLightboxBound === '1') return;
+    if (document.body) document.body.dataset.imageLightboxBound = '1';
+
+    document.addEventListener('click', function (e) {
+      var targetImg = e.target.closest('img');
+      if (!targetImg) return;
+
+      // Do NOT trigger if inside an active editable visual editor
+      var editor = targetImg.closest('.crm-ve-editor');
+      if (editor && !editor.classList.contains('is-readonly')) {
+        var editable = targetImg.closest('.crm-ve-content[contenteditable="true"]');
+        if (editable) return; // Allow normal editor click/selection
+      }
+
+      // Check if target is inside content blocks or is an editor image
+      var isContentImage = targetImg.closest(
+        '#taskDescriptionContent, .crm-task-description-summary, #commentsList, .crm-comment-body, '
+        + '[data-comment-body], .crm-file-thumb, .crm-ve-editor.is-readonly, .crm-ve-content[contenteditable="false"], '
+        + '.crm-rich-text-content, .crm-task-deliverable-content, #taskKnowledgeContent, .crm-ve-image-block'
+      ) || targetImg.classList.contains('crm-ve-image') || targetImg.classList.contains('crm-zoomable');
+
+      if (!isContentImage) return;
+
+      var parentA = targetImg.closest('a');
+      var src = targetImg.currentSrc || targetImg.src || (parentA ? parentA.href : '');
+      if (!src) return;
+
+      var caption = '';
+      var figure = targetImg.closest('figure, .crm-ve-image-figure, .crm-ve-image-block');
+      if (figure) {
+        var figCap = figure.querySelector('figcaption, .crm-ve-image-caption');
+        if (figCap && figCap.textContent) {
+          caption = figCap.textContent.trim();
+        }
+      }
+      if (!caption) {
+        caption = targetImg.alt || targetImg.title || (parentA ? parentA.title : '');
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      showImageLightbox(src, caption);
+    }, false);
+  }
+
+  // Bind lightbox click listener immediately so images on any loaded view are zoomable
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initImageLightbox);
+    } else {
+      initImageLightbox();
+    }
+  }
+
   function init() {
+    initImageLightbox();
     initLoginFlow();
     initPasswordResetRequestFlow();
     initPasswordResetConfirmFlow();
@@ -10251,10 +10420,12 @@ window.CRM.br1 = (function () {
   window.CRM._enhanceClientSelects = enhanceClientSelects;
   window.CRM._initQuickClientCreate = initQuickClientCreate;
   window.CRM._initQuickProjectCreate = initQuickProjectCreate;
+  window.CRM.showImageLightbox = showImageLightbox;
 
   return {
     init: init,
     notify: notify,
+    showImageLightbox: showImageLightbox,
     statusBadgeClass: statusBadgeClass,
     statusColor: statusColor,
     statusTextColor: statusTextColor,
