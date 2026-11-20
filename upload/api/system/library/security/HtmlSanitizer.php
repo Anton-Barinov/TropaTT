@@ -142,8 +142,9 @@ final class HtmlSanitizer
                 continue;
             }
 
-            // Unwrap spans that contain only whitespace (paste artifacts)
-            if ($tag === 'span' && trim($child->textContent) === '') {
+            // Unwrap spans that contain only whitespace (paste artifacts), but preserve todo checkboxes and mentions
+            $spanClass = $child->getAttribute('class');
+            if ($tag === 'span' && trim($child->textContent) === '' && !str_contains($spanClass, 'crm-ve-todo-cb') && !str_contains($spanClass, 'crm-ve-mention')) {
                 while ($child->firstChild) {
                     $parent->insertBefore($child->firstChild, $child);
                 }
@@ -165,7 +166,9 @@ final class HtmlSanitizer
             'figcaption' => ['class', 'contenteditable'],
             'details', 'summary' => ['class'],
             'input' => ['type', 'disabled', 'data-checked', 'class'],
-            'span' => ['class', 'role', 'tabindex', 'data-mention-type', 'data-mention-id', 'contenteditable'],
+            'span' => ['class', 'role', 'tabindex', 'data-mention-type', 'data-mention-id', 'data-checked', 'aria-checked', 'contenteditable'],
+            'ul', 'ol', 'li' => ['class', 'data-checked'],
+            'pre', 'code', 'blockquote', 'p', 'h1', 'h2', 'h3' => ['class'],
             'hr' => ['class'],
             'table', 'thead', 'tbody', 'tr', 'td', 'th' => ['class', 'colspan', 'rowspan'],
             default => [],
