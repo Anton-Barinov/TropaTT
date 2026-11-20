@@ -257,7 +257,11 @@ abstract class Controller
         if ($routeTitle === $titleTranslationKey) {
             $routeTitle = '';
         }
-        $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
+        if (isset($data['custom_title']) && is_string($data['custom_title']) && trim($data['custom_title']) !== '') {
+            $data['title'] = trim($data['custom_title']);
+        } else {
+            $data['title'] = $routeTitle !== '' ? $routeTitle : ($data['title'] ?? $i18n->t('app.default_title', 'CRM'));
+        }
         $data['lang_messages'] = $this->clientMessages($i18n->all());
         $t = static fn(string $key, string $default = ''): string => $i18n->t($key, $default);
 

@@ -8599,6 +8599,7 @@ window.CRM.br1 = (function () {
           renderTaskDescription(currentTask.description);
           var titleEl = document.querySelector('.crm-page-title');
           if (titleEl) titleEl.textContent = currentTask.title || titleEl.textContent;
+          updateTaskDocumentTitle(currentTask);
         } else if (section === 'project') {
           var projectPublicId = ((form.querySelector('[name="project_public_id"]') || {}).value || '').trim();
           if (projectPublicId !== String(currentTask.project_public_id || '')) {
@@ -8856,6 +8857,7 @@ window.CRM.br1 = (function () {
 
         var titleEl = document.querySelector('.crm-page-title');
         if (titleEl) titleEl.textContent = currentTask.title || titleEl.textContent;
+        updateTaskDocumentTitle(currentTask);
         renderTaskDescription(currentTask.description);
         renderTaskSidebarSummary();
         renderTaskMetaChips();
@@ -9022,11 +9024,50 @@ window.CRM.br1 = (function () {
     }
   }
 
+  function updateTaskDocumentTitle(task) {
+    if (!task) return;
+    var key = String(task.task_key || '').trim();
+    if (!key && task.task_key_prefix && task.task_sequence_number) {
+      key = String(task.task_key_prefix) + '-' + String(task.task_sequence_number);
+    }
+    if (!key && task.key_num) {
+      key = String(task.key_num).trim();
+    }
+    if (!key && task.task_number) {
+      key = String(task.task_number).trim();
+    }
+
+    var title = String(task.title || '').trim();
+    var brand = '';
+    if (window.CRM && window.CRM.config && window.CRM.config.brandName) {
+      brand = String(window.CRM.config.brandName).trim();
+    }
+    if (!brand && window.CRM && window.CRM.i18n && typeof window.CRM.i18n.t === 'function') {
+      brand = String(window.CRM.i18n.t('app.name', 'TropaTT')).trim();
+    }
+    if (!brand) {
+      brand = 'TropaTT';
+    }
+
+    var fullTitle = '';
+    if (key && title) {
+      fullTitle = '[' + key + '] ' + title + ' — ' + brand;
+    } else if (title) {
+      fullTitle = title + ' — ' + brand;
+    } else if (key) {
+      fullTitle = '[' + key + '] — ' + brand;
+    }
+    if (fullTitle) {
+      document.title = fullTitle;
+    }
+  }
+
   function renderTaskDetailOverview() {
     if (!currentTask) return;
 
     var titleEl = document.querySelector('.crm-page-title');
     if (titleEl) titleEl.textContent = currentTask.title || titleEl.textContent;
+    updateTaskDocumentTitle(currentTask);
 
     var subtitle = document.querySelector('.crm-subtitle');
     if (subtitle) {
