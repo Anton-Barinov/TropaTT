@@ -10550,12 +10550,14 @@ window.CRM.br1 = (function () {
   window.CRM._enhanceClientSelects = enhanceClientSelects;
   window.CRM._initQuickClientCreate = initQuickClientCreate;
   window.CRM._initQuickProjectCreate = initQuickProjectCreate;
-  window.CRM.showImageLightbox = showImageLightbox;
+  window.CRM.showImageViewer = showImageViewer;
+  window.CRM.showImageLightbox = showImageViewer;
 
   return {
     init: init,
     notify: notify,
-    showImageLightbox: showImageLightbox,
+    showImageViewer: showImageViewer,
+    showImageLightbox: showImageViewer,
     statusBadgeClass: statusBadgeClass,
     statusColor: statusColor,
     statusTextColor: statusTextColor,
