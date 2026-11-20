@@ -187,8 +187,10 @@ window.CRM.VisualEditor = (function () {
         // Never allow foreign contenteditable attributes inside the editor.
         if (name === 'contenteditable') {
           var isMention = tag === 'SPAN' && (el.getAttribute('class') || '').indexOf('crm-ve-mention') !== -1;
+          var isTodoCb = tag === 'SPAN' && (el.getAttribute('class') || '').indexOf('crm-ve-todo-cb') !== -1;
+          var isTodoText = tag === 'SPAN' && (el.getAttribute('class') || '').indexOf('crm-ve-todo-text') !== -1;
           var isFigcaption = tag === 'FIGCAPTION';
-          if (!isMention && !isFigcaption) {
+          if (!isMention && !isTodoCb && !isTodoText && !isFigcaption) {
             el.removeAttribute(attr.name);
             return;
           }
@@ -203,8 +205,15 @@ window.CRM.VisualEditor = (function () {
             el.removeAttribute(attr.name);
           }
         } else if (tag === 'FIGURE') {
-          if (name !== 'data-align' && name !== 'data-width' && name !== 'style') {
-            el.removeAttribute(attr.name);
+          var figCls = el.getAttribute('class') || '';
+          if (figCls.indexOf('crm-ve-uploading-ph') !== -1) {
+            if (name !== 'data-align' && name !== 'data-width' && name !== 'style' && name !== 'class' && name !== 'data-block-id') {
+              el.removeAttribute(attr.name);
+            }
+          } else {
+            if (name !== 'data-align' && name !== 'data-width' && name !== 'style') {
+              el.removeAttribute(attr.name);
+            }
           }
         } else if (tag === 'FIGCAPTION') {
           if (name !== 'contenteditable') {
@@ -256,8 +265,8 @@ window.CRM.VisualEditor = (function () {
               el.removeAttribute(attr.name);
             }
           } else if (cls.indexOf('crm-ve-todo-cb') !== -1) {
-            // Todo checkbox: allow class, data-checked, role, tabindex, aria-checked
-            if (name !== 'class' && name !== 'data-checked' && name !== 'role' && name !== 'tabindex' && name !== 'aria-checked') {
+            // Todo checkbox: allow class, data-checked, role, tabindex, aria-checked, aria-label, contenteditable
+            if (name !== 'class' && name !== 'data-checked' && name !== 'role' && name !== 'tabindex' && name !== 'aria-checked' && name !== 'aria-label' && name !== 'contenteditable') {
               el.removeAttribute(attr.name);
             }
           } else if (cls.indexOf('crm-ve-todo-text') !== -1) {
@@ -1142,7 +1151,32 @@ window.CRM.VisualEditor = (function () {
       return doUpload(editorInstance, file, targetBlock);
     }).catch(function (err) {
       if (targetBlock && targetBlock.parentNode) {
-        targetBlock.parentNode.removeChild(targetBlock);
+        targetBlock.className = 'crm-ve-block crm-ve-image-block crm-ve-upload-error';
+        targetBlock.innerHTML = ''
+          + '<div class="crm-ve-upload-error-wrap" style="padding:8px 12px;border:1px dashed #ef4444;border-radius:6px;background:#fef2f2;display:flex;align-items:center;gap:8px;font-size:13px;color:#b91c1c;">'
+          + '<span style="flex:1;">' + (err.message || t('visual_editor.upload_error', 'Не удалось загрузить изображение')) + '</span>'
+          + '<button type="button" class="crm-ve-upload-retry-btn" style="padding:3px 8px;border:1px solid #ef4444;border-radius:4px;background:#fff;color:#b91c1c;cursor:pointer;font-size:12px;">' + t('visual_editor.retry', 'Повторить') + '</button>'
+          + '<button type="button" class="crm-ve-upload-remove-btn" style="padding:2px 6px;border:none;background:transparent;color:#b91c1c;cursor:pointer;font-size:14px;" title="' + t('visual_editor.delete', 'Удалить') + '">\u2715</button>'
+          + '</div>';
+        var retryBtn = targetBlock.querySelector('.crm-ve-upload-retry-btn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var newPh = createUploadingPlaceholder(targetBlock.getAttribute('data-block-id') || generateId());
+            targetBlock.parentNode.replaceChild(newPh, targetBlock);
+            uploadImage(editorInstance, file, newPh).catch(function () {});
+          });
+        }
+        var removeBtn = targetBlock.querySelector('.crm-ve-upload-remove-btn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            targetBlock.remove();
+            editorInstance._sync();
+          });
+        }
       }
       editorInstance._sync();
       editorInstance._updateEmptyState();
@@ -1323,6 +1357,7 @@ window.CRM.VisualEditor = (function () {
     );
     textarea.setAttribute('tabindex', '-1');
     textarea.setAttribute('aria-hidden', 'true');
+    textarea.tabIndex = -1;
 
     var wrapper = document.createElement('div');
     wrapper.className = 'crm-ve-editor crm-ve-wrapper';
@@ -1335,6 +1370,15 @@ window.CRM.VisualEditor = (function () {
     toolbar.className = 'crm-ve-toolbar';
     toolbar.setAttribute('role', 'toolbar');
     toolbar.setAttribute('aria-label', t('visual_editor.toolbar_aria', 'Панель форматирования'));
+    // Dynamic sticky top offset: inside modal = 0, on full page = topbar height
+    var inModal = !!textarea.closest('.modal, .modal-dialog, .modal-content, [role="dialog"], .crm-modal');
+    if (inModal) {
+      toolbar.style.top = '0px';
+    } else {
+      var topbarEl = document.querySelector('.crm-topbar, .topbar, .navbar, header');
+      var tbHeight = topbarEl ? topbarEl.offsetHeight : 56;
+      toolbar.style.top = (tbHeight || 56) + 'px';
+    }
     this._toolbar = toolbar;
 
     var content = document.createElement('div');
@@ -1342,10 +1386,23 @@ window.CRM.VisualEditor = (function () {
     content.setAttribute('contenteditable', String(!this._options.readonly));
     content.setAttribute('role', 'textbox');
     content.setAttribute('aria-multiline', 'true');
+
     var labelText = textarea.getAttribute('aria-label') || '';
-    if (!labelText && textarea.id) {
-      var lbl = document.querySelector('label[for="' + textarea.id + '"]');
-      if (lbl) labelText = lbl.textContent.trim();
+    var labelEl = null;
+    if (textarea.id) {
+      labelEl = document.querySelector('label[for="' + textarea.id + '"]');
+    }
+    if (!labelEl) {
+      var fg = textarea.closest('.form-group, .mb-3, .form-floating, .crm-form-group, form');
+      if (fg) labelEl = fg.querySelector('label, .form-label');
+    }
+    if (labelEl) {
+      if (!labelEl.id) labelEl.id = 'crm-ve-label-' + generateId();
+      content.setAttribute('aria-labelledby', labelEl.id);
+      labelText = labelEl.textContent.trim();
+    }
+    if (!labelText) {
+      labelText = textarea.getAttribute('placeholder') || textarea.getAttribute('name') || t('visual_editor.content', 'Содержимое');
     }
     if (labelText) content.setAttribute('aria-label', labelText);
     if (this._options.placeholder) {
@@ -1448,10 +1505,10 @@ window.CRM.VisualEditor = (function () {
     var toolbar = this._toolbar;
     var self = this;
 
-    function addBtn(label, title, cmd, value) {
+    function addBtn(label, title, cmd, value, isPrimary) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'crm-ve-toolbar-btn';
+      btn.className = 'crm-ve-toolbar-btn' + (isPrimary ? '' : ' crm-ve-btn-secondary');
       btn.innerHTML = label;
       btn.title = title || '';
       btn.setAttribute('aria-label', title || '');
@@ -1513,77 +1570,209 @@ window.CRM.VisualEditor = (function () {
       toolbar.appendChild(sep);
     }
 
-    addBtn('<strong>B</strong>', t('visual_editor.bold', 'Bold'), 'bold');
-    addBtn('<em>I</em>', t('visual_editor.italic', 'Italic'), 'italic');
-    addBtn('<s>S</s>', t('visual_editor.strike', 'Strikethrough'), 'strikeThrough');
-    addBtn('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Inline code'), 'inlineCode');
+    addBtn('<strong>B</strong>', t('visual_editor.bold', 'Bold'), 'bold', null, true);
+    addBtn('<em>I</em>', t('visual_editor.italic', 'Italic'), 'italic', null, true);
+    addBtn('<s>S</s>', t('visual_editor.strike', 'Strikethrough'), 'strikeThrough', null, false);
+    addBtn('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Inline code'), 'inlineCode', null, false);
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l-3-3 3-3M9 21h6M19 15l3-3-3-3M12 3v18"/></svg>',
       t('visual_editor.spoiler', 'Spoiler'),
-      'spoiler'
+      'spoiler',
+      null,
+      false
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
       t('visual_editor.link', 'Link'),
-      'createLink'
+      'createLink',
+      null,
+      true
     );
     addBtn(
       '<i class="fa-solid fa-remove-format" aria-hidden="true"></i>',
       t('visual_editor.remove_format', 'Отмена форматирования'),
-      'removeFormat'
+      'removeFormat',
+      null,
+      false
     );
     addSep();
-    addBtn('P', t('visual_editor.paragraph', 'Обычный текст'), 'formatBlock', 'p');
-    addBtn('H2', t('visual_editor.heading2', 'Heading 2'), 'formatBlock', 'h2');
-    addBtn('H3', t('visual_editor.heading3', 'Heading 3'), 'formatBlock', 'h3');
+    addBtn('P', t('visual_editor.paragraph', 'Обычный текст'), 'formatBlock', 'p', false);
+    addBtn('H2', t('visual_editor.heading2', 'Heading 2'), 'formatBlock', 'h2', true);
+    addBtn('H3', t('visual_editor.heading3', 'Heading 3'), 'formatBlock', 'h3', false);
     addSep();
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
       t('visual_editor.bullet_list', 'Bullet list'),
-      'insertUnorderedList'
+      'insertUnorderedList',
+      null,
+      true
     );
     addBtn(
       '<i class="fa-solid fa-list-ol" aria-hidden="true"></i>',
       t('visual_editor.ordered_list', 'Ordered list'),
-      'insertOrderedList'
+      'insertOrderedList',
+      null,
+      false
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><path d="M3 14h7v7"/></svg>',
       t('visual_editor.todo_list', 'To-do list'),
-      'todoList'
+      'todoList',
+      null,
+      false
     );
     addBtn(
       '<i class="fa-solid fa-table-cells" aria-hidden="true"></i>',
       t('visual_editor.table', 'Table'),
-      'insertTable'
+      'insertTable',
+      null,
+      false
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
       t('visual_editor.quote', 'Quote'),
-      'quote'
+      'quote',
+      null,
+      false
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
       t('visual_editor.code_block', 'Code block'),
-      'codeBlock'
+      'codeBlock',
+      null,
+      false
     );
     addSep();
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
       t('visual_editor.image', 'Image'),
-      'insertImage'
+      'insertImage',
+      null,
+      false
     );
     addSep();
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 16 14"/></svg>',
       t('visual_editor.undo', 'Undo'),
-      function () { self.undo(); }
+      function () { self.undo(); },
+      null,
+      false
     );
     addBtn(
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><polyline points="12 7 12 12 16 14"/></svg>',
       t('visual_editor.redo', 'Redo'),
-      function () { self.redo(); }
+      function () { self.redo(); },
+      null,
+      false
     );
+
+    // Responsive "More" button and dropdown menu
+    var moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'crm-ve-toolbar-btn crm-ve-more-btn';
+    moreBtn.innerHTML = t('visual_editor.more', 'Ещё') + ' \u25BE';
+    moreBtn.title = t('visual_editor.more', 'Ещё');
+    moreBtn.setAttribute('aria-label', t('visual_editor.more', 'Ещё'));
+    moreBtn.setAttribute('aria-haspopup', 'true');
+    moreBtn.setAttribute('aria-expanded', 'false');
+
+    var moreMenu = document.createElement('div');
+    moreMenu.className = 'crm-ve-more-menu';
+    moreMenu.setAttribute('role', 'menu');
+    this._moreMenu = moreMenu;
+    this._moreBtn = moreBtn;
+
+    function addMoreItem(iconHtml, text, actionFn) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'crm-ve-more-item';
+      item.setAttribute('role', 'menuitem');
+      item.innerHTML = '<span class="crm-ve-more-item-icon">' + iconHtml + '</span><span>' + text + '</span>';
+      item.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+      });
+      item.addEventListener('click', function (e) {
+        e.preventDefault();
+        self._hideMoreMenu();
+        self._restoreSavedSelection();
+        self._content.focus();
+        actionFn();
+        self._sync();
+        self._history.push(self._content.innerHTML, false);
+        self._updateActiveButtons();
+      });
+      moreMenu.appendChild(item);
+    }
+
+    addMoreItem('<s>S</s>', t('visual_editor.strike', 'Зачеркнутый'), function () { document.execCommand('strikeThrough'); });
+    addMoreItem('<code>&lt;/&gt;</code>', t('visual_editor.code', 'Код'), function () { self._execInlineCode(); });
+    addMoreItem('\u25BD', t('visual_editor.spoiler', 'Разворачивание'), function () { self._execSpoiler(); });
+    addMoreItem('H3', t('visual_editor.heading3', 'Заголовок H3'), function () { document.execCommand('formatBlock', false, '<h3>'); });
+    addMoreItem('P', t('visual_editor.paragraph', 'Обычный текст'), function () { document.execCommand('formatBlock', false, '<p>'); });
+    addMoreItem('Tx', t('visual_editor.remove_format', 'Отмена форматирования'), function () { self._execRemoveFormat(); });
+    addMoreItem('1.', t('visual_editor.ordered_list', 'Нумерованный список'), function () { document.execCommand('insertOrderedList'); });
+    addMoreItem('\u2611', t('visual_editor.todo_list', 'Список задач'), function () { self._execTodoList(); });
+    addMoreItem('\u25A6', t('visual_editor.table', 'Таблица'), function () { self._execTable(3, 3); });
+    addMoreItem('\u201C', t('visual_editor.quote', 'Цитата'), function () { self._execQuote(); });
+    addMoreItem('&lt;/&gt;', t('visual_editor.code_block', 'Блок кода'), function () { self._execCodeBlock(); });
+    addMoreItem('\uD83D\uDDBC', t('visual_editor.image', 'Изображение'), function () { self._execImageUpload(); });
+    addMoreItem('\u21A9', t('visual_editor.undo', 'Отменить'), function () { self.undo(); });
+    addMoreItem('\u21AA', t('visual_editor.redo', 'Повторить'), function () { self.redo(); });
+
+    moreBtn.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      self._saveCurrentSelection();
+    });
+
+    moreBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (self._moreMenuActive) {
+        self._hideMoreMenu();
+      } else {
+        self._saveCurrentSelection();
+        self._showMoreMenu();
+      }
+    });
+
+    toolbar.appendChild(moreBtn);
+    toolbar.appendChild(moreMenu);
+  };
+
+  Editor.prototype._saveCurrentSelection = function () {
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var range = sel.getRangeAt(0);
+      if (this._content && this._content.contains(range.startContainer)) {
+        this._savedRange = range.cloneRange();
+        return;
+      }
+    }
+    this._savedRange = null;
+  };
+
+  Editor.prototype._restoreSavedSelection = function () {
+    if (this._savedRange) {
+      var sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(this._savedRange);
+      }
+    }
+  };
+
+  Editor.prototype._showMoreMenu = function () {
+    if (!this._moreMenu) return;
+    this._moreMenuActive = true;
+    this._moreMenu.style.display = 'block';
+    if (this._moreBtn) this._moreBtn.setAttribute('aria-expanded', 'true');
+  };
+
+  Editor.prototype._hideMoreMenu = function () {
+    if (!this._moreMenu) return;
+    this._moreMenuActive = false;
+    this._moreMenu.style.display = 'none';
+    if (this._moreBtn) this._moreBtn.setAttribute('aria-expanded', 'false');
   };
 
   Editor.prototype._execLink = function () {
@@ -1811,17 +2000,26 @@ window.CRM.VisualEditor = (function () {
   // Creates a single todo list item: <li><span class="crm-ve-todo-cb" data-checked=""><span>text</span></li>
   function createTodoItem(text, checked) {
     var li = document.createElement('li');
-    li.className = 'crm-ve-todo-item';
+    li.className = 'crm-ve-todo-item' + (checked ? ' is-checked' : '');
+    if (checked) li.setAttribute('data-checked', 'true');
+
     var cb = document.createElement('span');
     cb.className = 'crm-ve-todo-cb';
     cb.setAttribute('role', 'checkbox');
-    cb.setAttribute('tabindex', '-1');
+    cb.setAttribute('tabindex', '0');
+    cb.setAttribute('contenteditable', 'false');
+    cb.setAttribute('aria-checked', checked ? 'true' : 'false');
     if (checked) cb.setAttribute('data-checked', 'true');
+
     var span = document.createElement('span');
     span.className = 'crm-ve-todo-text';
     span.contentEditable = 'true';
     span.textContent = text || '';
     if (!text) span.appendChild(document.createElement('br'));
+
+    var itemLabel = (t('visual_editor.todo_item', 'Пункт чек-листа') + ': ' + (text || '').trim()).trim();
+    cb.setAttribute('aria-label', itemLabel);
+
     li.appendChild(cb);
     li.appendChild(span);
     return li;
@@ -1830,7 +2028,24 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype._execTodoList = function () {
     var selection = window.getSelection();
     var range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
-    if (!range) return;
+    if (!range || !this._content.contains(range.startContainer)) {
+      var fallbackUl = document.createElement('ul');
+      fallbackUl.className = 'crm-ve-todo-list';
+      fallbackUl.appendChild(createTodoItem('', false));
+      this._content.appendChild(fallbackUl);
+      this._sync();
+      this._history.push(this._content.innerHTML, true);
+      this._updateEmptyState();
+      var fSpan = fallbackUl.querySelector('.crm-ve-todo-text');
+      if (fSpan && selection) {
+        var rFallback = document.createRange();
+        rFallback.setStart(fSpan, 0);
+        rFallback.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(rFallback);
+      }
+      return;
+    }
 
     var ul = document.createElement('ul');
     ul.className = 'crm-ve-todo-list';
@@ -1869,16 +2084,20 @@ window.CRM.VisualEditor = (function () {
   // Toggle a todo checkbox
   Editor.prototype._toggleTodo = function (checkbox) {
     if (!checkbox) return;
-    var isChecked = checkbox.hasAttribute('data-checked');
-    if (isChecked) {
-      checkbox.removeAttribute('data-checked');
-    } else {
+    this._history.push(this._content.innerHTML, true);
+    var isChecked = checkbox.getAttribute('data-checked') === 'true' || checkbox.getAttribute('aria-checked') === 'true';
+    var nextChecked = !isChecked;
+    if (nextChecked) {
       checkbox.setAttribute('data-checked', 'true');
+      checkbox.setAttribute('aria-checked', 'true');
+    } else {
+      checkbox.removeAttribute('data-checked');
+      checkbox.setAttribute('aria-checked', 'false');
     }
     var li = checkbox.closest('.crm-ve-todo-item');
     if (li) {
-      li.classList.toggle('is-checked', !isChecked);
-      if (!isChecked) {
+      li.classList.toggle('is-checked', nextChecked);
+      if (nextChecked) {
         li.setAttribute('data-checked', 'true');
       } else {
         li.removeAttribute('data-checked');
@@ -1888,23 +2107,130 @@ window.CRM.VisualEditor = (function () {
     this._history.push(this._content.innerHTML, true);
   };
 
-  // Handle Enter/Backspace inside todo items
+  // Handle Enter/Backspace/Tab/Space inside todo items
   Editor.prototype._handleTodoKeydown = function (e) {
     var sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return false;
-    var node = sel.anchorNode;
+    var node = sel && sel.rangeCount ? sel.anchorNode : null;
     if (node && node.nodeType === 3) node = node.parentNode;
-    var li = node ? node.closest('.crm-ve-todo-item') : null;
+    var activeEl = document.activeElement;
+
+    var focusedCb = (activeEl && activeEl.closest) ? activeEl.closest('.crm-ve-todo-cb') : null;
+    if (!focusedCb && node && node.closest) {
+      focusedCb = node.closest('.crm-ve-todo-cb');
+    }
+
+    var li = focusedCb ? focusedCb.closest('.crm-ve-todo-item') : (node ? node.closest('.crm-ve-todo-item') : null);
     if (!li) return false;
     var ul = li.closest('.crm-ve-todo-list');
     if (!ul || !this._content.contains(ul)) return false;
 
     var todoText = li.querySelector('.crm-ve-todo-text');
+    var cb = li.querySelector('.crm-ve-todo-cb');
 
-    if (e.key === ' ' && (node.classList && node.classList.contains('crm-ve-todo-cb'))) {
-      e.preventDefault();
-      this._toggleTodo(node);
-      return true;
+    // Case 1: Focus is directly on the checkbox
+    if (focusedCb) {
+      if (e.key === ' ') {
+        e.preventDefault();
+        this._toggleTodo(focusedCb);
+        return true;
+      }
+      if (e.key === 'Tab') {
+        if (!e.shiftKey) {
+          // Tab moves focus to todoText of this item
+          e.preventDefault();
+          if (todoText) {
+            todoText.focus();
+            var r = document.createRange();
+            r.selectNodeContents(todoText);
+            r.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(r);
+          }
+          return true;
+        } else {
+          // Shift+Tab moves focus to previous item's text, or exits backwards
+          var prevLi = li.previousElementSibling;
+          if (prevLi) {
+            e.preventDefault();
+            var prevText = prevLi.querySelector('.crm-ve-todo-text');
+            if (prevText) {
+              prevText.focus();
+              var rPrev = document.createRange();
+              rPrev.selectNodeContents(prevText);
+              rPrev.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(rPrev);
+            }
+            return true;
+          } else {
+            // First item: exit checklist backwards
+            var prevBlock = ul.previousElementSibling;
+            if (prevBlock) {
+              e.preventDefault();
+              var rExitPrev = document.createRange();
+              rExitPrev.selectNodeContents(prevBlock);
+              rExitPrev.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(rExitPrev);
+              return true;
+            }
+            return false;
+          }
+        }
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (todoText) todoText.focus();
+        return true;
+      }
+      return false;
+    }
+
+    // Case 2: Focus is inside todoText
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        // Shift+Tab returns focus to this item's checkbox
+        e.preventDefault();
+        if (cb) {
+          cb.focus();
+        }
+        return true;
+      } else {
+        // Tab moves focus to next item's checkbox
+        var nextLi = li.nextElementSibling;
+        if (nextLi) {
+          e.preventDefault();
+          var nextCb = nextLi.querySelector('.crm-ve-todo-cb');
+          if (nextCb) {
+            nextCb.focus();
+          }
+          return true;
+        } else {
+          // Last item: exit checklist forwards
+          var nextBlock = ul.nextElementSibling;
+          if (nextBlock) {
+            e.preventDefault();
+            var rNext = document.createRange();
+            rNext.selectNodeContents(nextBlock);
+            rNext.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(rNext);
+            return true;
+          } else {
+            e.preventDefault();
+            var pNext = document.createElement('p');
+            pNext.innerHTML = '<br>';
+            ul.parentNode.appendChild(pNext);
+            var rP = document.createRange();
+            rP.setStart(pNext, 0);
+            rP.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(rP);
+            this._sync();
+            return true;
+          }
+        }
+      }
     }
 
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1983,23 +2309,6 @@ window.CRM.VisualEditor = (function () {
         this._updateActiveButtons();
         return true;
       }
-    }
-
-    // Tab: move to next/previous item
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      var targetItem = e.shiftKey ? li.previousElementSibling : li.nextElementSibling;
-      if (targetItem && targetItem.classList && targetItem.classList.contains('crm-ve-todo-item')) {
-        var targetSpan = targetItem.querySelector('.crm-ve-todo-text');
-        if (targetSpan) {
-          var tr = document.createRange();
-          tr.selectNodeContents(targetSpan);
-          tr.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(tr);
-        }
-      }
-      return true;
     }
 
     return false;
@@ -2101,17 +2410,30 @@ window.CRM.VisualEditor = (function () {
     if (!wrap) return false;
     var table = wrap.querySelector('.crm-ve-table');
     if (!table) return false;
-    var tbody = table.querySelector('tbody');
+    var tbody = table.querySelector('tbody') || table;
     if (!tbody) return false;
+
     var sel = window.getSelection();
     var currentCell = sel && sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
     if (currentCell && currentCell.nodeType === 3) currentCell = currentCell.parentNode;
     var currentTd = currentCell && currentCell.closest ? currentCell.closest('td, th') : null;
-    var currentRow = currentTd ? currentTd.parentNode : null;
-    var colIndex = currentTd ? Array.from(currentRow.children).indexOf(currentTd) : -1;
-    var rowIndex = currentRow ? Array.from(tbody.children).indexOf(currentRow) : -1;
+
+    // Check if the current cell belongs specifically to THIS table
+    var isCellInThisTable = currentTd && table.contains(currentTd);
+    var currentRow = isCellInThisTable ? currentTd.closest('tr') : null;
+    var colIndex = (isCellInThisTable && currentRow) ? Array.from(currentRow.children).indexOf(currentTd) : -1;
+    var rowIndex = (isCellInThisTable && currentRow) ? Array.from(tbody.children).indexOf(currentRow) : -1;
+
+    // For delete actions: user MUST have a selected cell inside THIS table
+    if (action === 'del-row' || action === 'del-col') {
+      if (!isCellInThisTable) {
+        notify(t('visual_editor.table_select_cell_first', 'Сначала выберите ячейку в этой таблице'), 'warning');
+        return true;
+      }
+    }
 
     if (action === 'add-row') {
+      this._history.push(this._content.innerHTML, true);
       var cols = tbody.children[0] ? tbody.children[0].children.length : 2;
       var newTr = document.createElement('tr');
       for (var c = 0; c < cols; c++) {
@@ -2119,35 +2441,78 @@ window.CRM.VisualEditor = (function () {
         newTd.innerHTML = '<br>';
         newTr.appendChild(newTd);
       }
-      if (currentRow) {
+      if (isCellInThisTable && currentRow) {
         currentRow.parentNode.insertBefore(newTr, currentRow.nextSibling);
       } else {
         tbody.appendChild(newTr);
       }
+      var targetCell = newTr.children[0];
+      if (targetCell && sel) {
+        var r = document.createRange();
+        r.selectNodeContents(targetCell);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
     } else if (action === 'add-col') {
+      this._history.push(this._content.innerHTML, true);
       var allRows = tbody.querySelectorAll('tr');
       allRows.forEach(function (tr) {
         var newTd = document.createElement('td');
         newTd.innerHTML = '<br>';
-        if (colIndex >= 0 && colIndex < tr.children.length - 1) {
+        if (isCellInThisTable && colIndex >= 0 && colIndex < tr.children.length - 1) {
           tr.insertBefore(newTd, tr.children[colIndex + 1]);
         } else {
           tr.appendChild(newTd);
         }
       });
+      var focusRow = currentRow || allRows[0];
+      var focusCol = isCellInThisTable && colIndex >= 0 ? colIndex + 1 : (focusRow ? focusRow.children.length - 1 : 0);
+      var targetCell2 = focusRow ? focusRow.children[focusCol] : null;
+      if (targetCell2 && sel) {
+        var r2 = document.createRange();
+        r2.selectNodeContents(targetCell2);
+        r2.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r2);
+      }
     } else if (action === 'del-row') {
-      if (tbody.children.length > 1 && currentRow) {
-        currentRow.remove();
+      if (tbody.children.length <= 1) {
+        notify(t('visual_editor.table_cannot_del_last_row', 'Нельзя удалить последнюю строку таблицы'), 'warning');
+        return true;
+      }
+      this._history.push(this._content.innerHTML, true);
+      var targetRow = currentRow.nextElementSibling || currentRow.previousElementSibling;
+      var targetColIdx = Math.max(0, colIndex);
+      var targetTd = targetRow ? targetRow.children[Math.min(targetColIdx, targetRow.children.length - 1)] : null;
+      currentRow.remove();
+      if (targetTd && sel) {
+        var rDelRow = document.createRange();
+        rDelRow.selectNodeContents(targetTd);
+        rDelRow.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(rDelRow);
       }
     } else if (action === 'del-col') {
-      if (colIndex >= 0) {
-        var allRows2 = tbody.querySelectorAll('tr');
-        var firstRowCols = allRows2[0] ? allRows2[0].children.length : 0;
-        if (firstRowCols > 1) {
-          allRows2.forEach(function (tr) {
-            if (tr.children[colIndex]) tr.children[colIndex].remove();
-          });
-        }
+      var allRows2 = tbody.querySelectorAll('tr');
+      var firstRowCols = allRows2[0] ? allRows2[0].children.length : 0;
+      if (firstRowCols <= 1) {
+        notify(t('visual_editor.table_cannot_del_last_col', 'Нельзя удалить последний столбец таблицы'), 'warning');
+        return true;
+      }
+      this._history.push(this._content.innerHTML, true);
+      var targetColIdx2 = colIndex < firstRowCols - 1 ? colIndex : colIndex - 1;
+      allRows2.forEach(function (tr) {
+        if (tr.children[colIndex]) tr.children[colIndex].remove();
+      });
+      var targetRow2 = currentRow || allRows2[0];
+      var targetTd2 = targetRow2 ? targetRow2.children[Math.max(0, targetColIdx2)] : null;
+      if (targetTd2 && sel) {
+        var rDelCol = document.createRange();
+        rDelCol.selectNodeContents(targetTd2);
+        rDelCol.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(rDelCol);
       }
     }
     this._sync();
@@ -2203,6 +2568,18 @@ window.CRM.VisualEditor = (function () {
         } else if (rowIdx > 0) {
           var prevRow = rows[rowIdx - 1];
           nextTd = prevRow.children[prevRow.children.length - 1];
+        } else {
+          // At first cell: exit table backwards
+          var prevBlock = wrap.previousElementSibling;
+          if (prevBlock) {
+            var rPrev = document.createRange();
+            rPrev.selectNodeContents(prevBlock);
+            rPrev.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(rPrev);
+            return true;
+          }
+          return false;
         }
       } else {
         // Tab: next cell
@@ -2243,19 +2620,112 @@ window.CRM.VisualEditor = (function () {
   //  Slash menu (/)
   // ---------------------------------------------------------------------------
 
-  var SLASH_COMMANDS = [
-    { id: 'paragraph', label: 'Paragraph', icon: 'P', desc: 'Normal body text', keywords: 'paragraph text body p normal обычный текст абзац', action: 'formatBlock', value: 'p', group: 'Blocks' },
-    { id: 'clear_format', label: 'Clear formatting', icon: 'Tx', desc: 'Remove formatting and return to normal text', keywords: 'clear format remove plain normal обычный текст отмена форматирования очистить', action: 'removeFormat', group: 'Formatting' },
-    { id: 'h2', label: 'Heading 2', icon: 'H2', desc: 'Large section heading', keywords: 'heading h2 title заголовок h2', action: 'formatBlock', value: 'h2', group: 'Blocks' },
-    { id: 'h3', label: 'Heading 3', icon: 'H3', desc: 'Smaller section heading', keywords: 'heading h3 subtitle подзаголовок h3', action: 'formatBlock', value: 'h3', group: 'Blocks' },
-    { id: 'bullet', label: 'Bullet list', icon: '\u2022', desc: 'Unordered list', keywords: 'list bullet unordered список маркер маркированный', action: 'insertUnorderedList', group: 'Lists' },
-    { id: 'ordered', label: 'Numbered list', icon: '1.', desc: 'Ordered list', keywords: 'list number ordered нумерованный список', action: 'insertOrderedList', group: 'Lists' },
-    { id: 'todo', label: 'To-do list', icon: '\u2611', desc: 'Checkboxes for tasks', keywords: 'todo checkbox task check список задач чеклист чек-лист', action: 'todoList', group: 'Lists' },
-    { id: 'quote', label: 'Quote', icon: '\u201C', desc: 'Blockquote', keywords: 'quote blockquote цитата', action: 'quote', group: 'Blocks' },
-    { id: 'code', label: 'Code block', icon: '</>', desc: 'Syntax highlighted code', keywords: 'code pre block код блок кода', action: 'codeBlock', group: 'Blocks' },
-    { id: 'table', label: 'Table', icon: '\u25A6', desc: '3x3 grid table', keywords: 'table grid таблица', action: 'insertTable', group: 'Blocks' },
-    { id: 'divider', label: 'Divider', icon: '\u2014', desc: 'Horizontal line', keywords: 'divider horizontal rule line separator разделитель линия', action: 'divider', group: 'Blocks' }
-  ];
+  function getSlashCommands() {
+    return [
+      {
+        id: 'paragraph',
+        label: t('visual_editor.slash_paragraph', 'Обычный текст'),
+        icon: 'P',
+        desc: t('visual_editor.slash_paragraph_desc', 'Простой текст абзаца'),
+        keywords: 'paragraph text body p normal обычный текст абзац параграф',
+        action: 'formatBlock',
+        value: 'p',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'clear_format',
+        label: t('visual_editor.slash_clear_format', 'Очистить форматирование'),
+        icon: 'Tx',
+        desc: t('visual_editor.slash_clear_format_desc', 'Сбросить оформление до обычного текста'),
+        keywords: 'clear format remove plain normal сброс очистить форматирование отмена',
+        action: 'removeFormat',
+        group: t('visual_editor.slash_group_formatting', 'Форматирование')
+      },
+      {
+        id: 'h2',
+        label: t('visual_editor.slash_h2', 'Заголовок 2'),
+        icon: 'H2',
+        desc: t('visual_editor.slash_h2_desc', 'Основной раздел'),
+        keywords: 'heading h2 title заголовок h2 заг раздел',
+        action: 'formatBlock',
+        value: 'h2',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'h3',
+        label: t('visual_editor.slash_h3', 'Заголовок 3'),
+        icon: 'H3',
+        desc: t('visual_editor.slash_h3_desc', 'Подраздел'),
+        keywords: 'heading h3 subtitle подзаголовок h3 заг подраздел',
+        action: 'formatBlock',
+        value: 'h3',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'bullet',
+        label: t('visual_editor.slash_bullet', 'Маркированный список'),
+        icon: '\u2022',
+        desc: t('visual_editor.slash_bullet_desc', 'Список с маркерами'),
+        keywords: 'list bullet unordered список маркер маркированный спис ul',
+        action: 'insertUnorderedList',
+        group: t('visual_editor.slash_group_lists', 'Списки')
+      },
+      {
+        id: 'ordered',
+        label: t('visual_editor.slash_ordered', 'Нумерованный список'),
+        icon: '1.',
+        desc: t('visual_editor.slash_ordered_desc', 'Список с номерами'),
+        keywords: 'list number ordered нумерованный список числа цифры ol спис',
+        action: 'insertOrderedList',
+        group: t('visual_editor.slash_group_lists', 'Списки')
+      },
+      {
+        id: 'todo',
+        label: t('visual_editor.slash_todo', 'Чек-лист'),
+        icon: '\u2611',
+        desc: t('visual_editor.slash_todo_desc', 'Список задач с чекбоксами'),
+        keywords: 'todo checkbox task check список задач чеклист чек-лист чек',
+        action: 'todoList',
+        group: t('visual_editor.slash_group_lists', 'Списки')
+      },
+      {
+        id: 'quote',
+        label: t('visual_editor.slash_quote', 'Цитата'),
+        icon: '\u201C',
+        desc: t('visual_editor.slash_quote_desc', 'Блок цитаты'),
+        keywords: 'quote blockquote цитата цит',
+        action: 'quote',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'code',
+        label: t('visual_editor.slash_code', 'Блок кода'),
+        icon: '</>',
+        desc: t('visual_editor.slash_code_desc', 'Код с подсветкой'),
+        keywords: 'code pre block код блок кода',
+        action: 'codeBlock',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'table',
+        label: t('visual_editor.slash_table', 'Таблица'),
+        icon: '\u25A6',
+        desc: t('visual_editor.slash_table_desc', 'Сетка 3\u00D73'),
+        keywords: 'table grid таблица таб',
+        action: 'insertTable',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      },
+      {
+        id: 'divider',
+        label: t('visual_editor.slash_divider', 'Разделитель'),
+        icon: '\u2014',
+        desc: t('visual_editor.slash_divider_desc', 'Горизонтальная черта'),
+        keywords: 'divider horizontal rule line separator разделитель линия черта hr',
+        action: 'divider',
+        group: t('visual_editor.slash_group_blocks', 'Блоки')
+      }
+    ];
+  }
 
   function createSlashMenuEl() {
     var menu = document.createElement('div');
@@ -2265,7 +2735,8 @@ window.CRM.VisualEditor = (function () {
 
   function renderSlashMenuItems(menu, filter, activeIndex) {
     var query = String(filter || '').toLowerCase().trim();
-    var items = SLASH_COMMANDS.filter(function (cmd) {
+    var allCommands = getSlashCommands();
+    var items = allCommands.filter(function (cmd) {
       if (!query) return true;
       return cmd.label.toLowerCase().indexOf(query) !== -1
         || cmd.keywords.toLowerCase().indexOf(query) !== -1
@@ -2321,11 +2792,21 @@ window.CRM.VisualEditor = (function () {
     var rect = range.getBoundingClientRect();
     var wrapper = editorInstance._wrapper;
     var wrapperRect = wrapper.getBoundingClientRect();
-    var top = rect.bottom - wrapperRect.top + 4;
+
+    var menuHeight = menu.offsetHeight || 260;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var top;
+    if (spaceBelow < menuHeight + 16 && rect.top > menuHeight + 20) {
+      top = rect.top - wrapperRect.top - menuHeight - 4;
+      menu.classList.add('is-above');
+    } else {
+      top = rect.bottom - wrapperRect.top + 4;
+      menu.classList.remove('is-above');
+    }
+
     var left = rect.left - wrapperRect.left;
-    // Keep menu within wrapper bounds
-    left = Math.max(4, Math.min(left, wrapperRect.width - 220));
-    menu.style.top = top + 'px';
+    left = Math.max(4, Math.min(left, wrapperRect.width - 240));
+    menu.style.top = Math.max(0, top) + 'px';
     menu.style.left = left + 'px';
   }
 
@@ -2352,7 +2833,8 @@ window.CRM.VisualEditor = (function () {
   };
 
   Editor.prototype._selectSlashItem = function (cmdId) {
-    var cmd = SLASH_COMMANDS.find(function (c) { return c.id === cmdId; });
+    var allCommands = getSlashCommands();
+    var cmd = allCommands.find(function (c) { return c.id === cmdId; });
     if (!cmd) return;
     // Remove the slash and filter text from the current line
     var sel = window.getSelection();
@@ -2789,10 +3271,21 @@ window.CRM.VisualEditor = (function () {
     var rect = range.getBoundingClientRect();
     var wrapper = editorInstance._wrapper;
     var wrapperRect = wrapper.getBoundingClientRect();
-    var top = rect.bottom - wrapperRect.top + 4;
+
+    var menuHeight = menu.offsetHeight || 240;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var top;
+    if (spaceBelow < menuHeight + 16 && rect.top > menuHeight + 20) {
+      top = rect.top - wrapperRect.top - menuHeight - 4;
+      menu.classList.add('is-above');
+    } else {
+      top = rect.bottom - wrapperRect.top + 4;
+      menu.classList.remove('is-above');
+    }
+
     var left = rect.left - wrapperRect.left;
-    left = Math.max(4, Math.min(left, wrapperRect.width - 200));
-    menu.style.top = top + 'px';
+    left = Math.max(4, Math.min(left, wrapperRect.width - 220));
+    menu.style.top = Math.max(0, top) + 'px';
     menu.style.left = left + 'px';
   }
 
@@ -2962,11 +3455,47 @@ window.CRM.VisualEditor = (function () {
         self._handleSlashInput(char);
         self._handleMentionInput(char);
       }
+      var targetTodoText = e.target && e.target.closest ? e.target.closest('.crm-ve-todo-text') : null;
+      if (targetTodoText) {
+        var pItem = targetTodoText.closest('.crm-ve-todo-item');
+        if (pItem) {
+          var pCb = pItem.querySelector('.crm-ve-todo-cb');
+          if (pCb) {
+            var itemLabel = (t('visual_editor.todo_item', 'Пункт чек-листа') + ': ' + (targetTodoText.textContent || '').trim()).trim();
+            pCb.setAttribute('aria-label', itemLabel);
+          }
+        }
+      }
       self._sync();
       self._history.push(content.innerHTML, false);
       self._updateActiveButtons();
       self._updateEmptyState();
     });
+
+    // Global capture-phase Escape listener: stops event immediately so parent
+    // Bootstrap modal or page listeners never close host modals when dismissing popup menus!
+    var escapeCaptureHandler = function (e) {
+      if (e.key === 'Escape' && (self._slashMenuActive || self._mentionMenuActive || self._moreMenuActive)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (self._slashMenuActive) self._hideSlashMenu();
+        if (self._mentionMenuActive) self._hideMentionMenu();
+        if (self._moreMenuActive) self._hideMoreMenu();
+      }
+    };
+    window.addEventListener('keydown', escapeCaptureHandler, true);
+    self._escapeCaptureHandler = escapeCaptureHandler;
+
+    var outsideClickHandler = function (e) {
+      if (self._moreMenuActive) {
+        if (!e.target.closest('.crm-ve-more-menu') && !e.target.closest('.crm-ve-more-btn')) {
+          self._hideMoreMenu();
+        }
+      }
+    };
+    document.addEventListener('click', outsideClickHandler);
+    self._outsideClickHandler = outsideClickHandler;
 
     content.addEventListener('blur', function () {
       self._wrapper.classList.remove('is-focused');
@@ -3476,7 +4005,8 @@ window.CRM.VisualEditor = (function () {
     var imageFiles = getPastedImageFiles(clipboard);
     if (imageFiles.length > 0) {
       for (var i = 0; i < imageFiles.length; i++) {
-        var placeholder = createUploadingPlaceholder(generateId());
+        var pId = generateId();
+        var placeholder = createUploadingPlaceholder(pId);
         self._insertAtCaret(placeholder);
         uploadImage(self, imageFiles[i], placeholder).catch(function () {});
       }
@@ -3486,86 +4016,234 @@ window.CRM.VisualEditor = (function () {
     var html = clipboard.getData('text/html');
     var text = clipboard.getData('text/plain');
 
+    var uploadQueue = [];
+
     if (html) {
       var temp = document.createElement('div');
       temp.innerHTML = html;
       var imgs = temp.querySelectorAll('img[src]');
-      var uploadQueue = [];
       for (var j = 0; j < imgs.length; j++) {
         var imgNode = imgs[j];
         var src = imgNode.getAttribute('src');
         if (!src) continue;
+
+        var pId = generateId();
+        var phMarker = document.createElement('figure');
+        phMarker.className = 'crm-ve-uploading-ph';
+        phMarker.setAttribute('data-block-id', pId);
+        var align = imgNode.getAttribute('data-align') || 'center';
+        phMarker.setAttribute('data-align', align);
+
+        var alt = imgNode.getAttribute('alt') || '';
+        var caption = '';
+        var link = '';
+        var parentA = imgNode.closest('a');
+        if (parentA) link = parentA.getAttribute('href') || '';
+        var parentFig = imgNode.closest('figure');
+        if (parentFig) {
+          var capEl = parentFig.querySelector('figcaption');
+          if (capEl) caption = capEl.innerHTML;
+        }
+        var customProps = { alt: alt, caption: caption, link: link };
+
         if (src.indexOf('data:image/') === 0) {
           try {
             var blob = dataURLtoBlob(src);
             var ext = src.split(';')[0].split('/')[1] || 'png';
             var file = new File([blob], 'pasted_image.' + ext, { type: blob.type });
-            var pId = generateId();
-            var phEl = createUploadingPlaceholder(pId);
-            imgNode.parentNode.replaceChild(phEl, imgNode);
-            uploadQueue.push({ file: file, id: pId });
+            uploadQueue.push({ file: file, id: pId, align: align, customProps: customProps });
+            imgNode.parentNode.replaceChild(phMarker, imgNode);
           } catch (ex) { /* skip */ }
         } else if (/^blob:/i.test(src)) {
-          var pId2 = generateId();
-          var phEl2 = createUploadingPlaceholder(pId2);
-          imgNode.parentNode.replaceChild(phEl2, imgNode);
-          uploadQueue.push({ url: src, id: pId2 });
+          uploadQueue.push({ url: src, id: pId, align: align, customProps: customProps });
+          imgNode.parentNode.replaceChild(phMarker, imgNode);
         }
       }
       html = temp.innerHTML;
-      var sanitized = sanitizeHtml(html);
-      if (sanitized) {
-        var sel = window.getSelection();
-        var anchor = sel && sel.rangeCount ? sel.anchorNode : null;
-        if (anchor && anchor.nodeType === 3) anchor = anchor.parentNode;
-        var heading = anchor ? anchor.closest('h1, h2, h3') : null;
+    }
 
-        var checkDiv = document.createElement('div');
-        checkDiv.innerHTML = sanitized;
-        var hasMultiBlocks = checkDiv.querySelectorAll('p, h1, h2, h3, ul, ol, blockquote, pre, table, details').length > 1;
+    var sanitized = html ? sanitizeHtml(html) : '';
 
-        if (heading && hasMultiBlocks && self._content.contains(heading)) {
-          var range = sel.getRangeAt(0);
-          range.deleteContents();
-          var frag = range.createContextualFragment(sanitized);
-          if (heading.parentNode) {
-            heading.parentNode.insertBefore(frag, heading.nextSibling);
-            if (!heading.textContent.trim()) heading.remove();
+    var sel = window.getSelection();
+    var anchor = sel && sel.rangeCount ? sel.anchorNode : null;
+    if (anchor && anchor.nodeType === 3) anchor = anchor.parentNode;
+    var range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+
+    var li = anchor ? anchor.closest('li') : null;
+    var list = li ? li.closest('ul, ol') : null;
+    var heading = anchor ? anchor.closest('h1, h2, h3') : null;
+
+    if (sanitized || text) {
+      if (li && list && self._content.contains(list)) {
+        // Scenario 1: Inside list item (LI)
+        var items = [];
+        if (sanitized) {
+          var checkDiv = document.createElement('div');
+          checkDiv.innerHTML = sanitized;
+          var pastedLis = checkDiv.querySelectorAll('li');
+          if (pastedLis.length > 0) {
+            items = Array.from(pastedLis).map(function (item) { return item.innerHTML; });
+          } else {
+            var bks = checkDiv.querySelectorAll('p, h1, h2, h3, div, blockquote');
+            if (bks.length > 0) {
+              items = Array.from(bks).map(function (b) { return b.innerHTML; });
+            } else {
+              items = [sanitized];
+            }
           }
         } else {
-          document.execCommand('insertHTML', false, sanitized);
+          items = text.split(/\r?\n+/);
         }
 
-        uploadQueue.forEach(function (task) {
-          var placeholderBlock = self._content.querySelector('.crm-ve-uploading[data-block-id="' + task.id + '"]');
-          if (placeholderBlock) {
-            if (task.file) {
-              uploadImage(self, task.file, placeholderBlock).catch(function () {});
-            } else if (task.url) {
-              uploadImageFromUrl(self, task.url);
+        if (range) range.deleteContents();
+        var rAfter = range ? range.cloneRange() : document.createRange();
+        rAfter.setEndAfter(li.lastChild || li);
+        var afterFrag = rAfter.extractContents();
+
+        var isTodoList = list.classList.contains('crm-ve-todo-list');
+        var curLi = li;
+
+        items.forEach(function (itemContent, idx) {
+          if (idx === 0) {
+            if (isTodoList) {
+              var tSpan = curLi.querySelector('.crm-ve-todo-text');
+              if (tSpan) {
+                var frag0 = range ? range.createContextualFragment(itemContent) : document.createRange().createContextualFragment(itemContent);
+                tSpan.appendChild(frag0);
+              } else {
+                curLi.innerHTML = itemContent;
+              }
+            } else {
+              var frag0 = range ? range.createContextualFragment(itemContent) : document.createRange().createContextualFragment(itemContent);
+              curLi.appendChild(frag0);
             }
+          } else {
+            var newLi;
+            if (isTodoList) {
+              newLi = createTodoItem('', false);
+              var newSpan = newLi.querySelector('.crm-ve-todo-text');
+              if (newSpan) newSpan.innerHTML = itemContent;
+            } else {
+              newLi = document.createElement('li');
+              newLi.innerHTML = itemContent;
+            }
+            if (curLi.nextSibling) {
+              list.insertBefore(newLi, curLi.nextSibling);
+            } else {
+              list.appendChild(newLi);
+            }
+            curLi = newLi;
           }
         });
 
-        self._convertOrphanedImages();
-        self._cleanPastedArtifacts();
-        self._sync();
-        self._history.push(self._content.innerHTML, true);
-        return;
-      }
-    }
+        if (afterFrag) {
+          if (isTodoList) {
+            var lastSpan = curLi.querySelector('.crm-ve-todo-text');
+            if (lastSpan) {
+              lastSpan.appendChild(afterFrag);
+            } else {
+              curLi.appendChild(afterFrag);
+            }
+          } else {
+            curLi.appendChild(afterFrag);
+          }
+        }
 
-    if (text) {
-      if (text.indexOf('\n') === -1) {
-        document.execCommand('insertText', false, text);
-        self._convertOrphanedImages();
-        self._cleanPastedArtifacts();
-        self._sync();
-        self._history.push(self._content.innerHTML, true);
-        return;
+        var rFinal = document.createRange();
+        if (isTodoList) {
+          var finalSpan = curLi.querySelector('.crm-ve-todo-text');
+          if (finalSpan) {
+            rFinal.selectNodeContents(finalSpan);
+            rFinal.collapse(false);
+          } else {
+            rFinal.selectNodeContents(curLi);
+            rFinal.collapse(false);
+          }
+        } else {
+          rFinal.selectNodeContents(curLi);
+          rFinal.collapse(false);
+        }
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(rFinal);
+        }
+
+      } else if (heading && self._content.contains(heading)) {
+        // Scenario 2: Inside Heading (H1, H2, H3)
+        var tag = heading.tagName.toLowerCase();
+        var headingText = (heading.textContent || '').trim();
+        var selText = sel ? sel.toString().trim() : '';
+        var isWholeHeadingSelected = (selText === headingText && headingText.length > 0)
+          || (range && range.startContainer === heading && range.startOffset === 0 && range.endOffset === heading.childNodes.length);
+
+        var contentHtml = sanitized || (text.indexOf('\n') !== -1 ? htmlToParagraphs(text) : text);
+        var frag = range ? range.createContextualFragment(contentHtml) : document.createRange().createContextualFragment(contentHtml);
+
+        if (isWholeHeadingSelected || headingText === '') {
+          heading.parentNode.replaceChild(frag, heading);
+        } else {
+          var rAfter2 = range.cloneRange();
+          rAfter2.setEndAfter(heading.lastChild || heading);
+          var afterFrag2 = rAfter2.extractContents();
+
+          var nextHeading = document.createElement(tag);
+          nextHeading.appendChild(afterFrag2);
+
+          var insertRef = heading.nextSibling;
+          var lastFragChild = frag.lastChild;
+          heading.parentNode.insertBefore(frag, insertRef);
+
+          if (nextHeading.textContent.trim() !== '' || nextHeading.querySelector('img')) {
+            heading.parentNode.insertBefore(nextHeading, insertRef);
+          }
+          if (heading.textContent.trim() === '' && !heading.querySelector('img')) {
+            heading.remove();
+          }
+
+          if (lastFragChild && sel) {
+            var rHeadingFinal = document.createRange();
+            rHeadingFinal.selectNodeContents(lastFragChild);
+            rHeadingFinal.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(rHeadingFinal);
+          }
+        }
+
+      } else {
+        // Scenario 3: Standard Insertion
+        if (sanitized) {
+          document.execCommand('insertHTML', false, sanitized);
+        } else if (text) {
+          if (text.indexOf('\n') === -1) {
+            document.execCommand('insertText', false, text);
+          } else {
+            document.execCommand('insertHTML', false, htmlToParagraphs(text));
+          }
+        }
       }
-      var paragraphs = htmlToParagraphs(text);
-      document.execCommand('insertHTML', false, paragraphs);
+
+      // Convert any uploading markers to interactive placeholder blocks
+      var markers = self._content.querySelectorAll('figure.crm-ve-uploading-ph');
+      for (var m = 0; m < markers.length; m++) {
+        var phMarker = markers[m];
+        var bid = phMarker.getAttribute('data-block-id');
+        var tAlign = phMarker.getAttribute('data-align') || 'center';
+        var tTask = uploadQueue.find(function (q) { return q.id === bid; });
+        var placeholderEl = createUploadingPlaceholder(bid, tAlign, null, tTask ? tTask.customProps : null);
+        phMarker.parentNode.replaceChild(placeholderEl, phMarker);
+      }
+
+      uploadQueue.forEach(function (task) {
+        var placeholderBlock = self._content.querySelector('.crm-ve-uploading[data-block-id="' + task.id + '"]');
+        if (placeholderBlock) {
+          if (task.file) {
+            uploadImage(self, task.file, placeholderBlock).catch(function () {});
+          } else if (task.url) {
+            uploadImageFromUrl(self, task.url);
+          }
+        }
+      });
+
       self._convertOrphanedImages();
       self._cleanPastedArtifacts();
       self._sync();
@@ -3919,6 +4597,12 @@ window.CRM.VisualEditor = (function () {
       tableControls[tc].remove();
     }
 
+    // Strip upload placeholders and errors from output so temporary statuses never leak into saved content
+    var uploadingBlocks = container.querySelectorAll('.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-error');
+    for (var ub = 0; ub < uploadingBlocks.length; ub++) {
+      uploadingBlocks[ub].remove();
+    }
+
     var blocks = container.querySelectorAll('.crm-ve-image-block');
     for (var i = blocks.length - 1; i >= 0; i--) {
       var block = blocks[i];
@@ -4048,10 +4732,12 @@ window.CRM.VisualEditor = (function () {
         if (!cb) {
           cb = document.createElement('span');
           cb.className = 'crm-ve-todo-cb';
-          cb.setAttribute('role', 'checkbox');
-          cb.setAttribute('tabindex', '-1');
           li.insertBefore(cb, li.firstChild);
         }
+        cb.setAttribute('role', 'checkbox');
+        cb.setAttribute('tabindex', '0');
+        cb.setAttribute('contenteditable', 'false');
+        cb.setAttribute('aria-checked', isChecked ? 'true' : 'false');
         if (isChecked) {
           cb.setAttribute('data-checked', 'true');
           li.setAttribute('data-checked', 'true');
@@ -4074,6 +4760,8 @@ window.CRM.VisualEditor = (function () {
           li.appendChild(span);
         }
         span.contentEditable = 'true';
+        var itemLabel = (t('visual_editor.todo_item', 'Пункт чек-листа') + ': ' + (span.textContent || '').trim()).trim();
+        cb.setAttribute('aria-label', itemLabel);
       });
     });
 
@@ -4145,10 +4833,12 @@ window.CRM.VisualEditor = (function () {
         if (!cb) {
           cb = document.createElement('span');
           cb.className = 'crm-ve-todo-cb';
-          cb.setAttribute('role', 'checkbox');
-          cb.setAttribute('tabindex', '-1');
           li.insertBefore(cb, li.firstChild);
         }
+        cb.setAttribute('role', 'checkbox');
+        cb.setAttribute('tabindex', '0');
+        cb.setAttribute('contenteditable', 'false');
+        cb.setAttribute('aria-checked', isChecked ? 'true' : 'false');
         if (isChecked) {
           cb.setAttribute('data-checked', 'true');
           li.setAttribute('data-checked', 'true');
@@ -4158,17 +4848,20 @@ window.CRM.VisualEditor = (function () {
           li.removeAttribute('data-checked');
           li.classList.remove('is-checked');
         }
-        if (!li.querySelector('.crm-ve-todo-text')) {
-          var span = document.createElement('span');
-          span.className = 'crm-ve-todo-text';
+        var spanEl = li.querySelector('.crm-ve-todo-text');
+        if (!spanEl) {
+          spanEl = document.createElement('span');
+          spanEl.className = 'crm-ve-todo-text';
           var textContent = '';
           li.childNodes.forEach(function (n) {
             if (n !== cb && n.nodeType === 3) textContent += n.textContent;
           });
-          span.textContent = textContent;
-          if (!textContent) span.innerHTML = '<br>';
-          li.appendChild(span);
+          spanEl.textContent = textContent;
+          if (!textContent) spanEl.innerHTML = '<br>';
+          li.appendChild(spanEl);
         }
+        var itemLabel2 = (t('visual_editor.todo_item', 'Пункт чек-листа') + ': ' + (spanEl.textContent || '').trim()).trim();
+        cb.setAttribute('aria-label', itemLabel2);
       });
     });
 
@@ -4239,6 +4932,15 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype.destroy = function () {
     this._destroyed = true;
     deselectImage(this);
+
+    if (this._escapeCaptureHandler) {
+      window.removeEventListener('keydown', this._escapeCaptureHandler, true);
+      this._escapeCaptureHandler = null;
+    }
+    if (this._outsideClickHandler) {
+      document.removeEventListener('click', this._outsideClickHandler);
+      this._outsideClickHandler = null;
+    }
 
     if (typeof this._resizeCleanup === 'function') this._resizeCleanup();
     if (typeof this._resizeDocCleanup === 'function') this._resizeDocCleanup();
