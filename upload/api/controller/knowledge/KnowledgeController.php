@@ -1363,7 +1363,7 @@ final class KnowledgeController extends BaseController
             return $this->success('KNOWLEDGE_EXPORT_PAGE', $this->t('knowledge/messages.export_page', 'Page exported'), [
                 'format' => 'markdown',
                 'content' => $markdown,
-                'filename' => $page['slug'] . '.md',
+                'filename' => (!empty($page['slug']) ? (string)$page['slug'] : (string)$page['public_id']) . '.md',
             ]);
         }
         return $this->success('KNOWLEDGE_EXPORT_PAGE', $this->t('knowledge/messages.export_page', 'Page exported'), [
@@ -1408,7 +1408,7 @@ final class KnowledgeController extends BaseController
             return $this->success('KNOWLEDGE_EXPORT_SPACE', $this->t('knowledge/messages.export_space', 'Space exported'), [
                 'format' => 'markdown',
                 'content' => $md,
-                'filename' => $space['slug'] . '.md',
+                'filename' => (!empty($space['slug']) ? (string)$space['slug'] : (string)$space['public_id']) . '.md',
             ]);
         }
         return $this->success('KNOWLEDGE_EXPORT_SPACE', $this->t('knowledge/messages.export_space', 'Space exported'), [
@@ -1634,18 +1634,20 @@ final class KnowledgeController extends BaseController
         $html = preg_replace('#<hr[^>]*>#i', "\n---\n", $html) ?? $html;
         $html = preg_replace('#</?(p|div|section|article)>#i', "\n\n", $html) ?? $html;
         $html = preg_replace('#<br\s*/?>#i', "\n", $html) ?? $html;
-        $html = preg_replace('#<(h[1-6])[^>]*>(.*?)</\1>#is', function (array $m): string {
+        $html = preg_replace_callback('#<(h[1-6])[^>]*>(.*?)</\1>#is', function (array $m): string {
             $level = (int)substr($m[1], 1);
             return str_repeat('#', $level) . ' ' . trim($m[2]) . "\n\n";
         }, $html) ?? $html;
-        $html = preg_replace('#<li[^>]*>(.*?)</li>#is', "- $1\n", $html) ?? $html;
+        $html = preg_replace('#[ \t]*<li[^>]*>(.*?)</li>\s*#is', "- $1\n", $html) ?? $html;
         $html = preg_replace('#</?ul[^>]*>#i', "\n", $html) ?? $html;
         $html = preg_replace('#</?ol[^>]*>#i', "\n", $html) ?? $html;
-        $html = preg_replace('#<strong[^>]*>(.*?)</strong>#is', '**$1**', $html) ?? $html;
-        $html = preg_replace('#<em[^>]*>(.*?)</em>#is', '*$1*', $html) ?? $html;
+        $html = preg_replace('#<(strong|b)[^>]*>(.*?)</\1>#is', '**$2**', $html) ?? $html;
+        $html = preg_replace('#<(em|i)[^>]*>(.*?)</\1>#is', '*$2*', $html) ?? $html;
+        $html = preg_replace('#<(del|s|strike)[^>]*>(.*?)</\1>#is', '~~$2~~', $html) ?? $html;
         $html = preg_replace('#<a[^>]*href=["\'](.*?)["\'][^>]*>(.*?)</a>#is', '[$2]($1)', $html) ?? $html;
-        $html = preg_replace('#<code[^>]*>(.*?)</code>#is', '`$1`', $html) ?? $html;
+        $html = preg_replace('#<pre[^>]*><code[^>]*>(.*?)</code></pre>#is', "```\n$1\n```\n", $html) ?? $html;
         $html = preg_replace('#<pre[^>]*>(.*?)</pre>#is', "```\n$1\n```\n", $html) ?? $html;
+        $html = preg_replace('#<code[^>]*>(.*?)</code>#is', '`$1`', $html) ?? $html;
         $html = preg_replace('#<blockquote[^>]*>(.*?)</blockquote>#is', "> $1\n\n", $html) ?? $html;
         $html = preg_replace('#<img[^>]*src=["\'](.*?)["\'][^>]*alt=["\'](.*?)["\'][^>]*/?>#is', '![$2]($1)', $html) ?? $html;
         $html = preg_replace('#<img[^>]*src=["\'](.*?)["\'][^>]*/?>#is', '![]($1)', $html) ?? $html;

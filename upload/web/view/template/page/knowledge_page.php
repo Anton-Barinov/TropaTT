@@ -1196,7 +1196,7 @@
         try {
           var envelope = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/export?format=' + fmt, { method: 'GET' });
           var data = envelope.data || {};
-          var filename = data.filename || (current.slug || pageId) + '.' + fmt;
+          var filename = data.filename || ((current && current.slug) || pageId) + '.' + fmt;
           var blobContent = fmt === 'json' ? JSON.stringify(data, null, 2) : (data.content || '');
           var blob = new Blob([blobContent], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
           var url = URL.createObjectURL(blob);
