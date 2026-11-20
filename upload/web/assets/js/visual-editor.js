@@ -1754,7 +1754,13 @@ window.CRM.VisualEditor = (function () {
     if (range.collapsed) {
       code.appendChild(document.createElement('br'));
       pre.appendChild(code);
-      range.insertNode(pre);
+      var startNode = range.startContainer;
+      var curP = startNode ? (startNode.nodeType === 1 ? startNode : startNode.parentNode).closest('p') : null;
+      if (curP && curP.parentNode === this._content && curP.textContent.trim() === '') {
+        curP.parentNode.replaceChild(pre, curP);
+      } else {
+        range.insertNode(pre);
+      }
       var caret = document.createRange();
       caret.setStartBefore(code.firstChild);
       caret.collapse(true);
@@ -3178,7 +3184,12 @@ window.CRM.VisualEditor = (function () {
         }
         var newP = document.createElement('p');
         newP.innerHTML = '<br>';
-        if (pre.nextSibling) {
+        if (pre.parentNode && pre.parentNode.tagName === 'P' && pre.parentNode !== this._content) {
+          var pPar = pre.parentNode;
+          pPar.parentNode.insertBefore(pre, pPar.nextSibling);
+          pPar.parentNode.insertBefore(newP, pre.nextSibling);
+          if (pPar.textContent.trim() === '') pPar.remove();
+        } else if (pre.nextSibling) {
           pre.parentNode.insertBefore(newP, pre.nextSibling);
         } else {
           pre.parentNode.appendChild(newP);
@@ -3773,6 +3784,19 @@ window.CRM.VisualEditor = (function () {
       var parentHeading = nBlock.closest('h1, h2, h3');
       if (parentHeading && parentHeading.parentNode) {
         parentHeading.parentNode.insertBefore(nBlock, parentHeading.nextSibling);
+      }
+    }
+
+    // 3b. Lift block-level elements out of paragraphs
+    var pBlocks = this._content.querySelectorAll('p pre, p blockquote, p table, p details, p ul, p ol, p figure, p > p');
+    for (var pb = pBlocks.length - 1; pb >= 0; pb--) {
+      var pBlock = pBlocks[pb];
+      var parentP = pBlock.closest('p');
+      if (parentP && parentP.parentNode) {
+        parentP.parentNode.insertBefore(pBlock, parentP.nextSibling);
+        if (parentP.textContent.trim() === '' && !parentP.querySelector('img, figure')) {
+          parentP.remove();
+        }
       }
     }
 
