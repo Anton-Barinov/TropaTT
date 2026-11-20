@@ -359,7 +359,7 @@
     try { if (window.CRM.notifications) window.CRM.notifications.init(); } catch (error) { /* notification init failed */ }
     try { if (window.CRM.richtext) window.CRM.richtext.init(); } catch (error) { /* richtext init failed */ }
 
-    try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { /* br1 init failed */ }
+    try { if (window.CRM.br1) window.CRM.br1.init(); } catch (error) { console.error('br1 init failed:', error); }
     try { if (window.CRM.navigation) await window.CRM.navigation.init(); } catch (error) { /* navigation init failed */ }
     try {
       if (window.CRM.pageApiBindings) {

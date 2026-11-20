@@ -10430,6 +10430,7 @@ window.CRM.br1 = (function () {
   };
 
   // Backwards compatibility alias
+  var initImageLightbox = initImageViewer;
   window.CRM.showImageLightbox = showImageViewer;
   window.CRM.initImageLightbox = initImageViewer;
 
@@ -10443,7 +10444,7 @@ window.CRM.br1 = (function () {
   }
 
   function init() {
-    initImageLightbox();
+    initImageViewer();
     initLoginFlow();
     initPasswordResetRequestFlow();
     initPasswordResetConfirmFlow();
