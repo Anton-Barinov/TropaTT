@@ -10266,8 +10266,12 @@ window.CRM.br1 = (function () {
 
     function zoomOut(e) {
       if (e) e.stopPropagation();
-      if (currentScale > 1) {
+      if (currentScale > 1.05) {
         currentScale = Math.max(currentScale / 1.25, 1);
+        if (currentScale <= 1.05) {
+          isFitMode = true;
+          currentScale = 1;
+        }
         applyScale();
       } else {
         isFitMode = true;
