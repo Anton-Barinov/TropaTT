@@ -21519,8 +21519,9 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 
 /* ==========================================================================
-   Image Lightbox / Zoom Overlay (User request 19.11.2026)
+   CRM Native Custom Image Viewer & Zoom Overlay (Independent implementation)
    ========================================================================== */
+.crm-image-viewer,
 .crm-image-lightbox {
   position: fixed;
   inset: 0;
@@ -21533,42 +21534,54 @@ body[data-page="admin-settings"] [data-settings-group] {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   opacity: 0;
-  transition: opacity 0.22s ease-out;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   overflow: hidden;
 }
 
+.crm-image-viewer.is-open,
 .crm-image-lightbox.is-open {
   opacity: 1;
 }
 
+.crm-image-viewer-header,
+.crm-image-viewer-toolbar,
 .crm-image-lightbox-header {
   position: absolute;
   top: 16px;
   right: 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 10510;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 6px 10px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+.crm-image-viewer-btn,
 .crm-image-lightbox-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(30, 41, 59, 0.75);
   color: #f8fafc;
   cursor: pointer;
   transition: all 0.15s ease;
   padding: 0;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
+.crm-image-viewer-btn:hover,
 .crm-image-lightbox-btn:hover {
   background: rgba(51, 65, 85, 0.95);
   color: #ffffff;
@@ -21576,10 +21589,13 @@ body[data-page="admin-settings"] [data-settings-group] {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+.crm-image-viewer-btn:active,
 .crm-image-lightbox-btn:active {
   transform: scale(0.96);
 }
 
+.crm-image-viewer-body,
+.crm-image-viewer-stage,
 .crm-image-lightbox-body {
   position: relative;
   width: 100vw;
@@ -21587,12 +21603,13 @@ body[data-page="admin-settings"] [data-settings-group] {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 68px 24px 68px 24px;
+  padding: 72px 24px 72px 24px;
   overflow: auto;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
 
+.crm-image-viewer-img,
 .crm-image-lightbox-img {
   display: block;
   max-width: 92vw;
@@ -21603,11 +21620,12 @@ body[data-page="admin-settings"] [data-settings-group] {
   border-radius: 6px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
   cursor: zoom-in;
-  transition: transform 0.2s ease, max-width 0.2s ease, max-height 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.2s ease, max-height 0.2s ease;
   user-select: none;
   margin: auto;
 }
 
+.crm-image-viewer-img.is-zoomed,
 .crm-image-lightbox-img.is-zoomed {
   max-width: none;
   max-height: none;
@@ -21615,6 +21633,7 @@ body[data-page="admin-settings"] [data-settings-group] {
   transform: none;
 }
 
+.crm-image-viewer-caption,
 .crm-image-lightbox-caption {
   position: absolute;
   bottom: 18px;
@@ -21668,22 +21687,31 @@ body[data-page="admin-settings"] [data-settings-group] {
 }
 
 @media (max-width: 575.98px) {
+  .crm-image-viewer-header,
+  .crm-image-viewer-toolbar,
   .crm-image-lightbox-header {
     top: 10px;
     right: 10px;
-    gap: 6px;
+    gap: 5px;
+    padding: 4px 6px;
   }
+  .crm-image-viewer-btn,
   .crm-image-lightbox-btn {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
   }
+  .crm-image-viewer-body,
+  .crm-image-viewer-stage,
   .crm-image-lightbox-body {
-    padding: 54px 12px 54px 12px;
+    padding: 54px 10px 54px 10px;
   }
+  .crm-image-viewer-img,
   .crm-image-lightbox-img {
     max-width: 96vw;
     max-height: 82vh;
   }
+  .crm-image-viewer-caption,
   .crm-image-lightbox-caption {
     bottom: 10px;
     font-size: 0.8rem;

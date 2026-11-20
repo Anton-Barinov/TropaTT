@@ -1643,6 +1643,15 @@ return array (
   ),
   'js' => 
   array (
+    'image_viewer' => 
+    array (
+      'view_image' => '查看图片',
+      'zoom_toggle' => '缩放 1:1 / 适应屏幕',
+      'zoom_in' => '放大',
+      'zoom_out' => '缩小',
+      'fit_screen' => '适应屏幕',
+      'open_new_tab' => '在新标签页中打开原图',
+    ),
     'lightbox' => 
     array (
       'view_image' => '查看图片',

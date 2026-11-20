@@ -1652,6 +1652,15 @@ return array (
   ),
   'js' => 
   array (
+    'image_viewer' => 
+    array (
+      'view_image' => 'Просмотр изображения',
+      'zoom_toggle' => 'Масштаб 1:1 / По размеру экрана',
+      'zoom_in' => 'Приблизить',
+      'zoom_out' => 'Отдалить',
+      'fit_screen' => 'По размеру экрана',
+      'open_new_tab' => 'Открыть оригинал в новой вкладке',
+    ),
     'lightbox' => 
     array (
       'view_image' => 'Просмотр изображения',
