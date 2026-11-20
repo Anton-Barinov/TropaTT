@@ -82,9 +82,16 @@ final class WorklogService
     private function getVisibleUserIds(array $actor): array
     {
         $actorId = $this->resolveActorId($actor);
-        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $organizationId = $this->organizationId($actor);
 
-        if ($isRoot) {
+        if ((bool)($actor['is_root'] ?? false)) {
+            if ($organizationId !== null) {
+                $orgMembers = $this->userManagement->organizationMemberIds($organizationId);
+                if ($actorId > 0 && !in_array($actorId, $orgMembers, true)) {
+                    $orgMembers[] = $actorId;
+                }
+                return $orgMembers;
+            }
             return [];
         }
 
@@ -100,12 +107,11 @@ final class WorklogService
         // Teams: members of teams where the actor is the manager
         $teamMemberIds = $this->teamRepo->findMemberIdsByManager($actorId);
 
-        // Merge, deduplicate, return
-        $ids = array_values(array_unique(array_merge($hierarchyIds, $teamMemberIds)));
-        $organizationId = $this->organizationId($actor);
+        // Merge, deduplicate, return: actor themselves + descendants + team members
+        $ids = array_values(array_unique(array_merge([$actorId], $hierarchyIds, $teamMemberIds)));
         if ($organizationId !== null) {
             $allowed = array_fill_keys($this->userManagement->organizationMemberIds($organizationId), true);
-            $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id])));
+            $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id]) || $id === $actorId));
         }
         return $ids;
     }
