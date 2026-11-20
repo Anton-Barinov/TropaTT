@@ -2330,7 +2330,7 @@ window.CRM.VisualEditor = (function () {
     }
 
     this._sync();
-    this._history.push(this._content.innerHTML, false);
+    this._history.push(this._content.innerHTML, true);
     this._updateActiveButtons();
   };
 
