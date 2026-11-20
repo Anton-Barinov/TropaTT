@@ -8285,7 +8285,7 @@ window.CRM.br1 = (function () {
 
   async function loadTaskWorklogs(taskId) {
     try {
-      var envelope = await window.CRM.api.request('api/v1/worklogs', { query: { task_public_id: taskId, limit: 100 } });
+      var envelope = await window.CRM.api.request('api/v1/worklogs', { query: { task_public_id: taskId, limit: 100 }, noCache: true });
       currentTaskWorklogs = window.CRM.api.items(envelope);
       renderWorklogs(currentTaskWorklogs);
     } catch (e) {
@@ -9581,7 +9581,7 @@ window.CRM.br1 = (function () {
         window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks', { silent: true }).catch(function () { return null; }),
         window.CRM.api.request('api/v1/tasks/' + taskId + '/checklists', { silent: true }).catch(function () { return null; }),
         window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', { silent: true }).catch(function () { return null; }),
-        window.CRM.api.request('api/v1/worklogs', { query: { task_public_id: taskId, limit: 100 }, silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/worklogs', { query: { task_public_id: taskId, limit: 100 }, noCache: true, silent: true }).catch(function () { return null; }),
         window.CRM.api.request('api/v1/tasks/' + taskId + '/files', { silent: true }).catch(function () { return null; }),
         window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/activity', { query: { limit: 50 }, silent: true }).catch(function () { return null; })
       ]);
