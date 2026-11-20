@@ -1652,6 +1652,15 @@ return array (
   ),
   'js' => 
   array (
+    'image_viewer' => 
+    array (
+      'view_image' => 'View image',
+      'zoom_toggle' => 'Zoom 1:1 / Fit to screen',
+      'zoom_in' => 'Zoom in',
+      'zoom_out' => 'Zoom out',
+      'fit_screen' => 'Fit to screen',
+      'open_new_tab' => 'Open original in new tab',
+    ),
     'lightbox' => 
     array (
       'view_image' => 'View image',

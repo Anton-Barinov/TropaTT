@@ -727,8 +727,9 @@ window.CRM.VisualEditor = (function () {
         if (!img || !img.src) return;
         var capEl = block.querySelector('.crm-ve-image-caption');
         var caption = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
-        if (window.CRM && typeof window.CRM.showImageLightbox === 'function') {
-          window.CRM.showImageLightbox(img.src, caption);
+        var showViewer = (window.CRM && (window.CRM.showImageViewer || window.CRM.showImageLightbox));
+        if (typeof showViewer === 'function') {
+          showViewer(img.src, caption);
         } else {
           window.open(img.src, '_blank');
         }
@@ -3027,10 +3028,11 @@ window.CRM.VisualEditor = (function () {
         }
         if (self._options.readonly) {
           var img = imageBlock.querySelector('.crm-ve-image');
-          if (img && img.src && window.CRM && typeof window.CRM.showImageLightbox === 'function') {
+          var showViewer = (window.CRM && (window.CRM.showImageViewer || window.CRM.showImageLightbox));
+          if (img && img.src && typeof showViewer === 'function') {
             var capEl = imageBlock.querySelector('.crm-ve-image-caption');
             var capText = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
-            window.CRM.showImageLightbox(img.src, capText);
+            showViewer(img.src, capText);
             e.preventDefault();
             return;
           }
@@ -3084,10 +3086,11 @@ window.CRM.VisualEditor = (function () {
         var caption = e.target.closest('.crm-ve-image-caption');
         if (caption) return;
         var img = imageBlock.querySelector('.crm-ve-image');
-        if (img && img.src && window.CRM && typeof window.CRM.showImageLightbox === 'function') {
+        var showViewer = (window.CRM && (window.CRM.showImageViewer || window.CRM.showImageLightbox));
+        if (img && img.src && typeof showViewer === 'function') {
           var capEl = imageBlock.querySelector('.crm-ve-image-caption');
           var capText = (capEl && capEl.textContent) ? capEl.textContent.trim() : (img.alt || '');
-          window.CRM.showImageLightbox(img.src, capText);
+          showViewer(img.src, capText);
           e.preventDefault();
         }
       }
