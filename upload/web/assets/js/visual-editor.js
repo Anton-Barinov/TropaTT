@@ -3161,19 +3161,20 @@ window.CRM.VisualEditor = (function () {
 
     if (e.key === 'Enter' && !e.shiftKey) {
       var code = pre.querySelector('code') || pre;
-      var text = code.textContent || '';
+      var inner = (code.innerText || code.textContent || '').replace(/\r/g, '');
       var range = sel.getRangeAt(0);
 
       var testRange = document.createRange();
       testRange.selectNodeContents(code);
       testRange.setStart(range.endContainer, range.endOffset);
-      var textAfter = testRange.toString();
+      var textAfter = testRange.toString().replace(/[\r\n]/g, '');
       var atEnd = textAfter.length === 0;
 
-      if ((atEnd && (text.endsWith('\n') || text === '')) || text === '\n') {
+      // If at end and previous enter left an empty trailing line (or block is completely empty), exit!
+      if (atEnd && (inner.endsWith('\n') || inner === '' || code.innerHTML.endsWith('<br><br>') || code.innerHTML.endsWith('<br>'))) {
         e.preventDefault();
-        if (text.endsWith('\n')) {
-          code.textContent = text.slice(0, -1);
+        while (code.lastChild && (code.lastChild.nodeName === 'BR' || code.lastChild.textContent === '\n' || code.lastChild.textContent === '')) {
+          code.removeChild(code.lastChild);
         }
         var newP = document.createElement('p');
         newP.innerHTML = '<br>';
@@ -3194,7 +3195,7 @@ window.CRM.VisualEditor = (function () {
       }
 
       e.preventDefault();
-      document.execCommand('insertText', false, '\n');
+      document.execCommand('insertLineBreak');
       this._sync();
       return true;
     }
