@@ -10469,6 +10469,13 @@ return array (
     'mention_type_user' => 'Пользователь',
     'mention_group_users' => 'Пользователи',
     'mention_group_pages' => 'Страницы базы знаний',
+    'toolbar_aria' => 'Панель форматирования',
+    'table_add_row' => 'Добавить строку',
+    'table_row' => 'Строка',
+    'table_add_col' => 'Добавить столбец',
+    'table_col' => 'Столбец',
+    'table_del_row' => 'Удалить строку',
+    'table_del_col' => 'Удалить столбец',
   ),
   'approvals' => 
   array (

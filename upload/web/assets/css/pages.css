@@ -17768,6 +17768,25 @@ body[data-page="admin-settings"] [data-settings-group] {
   gap: 0.35rem;
 }
 
+@media (max-width: 576px) {
+  .crm-knowledge-writing-topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .crm-knowledge-writing-actions {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.35rem;
+  }
+  .crm-knowledge-writing-actions .btn {
+    flex: 1 1 auto;
+    min-width: 90px;
+    text-align: center;
+  }
+}
+
 .crm-knowledge-edit-meta {
   display: flex;
   flex-direction: column;

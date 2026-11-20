@@ -10469,6 +10469,13 @@ return array (
     'mention_type_user' => 'User',
     'mention_group_users' => 'Users',
     'mention_group_pages' => 'Knowledge pages',
+    'toolbar_aria' => 'Formatting toolbar',
+    'table_add_row' => 'Add row',
+    'table_row' => 'Row',
+    'table_add_col' => 'Add column',
+    'table_col' => 'Col',
+    'table_del_row' => 'Remove row',
+    'table_del_col' => 'Remove column',
   ),
   'approvals' => 
   array (
