@@ -3903,6 +3903,8 @@ return array (
       'fayl' => 'File',
       'fayl_ne_vybran' => 'No file selected',
       'fayl_zagruzhen' => 'File uploaded',
+      'file_too_large' => 'File too large. Maximum size: 100 MB.',
+      'zagruzka' => 'Uploading…',
       'faylov_vybrano_count' => '{count} files selected',
       'formiruem_ai_predlozhenie_po_zadache' => 'Generating AI suggestion for the task...',
       'gost' => 'Guest',

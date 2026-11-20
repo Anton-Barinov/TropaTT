@@ -3903,6 +3903,8 @@ return array (
       'fayl' => 'Файл',
       'fayl_ne_vybran' => 'Файл не выбран',
       'fayl_zagruzhen' => 'Файл загружен',
+      'file_too_large' => 'Файл слишком большой. Максимальный размер: 100 МБ.',
+      'zagruzka' => 'Загрузка…',
       'faylov_vybrano_count' => '{count} файлов выбрано',
       'formiruem_ai_predlozhenie_po_zadache' => 'Формируем AI-предложение по задаче...',
       'gost' => 'Гость',

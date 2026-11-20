@@ -77,6 +77,27 @@ final class FileController extends BaseController
                 ]);
             }
 
+            if ($e->getMessage() === 'FILE_TOO_LARGE') {
+                $maxMb = (int)round($service->getMaxUploadSizeBytes() / (1024 * 1024));
+                $msgTemplate = $this->t('file/messages.file_too_large', 'Файл слишком большой. Максимальный размер: :max МБ.');
+                $msg = str_replace(':max', (string)$maxMb, $msgTemplate);
+                return $this->error('FILE_TOO_LARGE', $msg, 422, [
+                    'file' => [$msg],
+                ]);
+            }
+
+            if ($e->getMessage() === 'FILE_REQUIRED') {
+                return $this->error('FILE_REQUIRED', $this->t('file/messages.not_provided', 'Файл не передан'), 422, [
+                    'file' => [$this->t('file/messages.not_provided', 'Файл не передан')],
+                ]);
+            }
+
+            if ($e->getMessage() === 'FILE_PARTIAL_UPLOAD') {
+                return $this->error('FILE_PARTIAL_UPLOAD', $this->t('file/messages.upload_error'), 422, [
+                    'file' => ['File was only partially uploaded.'],
+                ]);
+            }
+
             AppLog::error('[FileController::create] ' . $e->getMessage());
             return $this->error('FILE_UPLOAD_ERROR', $this->t('file/messages.upload_error'), 422, [
                 'file' => ['File upload failed. Check server logs for details.'],

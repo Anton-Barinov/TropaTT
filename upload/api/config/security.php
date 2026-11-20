@@ -139,7 +139,7 @@ return [
         'allow_headers' => 'Content-Type, Authorization, X-CSRF-Token, X-Request-Id, X-Correlation-Id, X-Idempotency-Key, X-Locale',
     ],
     'uploads' => [
-        'max_size_bytes' => 20 * 1024 * 1024,
+        'max_size_bytes' => (int)(getenv('CRM_MAX_UPLOAD_SIZE_BYTES') ?: (100 * 1024 * 1024)),
         'rate_limit' => [
             'max' => 50,
             'window_sec' => 3600,

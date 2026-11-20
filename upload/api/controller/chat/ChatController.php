@@ -874,7 +874,8 @@ final class ChatController extends BaseController
 
         $file = $this->request()->files['file'] ?? null;
         if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return $this->error('FILE_REQUIRED', $this->t('chat/messages.file_required'), 400);
-        if ((int)($file['size'] ?? 0) > 20 * 1024 * 1024) return $this->error('FILE_TOO_LARGE', $this->t('chat/messages.file_too_large'), 422);
+        $maxChatSize = (int)$this->config->get('security.uploads.max_size_bytes', 104857600);
+        if ((int)($file['size'] ?? 0) > $maxChatSize) return $this->error('FILE_TOO_LARGE', $this->t('chat/messages.file_too_large'), 422);
         $fileValidation = $this->validateChatUpload($file);
         if ($fileValidation !== null) return $this->error($fileValidation['code'], $fileValidation['message'], 422);
 
