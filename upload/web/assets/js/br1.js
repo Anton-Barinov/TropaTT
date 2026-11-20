@@ -4465,6 +4465,7 @@ window.CRM.br1 = (function () {
   }
 
   function renderTaskFiles(files) {
+    setTaskTabCounter('detailFilesCounter', Array.isArray(files) ? files.length : 0);
     var list = document.getElementById('taskFilesList');
     if (!list) return;
 
@@ -4988,6 +4989,7 @@ window.CRM.br1 = (function () {
   }
 
   function renderTaskActivity(items) {
+    setTaskTabCounter('detailActivityCounter', Array.isArray(items) ? items.length : 0);
     var list = document.getElementById('taskActivityList');
     if (!list) return;
 
@@ -8166,6 +8168,7 @@ window.CRM.br1 = (function () {
   }
 
   function renderWorklogs(items) {
+    setTaskTabCounter('detailWorklogsCounter', Array.isArray(items) ? items.length : 0);
     var list = document.getElementById('taskWorklogsList');
     var summary = document.getElementById('taskWorklogSummary');
     var createForm = document.getElementById('worklogCreateForm');
@@ -9577,7 +9580,10 @@ window.CRM.br1 = (function () {
       var results = await Promise.all([
         window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks', { silent: true }).catch(function () { return null; }),
         window.CRM.api.request('api/v1/tasks/' + taskId + '/checklists', { silent: true }).catch(function () { return null; }),
-        window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', { silent: true }).catch(function () { return null; })
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', { silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/worklogs', { query: { task_public_id: taskId, limit: 100 }, silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/files', { silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/tasks/' + encodeURIComponent(taskId) + '/activity', { query: { limit: 50 }, silent: true }).catch(function () { return null; })
       ]);
       if (results[0]) {
         currentTaskSubtasks = window.CRM.api.items(results[0]);
@@ -9592,6 +9598,32 @@ window.CRM.br1 = (function () {
         setTaskTabCounter('detailCommentsCounter', Array.isArray(initialComments) ? initialComments.length : 0);
         renderTaskComments(initialComments);
       }
+      if (results[3]) {
+        var initialWorklogs = window.CRM.api.items(results[3]);
+        setTaskTabCounter('detailWorklogsCounter', Array.isArray(initialWorklogs) ? initialWorklogs.length : 0);
+      }
+      if (results[4]) {
+        var initialFiles = window.CRM.api.items(results[4]);
+        setTaskTabCounter('detailFilesCounter', Array.isArray(initialFiles) ? initialFiles.length : 0);
+      }
+      if (results[5]) {
+        var initialActivity = window.CRM.api.items(results[5]);
+        setTaskTabCounter('detailActivityCounter', Array.isArray(initialActivity) ? initialActivity.length : 0);
+      }
+      if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.bindTaskDependencies === 'function') {
+        window.CRM.pageApiBindings.bindTaskDependencies(taskId);
+      } else {
+        var depAttempts = 0;
+        var depTimer = setInterval(function () {
+          depAttempts++;
+          if (window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.bindTaskDependencies === 'function') {
+            clearInterval(depTimer);
+            window.CRM.pageApiBindings.bindTaskDependencies(taskId);
+          } else if (depAttempts > 30) {
+            clearInterval(depTimer);
+          }
+        }, 100);
+      }
       renderTaskProgress(currentTask);
     } catch (e) {
       // silent
@@ -9602,11 +9634,11 @@ window.CRM.br1 = (function () {
     subtasks: { code: 'subtasks', title: 'Подзадачи', target: '#detailSubtasks', counterId: 'detailSubtasksCounter', internalOnly: true },
     checklists: { code: 'checklists', title: 'Чеклисты', target: '#detailChecklists', counterId: 'detailChecklistsCounter', internalOnly: true },
     comments: { code: 'comments', title: 'Комментарии', target: '#detailComments', counterId: 'detailCommentsCounter', internalOnly: false },
-    worklogs: { code: 'worklogs', title: 'Учет времени', target: '#detailWorklogs', internalOnly: false },
+    worklogs: { code: 'worklogs', title: 'Учет времени', target: '#detailWorklogs', counterId: 'detailWorklogsCounter', internalOnly: false },
     dependencies: { code: 'dependencies', title: 'Зависимости', target: '#detailDependencies', counterId: 'detailDependenciesCounter', internalOnly: true },
-    files: { code: 'files', title: 'Файлы', target: '#detailFiles', internalOnly: false },
-    activity: { code: 'activity', title: 'История', target: '#detailActivity', internalOnly: true },
-    knowledge: { code: 'knowledge', title: 'База знаний', target: '#detailKnowledge', internalOnly: true }
+    files: { code: 'files', title: 'Файлы', target: '#detailFiles', counterId: 'detailFilesCounter', internalOnly: false },
+    activity: { code: 'activity', title: 'История', target: '#detailActivity', counterId: 'detailActivityCounter', internalOnly: true },
+    knowledge: { code: 'knowledge', title: 'База знаний', target: '#detailKnowledge', counterId: 'detailKnowledgeCounter', internalOnly: true }
   };
   var DEFAULT_TASK_TABS_ORDER = ['subtasks', 'checklists', 'comments', 'worklogs', 'dependencies', 'files', 'activity', 'knowledge'];
   var currentTaskTabsOrder = DEFAULT_TASK_TABS_ORDER.slice();

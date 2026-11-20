@@ -73,14 +73,14 @@
         <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="subtasks"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#detailSubtasks" type="button" data-i18n="task_detail.tab_subtasks"><?= htmlspecialchars($t('task_detail.tab_subtasks', 'Подзадачи'), ENT_QUOTES, 'UTF-8') ?> <span id="detailSubtasksCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
         <?php if (empty($is_external_user)): ?><li class="nav-item" data-tab-code="checklists"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailChecklists" type="button" data-i18n="task_detail.tab_checklists"><?= htmlspecialchars($t('task_detail.tab_checklists', 'Чеклисты'), ENT_QUOTES, 'UTF-8') ?> <span id="detailChecklistsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
         <li class="nav-item" data-tab-code="comments"><button class="nav-link<?= empty($is_external_user) ? '' : ' active' ?>" data-bs-toggle="tab" data-bs-target="#detailComments" type="button" data-i18n="task_detail.tab_comments"><?= htmlspecialchars($t('task_detail.tab_comments', 'Комментарии'), ENT_QUOTES, 'UTF-8') ?> <span id="detailCommentsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
-        <?php if (empty($is_external_user) || $external_role === 'executor'): ?><li class="nav-item" data-tab-code="worklogs"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+        <?php if (empty($is_external_user) || $external_role === 'executor'): ?><li class="nav-item" data-tab-code="worklogs"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#detailWorklogs" type="button" data-i18n="task_detail.tab_worklogs"><?= htmlspecialchars($t('task_detail.tab_worklogs', 'Учет времени'), ENT_QUOTES, 'UTF-8') ?> <span id="detailWorklogsCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
         <li class="nav-item dropdown crm-task-tabs-overflow" id="taskTabsMoreDropdown">
           <button class="nav-link dropdown-toggle" id="taskTabsMore" data-bs-toggle="dropdown" type="button" aria-expanded="false" data-i18n="task_detail.tab_more"><?= htmlspecialchars($t('task_detail.tab_more', 'Ещё'), ENT_QUOTES, 'UTF-8') ?></button>
           <ul class="dropdown-menu" id="taskTabsMoreMenu" aria-labelledby="taskTabsMore">
             <?php if (empty($is_external_user)): ?><li data-tab-code="dependencies"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailDependencies" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_dependencies"><?= htmlspecialchars($t('task_detail.tab_dependencies', 'Зависимости'), ENT_QUOTES, 'UTF-8') ?> <span id="detailDependenciesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
-            <li data-tab-code="files"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?></button></li>
-            <?php if (empty($is_external_user)): ?><li data-tab-code="activity"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
-            <?php if (empty($is_external_user)): ?><li data-tab-code="knowledge"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?></button></li><?php endif; ?>
+            <li data-tab-code="files"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailFiles" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_files"><?= htmlspecialchars($t('task_detail.tab_files', 'Файлы'), ENT_QUOTES, 'UTF-8') ?> <span id="detailFilesCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li>
+            <?php if (empty($is_external_user)): ?><li data-tab-code="activity"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailActivity" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_history"><?= htmlspecialchars($t('task_detail.tab_history', 'История'), ENT_QUOTES, 'UTF-8') ?> <span id="detailActivityCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
+            <?php if (empty($is_external_user)): ?><li data-tab-code="knowledge"><button class="dropdown-item" data-bs-toggle="tab" data-bs-target="#detailKnowledge" type="button" data-task-overflow-tab="1" data-i18n="task_detail.tab_knowledge"><?= htmlspecialchars($t('task_detail.tab_knowledge', 'База знаний'), ENT_QUOTES, 'UTF-8') ?> <span id="detailKnowledgeCounter" class="badge text-bg-secondary crm-tab-counter d-none">0</span></button></li><?php endif; ?>
           </ul>
         </li>
       </ul>
@@ -998,6 +998,11 @@
       try {
         var envelope = await api.request('api/v1/knowledge/entities/task/' + encodeURIComponent(taskId) + '/pages', { method: 'GET' });
         var items = envelope.data && envelope.data.items || [];
+        var counterEl = document.getElementById('detailKnowledgeCounter');
+        if (counterEl) {
+          counterEl.textContent = String(items.length);
+          counterEl.classList.toggle('d-none', items.length === 0);
+        }
         if (!items.length) {
           listEl.innerHTML = '<div class="text-muted small"><?= htmlspecialchars($t('task_detail.knowledge_empty', 'Нет связанных страниц'), ENT_QUOTES, 'UTF-8') ?></div>';
         } else {
@@ -1007,6 +1012,8 @@
         }
       } catch (e) {
         listEl.innerHTML = '<div class="text-muted small">—</div>';
+        var counterEl = document.getElementById('detailKnowledgeCounter');
+        if (counterEl) counterEl.classList.add('d-none');
       }
     }
 
