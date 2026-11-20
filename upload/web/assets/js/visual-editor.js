@@ -403,7 +403,7 @@ window.CRM.VisualEditor = (function () {
         // Unwrap spans that contain only whitespace (paste artifacts)
         if (tag === 'SPAN') {
           var spanCls = node.getAttribute('class') || '';
-          if (spanCls.indexOf('crm-ve-mention') === -1 && (node.textContent || '').trim() === '') {
+          if (spanCls.indexOf('crm-ve-mention') === -1 && spanCls.indexOf('crm-ve-todo-cb') === -1 && (node.textContent || '').trim() === '') {
             var spanParent = node.parentNode;
             if (spanParent) {
               var spanMoved = [];
@@ -1717,23 +1717,25 @@ window.CRM.VisualEditor = (function () {
       }
       while (body.firstChild) details.appendChild(body.firstChild);
       range.insertNode(details);
+      range.setStartAfter(details);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
     } else {
       var emptyParagraph = document.createElement('p');
       emptyParagraph.innerHTML = '<br>';
       details.appendChild(emptyParagraph);
+      details.open = true;
       if (range) {
         range.insertNode(details);
       } else {
         this._content.appendChild(details);
       }
-    }
-
-    // Place the caret right after the inserted spoiler so the user can keep typing.
-    if (range) {
-      range.setStartAfter(details);
-      range.collapse(true);
+      var r = document.createRange();
+      r.setStart(emptyParagraph, 0);
+      r.collapse(true);
       selection.removeAllRanges();
-      selection.addRange(range);
+      selection.addRange(r);
     }
 
     this._sync();
@@ -1848,7 +1850,14 @@ window.CRM.VisualEditor = (function () {
       checkbox.setAttribute('data-checked', 'true');
     }
     var li = checkbox.closest('.crm-ve-todo-item');
-    if (li) li.classList.toggle('is-checked', !isChecked);
+    if (li) {
+      li.classList.toggle('is-checked', !isChecked);
+      if (!isChecked) {
+        li.setAttribute('data-checked', 'true');
+      } else {
+        li.removeAttribute('data-checked');
+      }
+    }
     this._sync();
     this._history.push(this._content.innerHTML, true);
   };
@@ -2374,12 +2383,12 @@ window.CRM.VisualEditor = (function () {
           if (node.nodeType === 3) {
             var text = node.textContent || '';
             var offset = range.startOffset;
-            var before = text.substring(0, offset);
+            var before = text.substring(0, Math.max(0, offset - 1));
             if (before === '' || /\s$/.test(before)) {
               this._showSlashMenu();
             }
           } else if (node.nodeType === 1) {
-            if (range.startOffset === 0 || !node.textContent.trim()) {
+            if (range.startOffset <= 1 || !node.textContent.replace('/', '').trim()) {
               this._showSlashMenu();
             }
           }
@@ -2834,12 +2843,12 @@ window.CRM.VisualEditor = (function () {
           if (node.nodeType === 3) {
             var text = node.textContent || '';
             var offset = range.startOffset;
-            var before = text.substring(0, offset);
+            var before = text.substring(0, Math.max(0, offset - 1));
             if (before === '' || /\s$/.test(before)) {
               this._showMentionMenu();
             }
           } else if (node.nodeType === 1) {
-            if (range.startOffset === 0 || !node.textContent.trim()) {
+            if (range.startOffset <= 1 || !node.textContent.replace('@', '').trim()) {
               this._showMentionMenu();
             }
           }
@@ -3154,11 +3163,18 @@ window.CRM.VisualEditor = (function () {
       var code = pre.querySelector('code') || pre;
       var text = code.textContent || '';
       var range = sel.getRangeAt(0);
-      var offset = range.startOffset;
 
-      if ((text.endsWith('\n') && offset >= text.length) || text === '' || text === '\n') {
+      var testRange = document.createRange();
+      testRange.selectNodeContents(code);
+      testRange.setStart(range.endContainer, range.endOffset);
+      var textAfter = testRange.toString();
+      var atEnd = textAfter.length === 0;
+
+      if ((atEnd && (text.endsWith('\n') || text === '')) || text === '\n') {
         e.preventDefault();
-        if (text.endsWith('\n')) code.textContent = text.slice(0, -1);
+        if (text.endsWith('\n')) {
+          code.textContent = text.slice(0, -1);
+        }
         var newP = document.createElement('p');
         newP.innerHTML = '<br>';
         if (pre.nextSibling) {
@@ -3185,11 +3201,12 @@ window.CRM.VisualEditor = (function () {
 
     if (e.key === 'ArrowDown') {
       var code2 = pre.querySelector('code') || pre;
-      var text2 = code2.textContent || '';
       var range2 = sel.getRangeAt(0);
-      var lastNl = text2.lastIndexOf('\n');
-      var pos = range2.endOffset;
-      if (pos > lastNl || pos >= text2.length) {
+      var testRange2 = document.createRange();
+      testRange2.selectNodeContents(code2);
+      testRange2.setStart(range2.endContainer, range2.endOffset);
+      var afterText2 = testRange2.toString();
+      if (afterText2.indexOf('\n') === -1) {
         e.preventDefault();
         var nextBlock = pre.nextElementSibling;
         if (!nextBlock) {
