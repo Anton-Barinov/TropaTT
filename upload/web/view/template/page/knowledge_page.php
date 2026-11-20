@@ -788,7 +788,7 @@
     } catch (e) {}
     if (btn) btn.disabled = false;
   }
-  function showEditor(show) {
+  async function showEditor(show) {
     var layout = document.querySelector('.crm-knowledge-detail-layout');
     if (layout) layout.classList.toggle('is-editing', show);
     document.body.classList.toggle('crm-knowledge-writing-mode', show);
@@ -797,9 +797,28 @@
     if (show && current) {
       els.editTitle.value = current.title || '';
       if (els.editReviewDue) els.editReviewDue.value = current.review_due_at ? current.review_due_at.substring(0, 10) : '';
-      setKnowledgeEditorContent(current.content_html || '<p></p>');
+      var initialContent = current.content_html || '<p></p>';
+
+      if (pageId) {
+        try {
+          var draftRes = await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'GET' });
+          if (draftRes && draftRes.data && draftRes.data.draft) {
+            var draftData = draftRes.data.draft;
+            if (draftData.content_html !== undefined && draftData.content_html !== null && draftData.content_html !== '') {
+              initialContent = draftData.content_html;
+              if (draftData.title) els.editTitle.value = draftData.title;
+              if (draftData.review_due_at && els.editReviewDue) els.editReviewDue.value = draftData.review_due_at.substring(0, 10);
+              if (els.autosaveStatus) {
+                els.autosaveStatus.textContent = t('knowledge_page.draft_loaded', 'Восстановлен черновик');
+              }
+            }
+          }
+        } catch (e) { /* ignore draft fetch error */ }
+      }
+
+      setKnowledgeEditorContent(initialContent);
       if (els.visualEditor) {
-        els.visualEditor.innerHTML = sanitizePreviewHtml(current.content_html || '<p></p>');
+        els.visualEditor.innerHTML = sanitizePreviewHtml(initialContent);
       }
       updateEditorPreview();
       window.setTimeout(focusVisualEditor, 80);
@@ -1158,6 +1177,9 @@
       if (rv) patchBody.review_due_at = rv;
     }
     await patch(patchBody);
+    try {
+      await request('api/v1/knowledge/pages/' + encodeURIComponent(pageId) + '/draft', { method: 'DELETE' });
+    } catch (e) {}
     showEditor(false);
   });
   document.getElementById('knowledgePublishBtn').addEventListener('click', async function () {

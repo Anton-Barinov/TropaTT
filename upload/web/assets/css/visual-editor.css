@@ -151,6 +151,9 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1052,8 +1055,10 @@ details.crm-ve-spoiler[open] > summary {
   }
 
   .crm-ve-image-toolbar-btn {
-    width: 36px;
-    height: 36px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 14px;
+    flex: 0 0 auto;
   }
 
   .crm-ve-content {
@@ -1072,6 +1077,9 @@ details.crm-ve-spoiler[open] > summary {
     bottom: 8px;
     top: auto !important;
     overflow-x: auto;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
     max-width: none;
   }
 

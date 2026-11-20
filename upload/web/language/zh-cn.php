@@ -9978,6 +9978,13 @@ return array (
     'mention_type_user' => '用户',
     'mention_group_users' => '用户',
     'mention_group_pages' => '知识库页面',
+    'toolbar_aria' => '格式工具栏',
+    'table_add_row' => '添加行',
+    'table_row' => '行',
+    'table_add_col' => '添加列',
+    'table_col' => '列',
+    'table_del_row' => '删除行',
+    'table_del_col' => '删除列',
   ),
   'admin_estimates' => 
   array (
