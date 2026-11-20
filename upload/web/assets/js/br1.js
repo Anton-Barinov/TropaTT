@@ -8358,7 +8358,9 @@ window.CRM.br1 = (function () {
     if (!createForm || !list || !addToggleBtn) return;
 
     if (!worklogCreateDraft) worklogCreateDraft = getDefaultWorklogDraft();
-    renderWorklogs(currentTaskWorklogs);
+    if (Array.isArray(currentTaskWorklogs) && currentTaskWorklogs.length > 0) {
+      renderWorklogs(currentTaskWorklogs);
+    }
 
     if (addToggleBtn.dataset.bound !== '1') {
       addToggleBtn.addEventListener('click', function () {
@@ -9599,12 +9601,14 @@ window.CRM.br1 = (function () {
         renderTaskComments(initialComments);
       }
       if (results[3]) {
-        var initialWorklogs = window.CRM.api.items(results[3]);
-        setTaskTabCounter('detailWorklogsCounter', Array.isArray(initialWorklogs) ? initialWorklogs.length : 0);
+        currentTaskWorklogs = window.CRM.api.items(results[3]);
+        setTaskTabCounter('detailWorklogsCounter', Array.isArray(currentTaskWorklogs) ? currentTaskWorklogs.length : 0);
+        renderWorklogs(currentTaskWorklogs);
       }
       if (results[4]) {
-        var initialFiles = window.CRM.api.items(results[4]);
-        setTaskTabCounter('detailFilesCounter', Array.isArray(initialFiles) ? initialFiles.length : 0);
+        currentTaskFiles = window.CRM.api.items(results[4]);
+        setTaskTabCounter('detailFilesCounter', Array.isArray(currentTaskFiles) ? currentTaskFiles.length : 0);
+        renderTaskFiles(currentTaskFiles);
       }
       if (results[5]) {
         var initialActivity = window.CRM.api.items(results[5]);
