@@ -63,7 +63,7 @@
   <div class="d-flex gap-2">
     <select id="tasksBulkStatusSelect" class="form-select form-select-sm crm-field-w-170" aria-label="<?= htmlspecialchars($t('tasks.bulk_status_aria', 'Изменить статус'), ENT_QUOTES, 'UTF-8') ?>" data-i18n-aria-label="tasks.bulk_status_aria">
       <option value="" data-i18n="tasks.bulk_status_placeholder"><?= htmlspecialchars($t('tasks.bulk_status_placeholder', 'Статус...'), ENT_QUOTES, 'UTF-8') ?></option>
-      <option value="todo" data-i18n="tasks.status_new"><?= htmlspecialchars($t('tasks.status_new', 'К выполнению'), ENT_QUOTES, 'UTF-8') ?></option>
+      <option value="new" data-i18n="tasks.status_new"><?= htmlspecialchars($t('tasks.status_new', 'Новая'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="in_progress" data-i18n="tasks.status_in_progress"><?= htmlspecialchars($t('tasks.status_in_progress', 'В работе'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="blocked" data-i18n="tasks.status_blocked"><?= htmlspecialchars($t('tasks.status_blocked', 'Блокировано'), ENT_QUOTES, 'UTF-8') ?></option>
       <option value="done" data-i18n="tasks.status_done"><?= htmlspecialchars($t('tasks.status_done', 'Готово'), ENT_QUOTES, 'UTF-8') ?></option>

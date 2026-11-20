@@ -512,7 +512,7 @@ window.CRM.pageApiBindings = (function () {
     }
     var key = String(code || '').trim();
     var map = {
-      new: window.CRM.i18n.t('js.br1.k_vypolneniyu', 'К выполнению'),
+      new: window.CRM.i18n.t('js.br1.novaya', 'Новая'),
       todo: window.CRM.i18n.t('js.br1.k_vypolneniyu_2', 'К выполнению'),
       in_progress: window.CRM.i18n.t('js.br1.v_rabote', 'В работе'),
       active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
@@ -22640,6 +22640,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var byStatus = {};
     addedTasks.forEach(function (task) {
       var status = task.status_code || 'new';
+      if (status === 'todo') status = 'new';
       if (!byStatus[status]) byStatus[status] = [];
       byStatus[status].push(task);
     });
@@ -22676,7 +22677,9 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var chip = col.querySelector('.crm-chip');
       if (chip) {
         var colTasks = (window.CRM.kanbanTasks || []).filter(function (t) {
-          return (t.status_code || 'new') === statusCode;
+          var s = t.status_code || 'new';
+          if (s === 'todo') s = 'new';
+          return s === statusCode;
         });
         chip.textContent = kanbanColumnCount(statusCode, colTasks);
       }
@@ -22689,6 +22692,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var allByStatus = {};
       allTasks.forEach(function (task) {
         var status = task.status_code || 'new';
+        if (status === 'todo') status = 'new';
         if (!allByStatus[status]) allByStatus[status] = [];
         allByStatus[status].push(task);
       });
@@ -22856,13 +22860,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     }
     var byStatus = {};
     tasks.forEach(function (task) {
-      var status = task.status_code || 'todo';
-      if (status === 'new') status = 'todo';
+      var status = task.status_code || 'new';
+      if (status === 'todo') status = 'new';
       if (!byStatus[status]) byStatus[status] = [];
       byStatus[status].push(task);
     });
 
-    var statusOrder = window.CRM.kanbanStatusOrder || ['todo', 'in_progress', 'review', 'done'];
+    var statusOrder = window.CRM.kanbanStatusOrder || ['new', 'in_progress', 'review', 'done'];
     var statusMap = window.CRM.kanbanStatusMap || {};
     var container = document.querySelector('.crm-kanban');
     var mobileTabs = document.getElementById('kanbanMobileStatusTabs');
