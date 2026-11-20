@@ -290,7 +290,7 @@ return array (
     ),
     'projects' =>
     array (
-      'status_new' => 'К выполнению',
+      'status_new' => 'Новый',
       'status_active' => 'Активный',
       'status_planning' => 'Планирование',
       'status_in_progress' => 'В работе',

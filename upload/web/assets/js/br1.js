@@ -619,7 +619,7 @@ window.CRM.br1 = (function () {
     }
 
     var map = {
-      new: window.CRM.i18n.t('js.br1.k_vypolneniyu', 'К выполнению'),
+      new: window.CRM.i18n.t('js.br1.novaya', 'Новая'),
       todo: window.CRM.i18n.t('js.br1.k_vypolneniyu_2', 'К выполнению'),
       in_progress: window.CRM.i18n.t('js.br1.v_rabote', 'В работе'),
       active: window.CRM.i18n.t('js.br1.aktivnyy', 'Активный'),
@@ -2991,7 +2991,7 @@ window.CRM.br1 = (function () {
 
   function orderedTaskStatuses(currentStatusCode) {
     var fallback = [
-      { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_3', 'К выполнению'), sort_order: 10 },
+      { code: 'new', title: window.CRM.i18n.t('js.br1.novaya', 'Новая'), sort_order: 10 },
       { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_3', 'В работе'), sort_order: 20 },
       { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_2', 'Блокировано'), sort_order: 30 },
       { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_3', 'Готово'), sort_order: 40 }
@@ -4140,7 +4140,7 @@ window.CRM.br1 = (function () {
     }).join('');
 
     var fallbackTaskStatuses = [
-      { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_4', 'К выполнению'), sort_order: 10 },
+      { code: 'new', title: window.CRM.i18n.t('js.br1.novaya', 'Новая'), sort_order: 10 },
       { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_4', 'В работе'), sort_order: 20 },
       { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_3', 'Блокировано'), sort_order: 30 },
       { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_4', 'Готово'), sort_order: 40 }
@@ -8920,7 +8920,7 @@ window.CRM.br1 = (function () {
     var statusSelect = form.querySelector('[name="status"]');
     if (statusSelect) {
       var fallbackStatuses = [
-        { code: 'new', title: window.CRM.i18n.t('js.br1.k_vypolneniyu_5', 'К выполнению') },
+        { code: 'new', title: window.CRM.i18n.t('js.br1.novaya', 'Новая') },
         { code: 'in_progress', title: window.CRM.i18n.t('js.br1.v_rabote_5', 'В работе') },
         { code: 'blocked', title: window.CRM.i18n.t('js.br1.blokirovano_4', 'Блокировано') },
         { code: 'done', title: window.CRM.i18n.t('js.br1.gotovo_7', 'Готово') }
