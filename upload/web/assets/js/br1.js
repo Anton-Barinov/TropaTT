@@ -9576,7 +9576,8 @@ window.CRM.br1 = (function () {
     try {
       var results = await Promise.all([
         window.CRM.api.request('api/v1/tasks/' + taskId + '/subtasks', { silent: true }).catch(function () { return null; }),
-        window.CRM.api.request('api/v1/tasks/' + taskId + '/checklists', { silent: true }).catch(function () { return null; })
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/checklists', { silent: true }).catch(function () { return null; }),
+        window.CRM.api.request('api/v1/tasks/' + taskId + '/comments', { silent: true }).catch(function () { return null; })
       ]);
       if (results[0]) {
         currentTaskSubtasks = window.CRM.api.items(results[0]);
@@ -9585,6 +9586,11 @@ window.CRM.br1 = (function () {
       if (results[1]) {
         currentTaskChecklists = window.CRM.api.items(results[1]);
         setTaskTabCounter('detailChecklistsCounter', currentTaskChecklists.length);
+      }
+      if (results[2]) {
+        var initialComments = window.CRM.api.items(results[2]);
+        setTaskTabCounter('detailCommentsCounter', Array.isArray(initialComments) ? initialComments.length : 0);
+        renderTaskComments(initialComments);
       }
       renderTaskProgress(currentTask);
     } catch (e) {
