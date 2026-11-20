@@ -37,6 +37,11 @@ final class FileService
     ) {
     }
 
+    public function getMaxUploadSizeBytes(): int
+    {
+        return $this->maxUploadSizeBytes;
+    }
+
     public function create(array $input, array $rawFiles, int $uploaderUserId, array $actor): array
     {
         $organizationId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
@@ -66,6 +71,20 @@ final class FileService
         $name = 'file.bin';
         $isQuarantined = false;
         $quarantineReason = null;
+
+        $rawFile = $rawFiles['file'] ?? null;
+        if (is_array($rawFile) && array_key_exists('error', $rawFile)) {
+            $uploadError = (int)$rawFile['error'];
+            if ($uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE) {
+                throw new \RuntimeException('FILE_TOO_LARGE');
+            }
+            if ($uploadError === UPLOAD_ERR_PARTIAL) {
+                throw new \RuntimeException('FILE_PARTIAL_UPLOAD');
+            }
+            if ($uploadError !== UPLOAD_ERR_OK && $uploadError !== UPLOAD_ERR_NO_FILE) {
+                throw new \RuntimeException('FILE_UPLOAD_ERROR');
+            }
+        }
 
         if (isset($rawFiles['file']) && is_array($rawFiles['file']) && (int)($rawFiles['file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $tmp = (string)$rawFiles['file']['tmp_name'];

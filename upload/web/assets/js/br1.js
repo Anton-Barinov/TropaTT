@@ -5660,14 +5660,41 @@ window.CRM.br1 = (function () {
       }
 
       var file = input.files[0];
-      var reader = new FileReader();
+      var maxSizeBytes = 100 * 1024 * 1024; // 100 MB
+      if (file.size > maxSizeBytes) {
+        notify(window.CRM.i18n.t('js.br1.file_too_large', 'Файл слишком большой. Максимальный размер: 100 МБ.'), 'warning');
+        return;
+      }
 
-      reader.onload = async function () {
-        try {
-          var dataUrl = String(reader.result || '');
-          var base64 = dataUrl.indexOf(',') >= 0 ? dataUrl.split(',')[1] : dataUrl;
+      button.disabled = true;
+      var originalBtnText = button.textContent;
+      button.textContent = window.CRM.i18n.t('js.br1.zagruzka', 'Загрузка…');
 
-          var envelope = await window.CRM.api.request('api/v1/files', {
+      try {
+        var envelope;
+        if (typeof FormData !== 'undefined') {
+          var formData = new FormData();
+          formData.append('entity_type', 'task');
+          formData.append('entity_public_id', taskId);
+          formData.append('file', file);
+
+          envelope = await window.CRM.api.request('api/v1/files', {
+            method: 'POST',
+            body: formData,
+            timeoutMs: 180000
+          });
+        } else {
+          var base64 = await new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              var dataUrl = String(reader.result || '');
+              resolve(dataUrl.indexOf(',') >= 0 ? dataUrl.split(',')[1] : dataUrl);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          envelope = await window.CRM.api.request('api/v1/files', {
             method: 'POST',
             body: {
               entity_type: 'task',
@@ -5675,24 +5702,26 @@ window.CRM.br1 = (function () {
               name: file.name,
               mime_type: file.type || 'application/octet-stream',
               content_base64: base64
-            }
+            },
+            timeoutMs: 180000
           });
-
-          var uploaded = envelope.data && envelope.data.file
-            ? envelope.data.file
-            : { public_id: 'uploaded', original_name: file.name, name: file.name };
-          currentTaskFiles.unshift(uploaded);
-          renderTaskFiles(currentTaskFiles);
-
-          input.value = '';
-          notify(window.CRM.i18n.t('js.br1.fayl_zagruzhen', 'Файл загружен'));
-        } catch (error) {
-          var envelopeError = error && error.envelope ? error.envelope : null;
-          notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_zagruzit_fayl', 'Не удалось загрузить файл'), 'error');
         }
-      };
 
-      reader.readAsDataURL(file);
+        var uploaded = envelope.data && envelope.data.file
+          ? envelope.data.file
+          : { public_id: 'uploaded', original_name: file.name, name: file.name };
+        currentTaskFiles.unshift(uploaded);
+        renderTaskFiles(currentTaskFiles);
+
+        input.value = '';
+        notify(window.CRM.i18n.t('js.br1.fayl_zagruzhen', 'Файл загружен'));
+      } catch (error) {
+        var envelopeError = error && error.envelope ? error.envelope : null;
+        notify((envelopeError && envelopeError.message) || window.CRM.i18n.t('js.br1.ne_udalos_zagruzit_fayl', 'Не удалось загрузить файл'), 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalBtnText;
+      }
     });
 
     if (list && list.dataset.downloadBound !== '1') {

@@ -1563,7 +1563,7 @@ final class App
             $c->get('repository.file'),
             (string)$this->config->get('default.storage.uploads', dirname($this->basePath) . '/storage_api/uploads'),
             (string)$this->config->get('default.storage.quarantine', dirname($this->basePath) . '/storage_api/quarantine'),
-            (int)$this->config->get('security.uploads.max_size_bytes', 20971520),
+            (int)$this->config->get('security.uploads.max_size_bytes', 104857600),
             (array)$this->config->get('security.uploads.forbidden_extensions', []),
             (array)$this->config->get('security.uploads.quarantine_extensions', []),
             (array)$this->config->get('security.uploads.quarantine_mime_prefixes', []),
