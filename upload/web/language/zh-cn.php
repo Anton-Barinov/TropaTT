@@ -10036,6 +10036,7 @@ return array (
     'description' => '描述',
     'comment' => '评论',
     'wait_for_uploads' => '请等待图片上传完成...',
+    'resolve_upload_errors' => '请在保存前重试或删除失败的图片',
   ),
   'admin_estimates' => 
   array (

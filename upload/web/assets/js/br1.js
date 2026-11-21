@@ -2555,6 +2555,19 @@ window.CRM.br1 = (function () {
       }
 
       form.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
 
         var titleInput = form.querySelector('[name="title"]');
@@ -3207,6 +3220,19 @@ window.CRM.br1 = (function () {
 
     list.querySelectorAll('.crm-task-cf-form').forEach(function (form) {
       form.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         var safeId = form.getAttribute('data-cf-form-id');
         var defKey = form.getAttribute('data-cf-key');
@@ -3705,6 +3731,19 @@ window.CRM.br1 = (function () {
 
     if (descForm && descForm.dataset.bound !== '1') {
       descForm.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(descForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(descForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         if (!currentTaskPermissions.canEditIdentity) {
           notify(window.CRM.i18n.t('js.br1.izmenenie_opisaniya_dostupno_tolko_avtoru_zadachi', 'Изменение описания доступно только автору задачи'), 'warning');
@@ -5394,6 +5433,19 @@ window.CRM.br1 = (function () {
     }
 
     form.addEventListener('submit', async function (e) {
+      if (e.defaultPrevented) return;
+      if (window.CRM && window.CRM.VisualEditor) {
+        if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(form)) {
+          e.preventDefault();
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+          return;
+        }
+        if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(form)) {
+          e.preventDefault();
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+          return;
+        }
+      }
       e.preventDefault();
       var text = textArea ? getVisualEditorTextareaValue(textArea).trim() : '';
       if (!text) {
@@ -5571,6 +5623,18 @@ window.CRM.br1 = (function () {
       if (!commentPublicId) return;
 
       var editorCard = saveBtn.closest('.crm-comment');
+      if (!editorCard) return;
+
+      if (window.CRM && window.CRM.VisualEditor) {
+        if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(editorCard)) {
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+          return;
+        }
+        if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(editorCard)) {
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+          return;
+        }
+      }
       if (!editorCard) return;
 
       var commentAuthorPublicId = String(editorCard.getAttribute('data-comment-author') || '');
@@ -5858,6 +5922,19 @@ window.CRM.br1 = (function () {
 
     if (createForm.dataset.bound !== '1') {
       createForm.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(createForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(createForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         if (!canCreateTask) return;
 
@@ -5914,6 +5991,19 @@ window.CRM.br1 = (function () {
 
     if (editForm.dataset.bound !== '1') {
       editForm.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(editForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(editForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         if (!canCreateTask) return;
 
@@ -6041,6 +6131,19 @@ window.CRM.br1 = (function () {
 
     if (createForm.dataset.bound !== '1') {
       createForm.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(createForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(createForm)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         if (!canEditTask) return;
         var title = String((createForm.querySelector('[name="title"]') || {}).value || '').trim();
@@ -9516,6 +9619,19 @@ window.CRM.br1 = (function () {
 
     if (form) {
       form.addEventListener('submit', async function (e) {
+        if (e.defaultPrevented) return;
+        if (window.CRM && window.CRM.VisualEditor) {
+          if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+            return;
+          }
+          if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(form)) {
+            e.preventDefault();
+            notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+            return;
+          }
+        }
         e.preventDefault();
         var targetPid = (targetTaskIdInput && targetTaskIdInput.value ? targetTaskIdInput.value.trim() : '');
         var typedVal = (searchInput && searchInput.value ? searchInput.value.trim() : '');
