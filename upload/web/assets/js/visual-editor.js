@@ -125,6 +125,38 @@ window.CRM.VisualEditor = (function () {
     return { top: viewTop, bottom: viewBottom };
   }
 
+  function scrollIntoMenu(container, item) {
+    if (!container || !item) return;
+    var itemTop = item.offsetTop;
+    var itemBottom = itemTop + item.offsetHeight;
+    var containerTop = container.scrollTop;
+    var containerBottom = containerTop + container.clientHeight;
+
+    if (itemTop < containerTop) {
+      container.scrollTop = itemTop;
+    } else if (itemBottom > containerBottom) {
+      container.scrollTop = itemBottom - container.clientHeight;
+    }
+  }
+
+  function updateStickyToolbarOffset(editorInstance) {
+    if (!editorInstance || !editorInstance._toolbar || !editorInstance._textarea) return;
+    var toolbar = editorInstance._toolbar;
+    var inModal = !!editorInstance._textarea.closest('.modal, .modal-dialog, .modal-content, [role="dialog"], .crm-modal');
+    if (inModal) {
+      toolbar.style.top = '0px';
+      return;
+    }
+    var topbar = document.querySelector('.crm-topbar, .topbar, .navbar, header');
+    var h = 56;
+    if (topbar) {
+      var rect = topbar.getBoundingClientRect();
+      h = Math.max(topbar.offsetHeight || 0, Math.round(rect.height || 0), 56);
+    }
+    toolbar.style.top = h + 'px';
+    document.documentElement.style.setProperty('--crm-topbar-height', h + 'px');
+  }
+
   function getCsrfToken() {
     if (window.CRM && window.CRM.api && typeof window.CRM.api.getCsrfToken === 'function') {
       return window.CRM.api.getCsrfToken();
@@ -1214,6 +1246,8 @@ window.CRM.VisualEditor = (function () {
       return Promise.reject(new Error('File too large'));
     }
 
+    editorInstance._activeUploadsCount = (editorInstance._activeUploadsCount || 0) + 1;
+
     return getImageDimensions(file).then(function (dims) {
       if (dims.width > 8000 || dims.height > 8000) {
         showErrorToast(editorInstance, t('visual_editor.image_too_large', 'Image resolution too high. Max: 8000\u00D78000'));
@@ -1253,6 +1287,8 @@ window.CRM.VisualEditor = (function () {
       editorInstance._updateEmptyState();
       showErrorToast(editorInstance, err.message || t('visual_editor.upload_error', 'Upload failed'));
       throw err;
+    }).finally(function () {
+      editorInstance._activeUploadsCount = Math.max(0, (editorInstance._activeUploadsCount || 1) - 1);
     });
   }
 
@@ -1316,10 +1352,11 @@ window.CRM.VisualEditor = (function () {
           a.appendChild(imgEl);
         }
       }
-      if (placeholderBlock && placeholderBlock.parentNode) {
+      if (placeholderBlock && placeholderBlock.parentNode && editorInstance._content && editorInstance._content.contains(placeholderBlock)) {
         placeholderBlock.parentNode.replaceChild(newBlock, placeholderBlock);
       } else {
-        editorInstance._content.appendChild(newBlock);
+        // Target placeholder was removed by user or document was reset - do NOT insert late image
+        return null;
       }
 
       editorInstance._history.push(editorInstance._content.innerHTML, true);
@@ -1401,6 +1438,8 @@ window.CRM.VisualEditor = (function () {
       if (options.maxImageSize !== undefined) this._options.maxImageSize = options.maxImageSize;
     }
 
+    this._activeUploadsCount = 0;
+
     this._history = createHistory();
     this._selectedImageBlock = null;
     this._imageToolbarTarget = null;
@@ -1441,16 +1480,15 @@ window.CRM.VisualEditor = (function () {
     toolbar.className = 'crm-ve-toolbar';
     toolbar.setAttribute('role', 'toolbar');
     toolbar.setAttribute('aria-label', t('visual_editor.toolbar_aria', 'Панель форматирования'));
-    // Dynamic sticky top offset: inside modal = 0, on full page = topbar height
-    var inModal = !!textarea.closest('.modal, .modal-dialog, .modal-content, [role="dialog"], .crm-modal');
-    if (inModal) {
-      toolbar.style.top = '0px';
-    } else {
-      var topbarEl = document.querySelector('.crm-topbar, .topbar, .navbar, header');
-      var tbHeight = topbarEl ? topbarEl.offsetHeight : 56;
-      toolbar.style.top = (tbHeight || 56) + 'px';
-    }
     this._toolbar = toolbar;
+    updateStickyToolbarOffset(this);
+
+    var onResizeOrScroll = function () {
+      updateStickyToolbarOffset(self);
+    };
+    window.addEventListener('resize', onResizeOrScroll);
+    window.addEventListener('scroll', onResizeOrScroll, { passive: true });
+    this._onResizeOrScroll = onResizeOrScroll;
 
     var content = document.createElement('div');
     content.className = 'crm-ve-content';
@@ -2032,18 +2070,37 @@ window.CRM.VisualEditor = (function () {
         body.appendChild(inlineParagraph);
       }
       while (body.firstChild) details.appendChild(body.firstChild);
-      range.insertNode(details);
-      range.setStartAfter(details);
-      range.collapse(true);
+      var curP = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
+      if (curP && this._content.contains(curP)) {
+        if (curP.nextSibling) curP.parentNode.insertBefore(details, curP.nextSibling);
+        else curP.parentNode.appendChild(details);
+        if (curP.textContent.trim() === '' && !curP.querySelector('img, figure')) curP.remove();
+      } else {
+        range.insertNode(details);
+      }
+      var afterRange = document.createRange();
+      afterRange.setStartAfter(details);
+      afterRange.collapse(true);
       selection.removeAllRanges();
-      selection.addRange(range);
+      selection.addRange(afterRange);
     } else {
       var emptyParagraph = document.createElement('p');
       emptyParagraph.innerHTML = '<br>';
       details.appendChild(emptyParagraph);
       details.open = true;
       if (range) {
-        range.insertNode(details);
+        var curP2 = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
+        if (curP2 && this._content.contains(curP2)) {
+          var pText2 = (curP2.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
+          if (!pText2 && !curP2.querySelector('img, figure')) {
+            curP2.parentNode.replaceChild(details, curP2);
+          } else {
+            if (curP2.nextSibling) curP2.parentNode.insertBefore(details, curP2.nextSibling);
+            else curP2.parentNode.appendChild(details);
+          }
+        } else {
+          range.insertNode(details);
+        }
       } else {
         this._content.appendChild(details);
       }
@@ -2499,16 +2556,27 @@ window.CRM.VisualEditor = (function () {
       + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" title="' + t('visual_editor.table_del_col', 'Удалить столбец') + '">\u2796 ' + t('visual_editor.table_col', 'Столбец') + '</button>';
     wrapper.appendChild(controls);
 
-    range.deleteContents();
-    range.insertNode(wrapper);
+    var curP = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
+    if (curP && this._content.contains(curP)) {
+      var pText = (curP.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
+      if (!pText && !curP.querySelector('img, figure')) {
+        curP.parentNode.replaceChild(wrapper, curP);
+      } else {
+        if (curP.nextSibling) curP.parentNode.insertBefore(wrapper, curP.nextSibling);
+        else curP.parentNode.appendChild(wrapper);
+      }
+    } else {
+      range.deleteContents();
+      range.insertNode(wrapper);
+    }
 
     // Ensure there is a following paragraph after the table for seamless typing/pasting
-    var nextEl = wrapper.nextSibling;
-    if (!nextEl || (nextEl.nodeType === 1 && nextEl.tagName !== 'P')) {
+    var nextEl = wrapper.nextElementSibling;
+    if (!nextEl || nextEl.tagName !== 'P') {
       var afterP = document.createElement('p');
       afterP.innerHTML = '<br>';
-      if (nextEl) {
-        wrapper.parentNode.insertBefore(afterP, nextEl);
+      if (wrapper.nextSibling) {
+        wrapper.parentNode.insertBefore(afterP, wrapper.nextSibling);
       } else {
         wrapper.parentNode.appendChild(afterP);
       }
@@ -2672,10 +2740,11 @@ window.CRM.VisualEditor = (function () {
       if (rowIdx === rows.length - 1) {
         e.preventDefault();
         var nextBlock = wrap.nextElementSibling;
-        if (!nextBlock) {
+        if (!nextBlock || nextBlock.tagName !== 'P') {
           nextBlock = document.createElement('p');
           nextBlock.innerHTML = '<br>';
-          wrap.parentNode.appendChild(nextBlock);
+          if (wrap.nextSibling) wrap.parentNode.insertBefore(nextBlock, wrap.nextSibling);
+          else wrap.parentNode.appendChild(nextBlock);
         }
         var rNext = document.createRange();
         rNext.selectNodeContents(nextBlock);
@@ -2909,6 +2978,10 @@ window.CRM.VisualEditor = (function () {
       item.appendChild(textWrap);
       menu.appendChild(item);
     });
+    var activeItem = menu.querySelector('.crm-ve-slash-item.is-active');
+    if (activeItem) {
+      scrollIntoMenu(menu, activeItem);
+    }
     return items;
   }
 
@@ -3414,6 +3487,10 @@ window.CRM.VisualEditor = (function () {
       menu.appendChild(pageLabel);
       pages.forEach(renderItem);
     }
+    var activeMention = menu.querySelector('.crm-ve-mention-item.is-active');
+    if (activeMention) {
+      scrollIntoMenu(menu, activeMention);
+    }
     return filtered;
   }
 
@@ -3648,18 +3725,59 @@ window.CRM.VisualEditor = (function () {
     });
 
     var parentForm = this._textarea.closest('form');
+    this._parentForm = parentForm;
+    var submitGuardContainer = parentForm || this._textarea.closest('.modal, .modal-content, [role="dialog"], .crm-modal, body') || document.body;
+    this._submitGuardContainer = submitGuardContainer;
+
+    var formSubmitGuard = function (e) {
+      if (self.hasPendingUploads()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        notify(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'), 'warning');
+        return false;
+      }
+      if (self.hasUploadErrors()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        notify(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'), 'warning');
+        return false;
+      }
+      self._sync();
+    };
+
+    var submitBtnGuard = function (e) {
+      var btn = e.target.closest && e.target.closest('button, input[type="submit"], [data-action="save"], .crm-btn-primary');
+      if (!btn) return;
+      if (parentForm && !parentForm.contains(btn)) {
+        var btnModal = btn.closest('.modal, .crm-modal');
+        var editorModal = self._textarea.closest('.modal, .crm-modal');
+        if (!btnModal || btnModal !== editorModal) return;
+      }
+      if (self.hasPendingUploads()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        notify(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'), 'warning');
+        return false;
+      }
+      if (self.hasUploadErrors()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        notify(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'), 'warning');
+        return false;
+      }
+    };
+
     if (parentForm) {
-      var formSubmitGuard = function (e) {
-        var uploading = self._content.querySelectorAll('.crm-ve-uploading');
-        if (uploading.length > 0) {
-          e.preventDefault();
-          notify(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'), 'warning');
-          return false;
-        }
-        self._sync();
-      };
-      parentForm.addEventListener('submit', formSubmitGuard);
+      parentForm.addEventListener('submit', formSubmitGuard, true);
       self._formSubmitGuard = formSubmitGuard;
+    }
+    if (submitGuardContainer) {
+      submitGuardContainer.addEventListener('click', submitBtnGuard, true);
+      self._submitBtnGuard = submitBtnGuard;
     }
 
     // Global capture-phase Escape listener: stops event immediately so parent
@@ -4063,16 +4181,29 @@ window.CRM.VisualEditor = (function () {
       }
       if (curBlock2 === spoiler.lastElementChild) {
         var nextBlock = spoiler.nextElementSibling;
-        if (!nextBlock) {
+        if (!nextBlock || nextBlock.tagName !== 'P') {
           e.preventDefault();
           nextBlock = document.createElement('p');
           nextBlock.innerHTML = '<br>';
-          spoiler.parentNode.appendChild(nextBlock);
+          if (spoiler.nextSibling) {
+            spoiler.parentNode.insertBefore(nextBlock, spoiler.nextSibling);
+          } else {
+            spoiler.parentNode.appendChild(nextBlock);
+          }
           var rNext = document.createRange();
           rNext.selectNodeContents(nextBlock);
           rNext.collapse(true);
           sel.removeAllRanges();
           sel.addRange(rNext);
+          this._updateActiveButtons();
+          return true;
+        } else {
+          e.preventDefault();
+          var rNext2 = document.createRange();
+          rNext2.selectNodeContents(nextBlock);
+          rNext2.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(rNext2);
           this._updateActiveButtons();
           return true;
         }
@@ -4811,7 +4942,24 @@ window.CRM.VisualEditor = (function () {
       }
     }
 
-    // 3d. Ensure all tables are wrapped in .crm-ve-table-wrap and have .crm-ve-table-controls
+    // 3d. Clean up empty/orphaned .crm-ve-table-controls or .crm-ve-table-wrap
+    var orphanedControls = this._content.querySelectorAll('.crm-ve-table-controls');
+    for (var oc = 0; oc < orphanedControls.length; oc++) {
+      var ocEl = orphanedControls[oc];
+      var parentWrap = ocEl.closest('.crm-ve-table-wrap');
+      if (!parentWrap || !parentWrap.querySelector('table')) {
+        ocEl.remove();
+      }
+    }
+    var orphanedWraps = this._content.querySelectorAll('.crm-ve-table-wrap');
+    for (var ow = 0; ow < orphanedWraps.length; ow++) {
+      var owEl = orphanedWraps[ow];
+      if (!owEl.querySelector('table')) {
+        owEl.remove();
+      }
+    }
+
+    // 3e. Ensure all tables are wrapped in .crm-ve-table-wrap and have exactly one .crm-ve-table-controls
     var allTables = this._content.querySelectorAll('table');
     for (var ti = 0; ti < allTables.length; ti++) {
       var tbl = allTables[ti];
@@ -4825,8 +4973,12 @@ window.CRM.VisualEditor = (function () {
           wrap.appendChild(tbl);
         }
       }
-      var existingControls = wrap.querySelector('.crm-ve-table-controls');
-      if (!existingControls) {
+      var existingControls = wrap.querySelectorAll('.crm-ve-table-controls');
+      if (existingControls.length > 1) {
+        for (var c = 1; c < existingControls.length; c++) {
+          existingControls[c].remove();
+        }
+      } else if (existingControls.length === 0) {
         var newControls = document.createElement('div');
         newControls.className = 'crm-ve-table-controls';
         newControls.setAttribute('contenteditable', 'false');
@@ -5119,6 +5271,17 @@ window.CRM.VisualEditor = (function () {
     return this._toOutputHtml();
   };
 
+  Editor.prototype.hasPendingUploads = function () {
+    if ((this._activeUploadsCount || 0) > 0) return true;
+    if (!this._content) return false;
+    return !!this._content.querySelector('.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-progress');
+  };
+
+  Editor.prototype.hasUploadErrors = function () {
+    if (!this._content) return false;
+    return !!this._content.querySelector('.crm-ve-upload-error');
+  };
+
   Editor.prototype.setValue = function (html) {
     if (typeof html !== 'string') return;
     if (/<[a-z][\s\S]*>/i.test(html)) {
@@ -5249,6 +5412,20 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype.destroy = function () {
     this._destroyed = true;
     deselectImage(this);
+
+    if (this._onResizeOrScroll) {
+      window.removeEventListener('resize', this._onResizeOrScroll);
+      window.removeEventListener('scroll', this._onResizeOrScroll);
+      this._onResizeOrScroll = null;
+    }
+    if (this._formSubmitGuard && this._parentForm) {
+      this._parentForm.removeEventListener('submit', this._formSubmitGuard, true);
+      this._formSubmitGuard = null;
+    }
+    if (this._submitBtnGuard && this._submitGuardContainer) {
+      this._submitGuardContainer.removeEventListener('click', this._submitBtnGuard, true);
+      this._submitBtnGuard = null;
+    }
 
     if (this._escapeCaptureHandler) {
       window.removeEventListener('keydown', this._escapeCaptureHandler, true);
@@ -5839,6 +6016,30 @@ window.CRM.VisualEditor = (function () {
     init();
   }
 
+  function hasPendingUploads(scope) {
+    var list = instances;
+    if (scope) {
+      list = instances.filter(function (ed) {
+        return ed && ed._textarea && (scope === ed._textarea || scope === ed._wrapper || (scope.contains && (scope.contains(ed._textarea) || scope.contains(ed._wrapper))));
+      });
+    }
+    return list.some(function (ed) {
+      return ed && typeof ed.hasPendingUploads === 'function' && ed.hasPendingUploads();
+    });
+  }
+
+  function hasUploadErrors(scope) {
+    var list = instances;
+    if (scope) {
+      list = instances.filter(function (ed) {
+        return ed && ed._textarea && (scope === ed._textarea || scope === ed._wrapper || (scope.contains && (scope.contains(ed._textarea) || scope.contains(ed._wrapper))));
+      });
+    }
+    return list.some(function (ed) {
+      return ed && typeof ed.hasUploadErrors === 'function' && ed.hasUploadErrors();
+    });
+  }
+
   return {
     Editor: Editor,
     init: init,
@@ -5847,7 +6048,9 @@ window.CRM.VisualEditor = (function () {
     getInstances: function () { return instances; },
     refreshEditors: function (scope, force) { refreshEditors(scope || document, !!force); },
     sanitizeHtml: sanitizeHtml,
-    renderReadonly: renderReadonly
+    renderReadonly: renderReadonly,
+    hasPendingUploads: hasPendingUploads,
+    hasUploadErrors: hasUploadErrors
   };
 
 })();

@@ -1169,6 +1169,19 @@
   });
   document.addEventListener('selectionchange', updateToolbarState);
   els.editor.addEventListener('submit', async function (event) {
+    if (event.defaultPrevented) return;
+    if (window.CRM && window.CRM.VisualEditor) {
+      if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(els.editor)) {
+        event.preventDefault();
+        alert(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'));
+        return;
+      }
+      if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(els.editor)) {
+        event.preventDefault();
+        alert(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'));
+        return;
+      }
+    }
     event.preventDefault();
     syncHiddenContent();
     var patchBody = { title: els.editTitle.value, content_html: getTextareaVisualEditorValue(els.editContent) };
@@ -1237,6 +1250,16 @@
     updateFavSubButtons();
   });
   els.commentSend.addEventListener('click', async function () {
+    if (window.CRM && window.CRM.VisualEditor) {
+      if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(els.commentInput ? els.commentInput.parentNode : document.getElementById('kb-panel-comments'))) {
+        alert(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'));
+        return;
+      }
+      if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(els.commentInput ? els.commentInput.parentNode : document.getElementById('kb-panel-comments'))) {
+        alert(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'));
+        return;
+      }
+    }
     var body = getTextareaVisualEditorValue(els.commentInput).trim();
     if (!body) return;
     els.commentInput.disabled = true;

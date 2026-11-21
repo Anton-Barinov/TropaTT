@@ -10527,6 +10527,7 @@ return array (
     'description' => 'Description',
     'comment' => 'Comment',
     'wait_for_uploads' => 'Please wait for image uploads to complete...',
+    'resolve_upload_errors' => 'Please retry or delete failed images before saving',
   ),
   'approvals' => 
   array (
