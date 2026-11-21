@@ -10528,6 +10528,8 @@ return array (
     'comment' => 'Comment',
     'wait_for_uploads' => 'Please wait for image uploads to complete...',
     'resolve_upload_errors' => 'Please retry or delete failed images before saving',
+    'task_draft_restored' => 'Unsaved task draft restored',
+    'task_draft_clear' => 'Clear',
   ),
   'approvals' => 
   array (

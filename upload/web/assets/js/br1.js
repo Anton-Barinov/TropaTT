@@ -2499,10 +2499,15 @@ window.CRM.br1 = (function () {
                 timeStr = ' (' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')';
               } catch (e) {}
             }
-            alertDiv.innerHTML = '<span><i class="fa-solid fa-clock-rotate-left me-1"></i> Восстановлен несохранённый черновик задачи' + timeStr + '</span><button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="discardTaskDraftBtn">Очистить</button>';
+            alertDiv.innerHTML = '<span><i class="fa-solid fa-clock-rotate-left me-1" aria-hidden="true"></i></span>'
+              + '<button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="discardTaskDraftBtn"></button>';
+            alertDiv.firstElementChild.appendChild(document.createTextNode(window.CRM.i18n.t(
+              'visual_editor.task_draft_restored', 'Восстановлен несохранённый черновик задачи'
+            ) + timeStr));
             form.insertBefore(alertDiv, form.firstChild);
             var discardBtn = alertDiv.querySelector('#discardTaskDraftBtn');
             if (discardBtn) {
+              discardBtn.textContent = window.CRM.i18n.t('visual_editor.task_draft_clear', 'Очистить');
               discardBtn.addEventListener('click', function () {
                 clearTaskCreateDraft();
                 primeCreateTaskDefaults();
