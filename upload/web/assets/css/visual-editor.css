@@ -1126,10 +1126,19 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-more-btn:focus-visible,
 .crm-ve-more-item:focus-visible {
+  position: relative;
   background: var(--crm-ve-accent-light, #f0fdf4);
   color: var(--crm-ve-text, #374151);
-  outline: 2px solid var(--crm-ve-accent, #16a34a);
-  outline-offset: -2px;
+}
+
+.crm-ve-more-btn:focus-visible::after,
+.crm-ve-more-item:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--crm-focus-ring, var(--crm-ve-accent));
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .crm-ve-more-item-icon {
