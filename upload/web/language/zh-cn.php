@@ -10033,6 +10033,9 @@ return array (
     'slash_table_desc' => '3×3 网格表格',
     'slash_divider' => '分割线',
     'slash_divider_desc' => '水平分割线',
+    'description' => '描述',
+    'comment' => '评论',
+    'wait_for_uploads' => '请等待图片上传完成...',
   ),
   'admin_estimates' => 
   array (

@@ -10524,6 +10524,9 @@ return array (
     'slash_table_desc' => '3x3 grid table',
     'slash_divider' => 'Divider',
     'slash_divider_desc' => 'Horizontal line',
+    'description' => 'Description',
+    'comment' => 'Comment',
+    'wait_for_uploads' => 'Please wait for image uploads to complete...',
   ),
   'approvals' => 
   array (

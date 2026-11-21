@@ -10524,6 +10524,9 @@ return array (
     'slash_table_desc' => 'Сетка 3×3',
     'slash_divider' => 'Разделитель',
     'slash_divider_desc' => 'Горизонтальная черта',
+    'description' => 'Описание',
+    'comment' => 'Комментарий',
+    'wait_for_uploads' => 'Пожалуйста, дождитесь окончания загрузки изображений...',
   ),
   'approvals' => 
   array (
