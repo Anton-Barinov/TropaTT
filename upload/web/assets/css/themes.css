@@ -227,6 +227,7 @@ html[data-theme="dark"] ::selection {
 html[data-theme="dark"] {
   --crm-ve-accent: var(--crm-primary);
   --crm-ve-accent-light: color-mix(in srgb, var(--crm-primary) 16%, transparent);
+  --crm-ve-on-accent: var(--crm-ve-surface);
   --crm-ve-surface: #16201d;
   --crm-ve-surface-soft: #1b2421;
   --crm-ve-border: #2a3a33;
@@ -258,7 +259,7 @@ html[data-theme="sepia"] {
   --crm-ve-border: var(--crm-border);
   --crm-ve-border-strong: #c9b489;
   --crm-ve-text: var(--crm-text);
-  --crm-ve-text-muted: #8a7657;
+  --crm-ve-text-muted: var(--crm-text-muted);
   --crm-ve-danger: var(--crm-danger);
   --crm-ve-success: var(--crm-success);
 }
@@ -1914,7 +1915,7 @@ html[data-theme-palette="graphite"] {
   --crm-ve-border: #2A3A33;
   --crm-ve-border-strong: #3B4F46;
   --crm-ve-text: #EBEFF2;
-  --crm-ve-text-muted: #828894;
+  --crm-ve-text-muted: #9ca5b2;
   --crm-ve-danger: #F07468;
   --crm-ve-success: #169979;
 }

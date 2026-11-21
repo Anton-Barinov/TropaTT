@@ -4,12 +4,14 @@
 :root {
   --crm-ve-accent: #0b7a60;
   --crm-ve-accent-light: rgba(11, 122, 96, 0.12);
+  --crm-ve-on-accent: #ffffff;
   --crm-ve-surface: #ffffff;
   --crm-ve-surface-soft: #f6f8fb;
   --crm-ve-border: #d9e1ec;
   --crm-ve-border-strong: #b8c4d5;
   --crm-ve-text: #1e293b;
-  --crm-ve-text-muted: #64748b;
+  --crm-ve-text-muted: #58697e;
+  --crm-ve-rule: color-mix(in srgb, var(--crm-ve-text-muted) 80%, var(--crm-ve-surface));
   --crm-ve-danger: #dc2626;
   --crm-ve-success: #119c65;
   --crm-ve-radius: 16px;
@@ -27,7 +29,6 @@
   border-radius: var(--crm-ve-radius);
   background: var(--crm-ve-surface);
   color: var(--crm-ve-text);
-  color-scheme: light;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -82,7 +83,7 @@ details.crm-ve-spoiler summary {
 }
 
 details.crm-ve-spoiler summary:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--crm-info) 40%, transparent);
+  outline: 2px solid var(--crm-focus-ring, var(--crm-ve-accent));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -998,7 +999,7 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-image-settings-apply {
   background: var(--crm-ve-accent);
-  color: var(--crm-on-accent);
+  color: var(--crm-ve-on-accent);
 }
 
 .crm-ve-image-settings-apply:hover {
@@ -1152,7 +1153,7 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-todo-cb:focus {
-  outline: 2px solid var(--crm-ve-accent, #16a34a);
+  outline: 2px solid var(--crm-focus-ring, var(--crm-ve-accent));
   outline-offset: 2px;
 }
 
@@ -1246,7 +1247,7 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-todo-item:hover {
-  background: rgba(0,0,0,0.02);
+  background: var(--crm-ve-surface-soft);
 }
 
 .crm-ve-todo-cb {
@@ -1255,10 +1256,10 @@ details.crm-ve-spoiler[open] > summary {
   height: 18px;
   margin-top: 3px;
   cursor: pointer;
-  accent-color: #4f46e5;
-  border: 2px solid #d1d5db;
+  accent-color: var(--crm-ve-accent);
+  border: 2px solid var(--crm-ve-rule);
   border-radius: 4px;
-  background: #fff;
+  background: var(--crm-ve-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1266,17 +1267,17 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-todo-cb:hover {
-  border-color: #4f46e5;
+  border-color: var(--crm-ve-accent);
 }
 
 .crm-ve-todo-cb[data-checked] {
-  background: #4f46e5;
-  border-color: #4f46e5;
+  background: var(--crm-ve-accent);
+  border-color: var(--crm-ve-accent);
 }
 
 .crm-ve-todo-cb[data-checked]::after {
   content: '\2713';
-  color: #fff;
+  color: var(--crm-ve-on-accent);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -1289,15 +1290,15 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-todo-item.is-checked .crm-ve-todo-text {
   text-decoration: line-through;
-  color: #9ca3af;
+  color: var(--crm-ve-text-muted);
 }
 
 /* Table */
 .crm-ve-table-wrap {
   overflow-x: auto;
   margin: 0 0 8px;
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 8px;
+  border: 1px solid var(--crm-ve-rule);
+  border-radius: 6px;
   position: relative;
 }
 
@@ -1310,6 +1311,7 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-table-wrap:hover .crm-ve-table-controls,
+.crm-ve-table-controls.is-table-active,
 .crm-ve-table-controls:focus-within {
   opacity: 1;
 }
@@ -1319,10 +1321,10 @@ details.crm-ve-spoiler[open] > summary {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid var(--crm-border, #e5e7eb);
+  border: 1px solid var(--crm-ve-rule);
   border-radius: 4px;
-  background: var(--crm-surface, #fff);
-  color: var(--crm-ink, #6b7280);
+  background: var(--crm-ve-surface);
+  color: var(--crm-ve-text);
   font-size: 11px;
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
@@ -1331,8 +1333,8 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-table-ctrl-btn:not(:disabled):hover {
-  background: var(--crm-surface-alt, #f3f4f6);
-  color: var(--crm-ink, #374151);
+  background: var(--crm-ve-accent-light);
+  color: var(--crm-ve-text);
 }
 
 .crm-ve-table-ctrl-btn:disabled {
@@ -1348,7 +1350,8 @@ details.crm-ve-spoiler[open] > summary {
 
 .crm-ve-table td,
 .crm-ve-table th {
-  border: 1px solid var(--crm-border, #e5e7eb);
+  border: 1px solid var(--crm-ve-rule);
+  color: var(--crm-ve-text);
   padding: 8px 12px;
   text-align: left;
   vertical-align: top;
@@ -1356,225 +1359,56 @@ details.crm-ve-spoiler[open] > summary {
 }
 
 .crm-ve-table th {
-  background: var(--crm-surface-alt, #f9fafb);
+  background: var(--crm-ve-surface-soft);
   font-weight: 600;
 }
 
 .crm-ve-table td:focus,
 .crm-ve-table th:focus {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid var(--crm-focus-ring, var(--crm-ve-accent));
   outline-offset: -2px;
 }
 
 .crm-ve-table td.is-cell-highlight {
-  background: rgba(79, 70, 229, 0.04);
+  background: var(--crm-ve-accent-light);
 }
 
-/* Slash menu */
-.crm-ve-slash-menu {
-  display: none;
-  position: absolute;
-  z-index: 99999;
-  background: var(--crm-surface, #fff);
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  max-height: 280px;
-  overflow-y: auto;
-  min-width: 220px;
-  padding: 6px;
-}
-
-.crm-ve-slash-group-label {
-  padding: 4px 10px 2px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--crm-muted, #9ca3af);
-}
-
-.crm-ve-slash-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--crm-ink, #374151);
-  transition: background 0.1s;
-}
-
-.crm-ve-slash-item:hover,
-.crm-ve-slash-item.is-active {
-  background: var(--crm-surface-alt, #f3f4f6);
-}
-
-.crm-ve-slash-item-desc {
-  font-size: 11px;
-  color: var(--crm-muted, #9ca3af);
-  margin-top: 1px;
-}
-
-/* Mentions */
-.crm-ve-mention {
-  display: inline;
-  background: #e0e7ff;
-  color: #4f46e5;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: default;
-  user-select: all;
-}
-
-.crm-ve-mention-page {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
+/* Cursor menus */
+.crm-ve-slash-menu,
 .crm-ve-mention-menu {
   display: none;
   position: absolute;
   z-index: 99999;
-  background: var(--crm-surface, #fff);
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  max-height: 240px;
+  background: var(--crm-ve-surface);
+  border: 1px solid var(--crm-ve-rule);
+  border-radius: 8px;
+  box-shadow: var(--crm-shadow-card);
   overflow-y: auto;
-  min-width: 200px;
-  padding: 6px;
+  padding: 4px;
 }
 
+.crm-ve-slash-menu {
+  max-height: 240px;
+  min-width: 200px;
+}
+
+.crm-ve-mention-menu {
+  max-height: 200px;
+  min-width: 180px;
+}
+
+.crm-ve-slash-group-label,
 .crm-ve-mention-group-label {
   padding: 4px 10px 2px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--crm-muted, #9ca3af);
+  color: var(--crm-ve-text-muted);
 }
 
+.crm-ve-slash-item,
 .crm-ve-mention-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--crm-ink, #374151);
-  transition: background 0.1s;
-}
-
-.crm-ve-mention-item:hover,
-.crm-ve-mention-item.is-active {
-  background: var(--crm-surface-alt, #f3f4f6);
-}
-
-.crm-ve-mention-item-type {
-  font-size: 10px;
-  color: var(--crm-muted, #9ca3af);
-  background: var(--crm-surface-alt, #f3f4f6);
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.crm-ve-mention-user-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #e0e7ff;
-  color: #4f46e5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.crm-ve-mention-page-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: #dcfce7;
-  color: #16a34a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-.crm-ve-slash-icon {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--crm-surface-alt, #f3f4f6);
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--crm-muted, #6b7280);
-  flex-shrink: 0;
-}
-
-/* Table */
-.crm-ve-table-wrap {
-  overflow-x: auto;
-  margin: 0 0 8px;
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 6px;
-}
-
-.crm-ve-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.crm-ve-table td,
-.crm-ve-table th {
-  border: 1px solid var(--crm-border, #e5e7eb);
-  padding: 8px 12px;
-  text-align: left;
-  vertical-align: top;
-  min-width: 80px;
-}
-
-.crm-ve-table th {
-  background: var(--crm-surface-alt, #f9fafb);
-  font-weight: 600;
-}
-
-.crm-ve-table td:focus,
-.crm-ve-table th:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: -2px;
-}
-
-/* Slash menu */
-.crm-ve-slash-menu {
-  display: none;
-  position: absolute;
-  z-index: 99999;
-  background: var(--crm-surface, #fff);
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  max-height: 240px;
-  overflow-y: auto;
-  min-width: 200px;
-  padding: 4px;
-}
-
-.crm-ve-slash-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1582,56 +1416,25 @@ details.crm-ve-spoiler[open] > summary {
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--crm-ink, #374151);
+  color: var(--crm-ve-text);
   transition: background 0.1s;
 }
 
 .crm-ve-slash-item:hover,
-.crm-ve-slash-item.is-active {
-  background: var(--crm-surface-alt, #f3f4f6);
+.crm-ve-mention-item:hover {
+  background: var(--crm-ve-surface-soft);
 }
 
-/* Mentions */
-.crm-ve-mention {
-  display: inline;
-  background: #e0e7ff;
-  color: #4f46e5;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: default;
-  user-select: all;
-}
-
-.crm-ve-mention-menu {
-  display: none;
-  position: absolute;
-  z-index: 99999;
-  background: var(--crm-surface, #fff);
-  border: 1px solid var(--crm-border, #e5e7eb);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  max-height: 200px;
-  overflow-y: auto;
-  min-width: 180px;
-  padding: 4px;
-}
-
-.crm-ve-mention-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--crm-ink, #374151);
-  transition: background 0.1s;
-}
-
-.crm-ve-mention-item:hover,
+.crm-ve-slash-item.is-active,
 .crm-ve-mention-item.is-active {
-  background: var(--crm-surface-alt, #f3f4f6);
+  background: var(--crm-ve-surface-soft);
+  box-shadow: inset 0 0 0 2px var(--crm-focus-ring, var(--crm-ve-accent));
+}
+
+.crm-ve-slash-item-desc {
+  font-size: 11px;
+  color: var(--crm-ve-text-muted);
+  margin-top: 1px;
 }
 
 .crm-ve-slash-icon {
@@ -1640,10 +1443,68 @@ details.crm-ve-spoiler[open] > summary {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--crm-surface-alt, #f3f4f6);
+  background: var(--crm-ve-surface);
   border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--crm-muted, #6b7280);
+  color: var(--crm-ve-text-muted);
   flex-shrink: 0;
+}
+
+/* Mentions in the editor and in saved content */
+.crm-ve-mention {
+  display: inline;
+  background: var(--crm-ve-accent-light);
+  color: var(--crm-ve-text);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: default;
+  user-select: all;
+}
+
+.crm-ve-mention-page {
+  background: var(--crm-ve-surface-soft);
+  box-shadow: inset 0 0 0 1px var(--crm-ve-rule);
+}
+
+.crm-ve-mention-item-login {
+  margin-inline-start: 4px;
+  color: var(--crm-ve-text-muted);
+  font-size: 12px;
+}
+
+.crm-ve-mention-item-type {
+  font-size: 10px;
+  color: var(--crm-ve-text-muted);
+  background: var(--crm-ve-surface);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.crm-ve-mention-user-icon,
+.crm-ve-mention-page-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--crm-ve-text);
+  flex-shrink: 0;
+}
+
+.crm-ve-mention-user-icon {
+  border-radius: 50%;
+  background: var(--crm-ve-accent-light);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.crm-ve-mention-page-icon {
+  border-radius: 6px;
+  background: var(--crm-ve-surface);
+  box-shadow: inset 0 0 0 1px var(--crm-ve-rule);
+  font-size: 13px;
 }

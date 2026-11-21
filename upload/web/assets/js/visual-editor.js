@@ -200,7 +200,7 @@ window.CRM.VisualEditor = (function () {
     toast.textContent = message;
     toast.style.cssText = (
       'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
-      + 'background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;'
+      + 'background:var(--crm-error-bg,#dc2626);color:var(--crm-on-accent,#fff);padding:12px 24px;border-radius:8px;'
       + 'font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);'
       + 'max-width:90vw;text-align:center;transition:opacity 0.3s;'
     );
@@ -2648,6 +2648,7 @@ window.CRM.VisualEditor = (function () {
     content.querySelectorAll('.crm-ve-table-controls').forEach(function (controls) {
       var table = controls.previousElementSibling;
       var active = table && table === selectedTable;
+      controls.classList.toggle('is-table-active', Boolean(active));
       var body = active && (table.tBodies[0] || table);
       var firstRow = body && body.rows[0];
       var rowButton = controls.querySelector('[data-table-action="del-row"]');
@@ -3575,7 +3576,7 @@ window.CRM.VisualEditor = (function () {
       nameSpan.textContent = item.name;
       if (item.login) {
         var loginSpan = document.createElement('span');
-        loginSpan.style.cssText = 'color:#9ca3af;font-size:12px;margin-left:4px;';
+        loginSpan.className = 'crm-ve-mention-item-login';
         loginSpan.textContent = '@' + item.login;
         nameSpan.appendChild(loginSpan);
       }
@@ -5995,6 +5996,11 @@ window.CRM.VisualEditor = (function () {
       + '}\n'
       + '.crm-ve-mention-menu[style*="display: block"] {\n'
       + '  display: block !important;\n'
+      + '}\n'
+      + '.crm-ve-mention-item-login {\n'
+      + '  color: var(--crm-ve-text-muted, #58697e);\n'
+      + '  font-size: 12px;\n'
+      + '  margin-inline-start: 4px;\n'
       + '}\n'
       + '.crm-ve-mention-item:hover, .crm-ve-mention-item.is-active {\n'
       + '  background: #f3f4f6;\n'
