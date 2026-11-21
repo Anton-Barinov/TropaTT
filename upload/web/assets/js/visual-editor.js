@@ -4246,22 +4246,14 @@ window.CRM.VisualEditor = (function () {
     // Spoiler: double-enter exit / ArrowDown exit
     if (self._handleSpoilerKeydown(e)) return;
 
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      self.undo();
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-      e.preventDefault();
-      self.redo();
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-      e.preventDefault();
-      self.redo();
-      return;
+    if (e.ctrlKey || e.metaKey) {
+      var key = e.key.toLowerCase();
+      if (key === 'z' || key === 'y') {
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) self.redo();
+        else self.undo();
+        return;
+      }
     }
 
     if (e.key === 'Escape') {
