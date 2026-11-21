@@ -813,6 +813,33 @@ details.crm-ve-spoiler[open] > summary {
   margin-top: 4px;
 }
 
+.crm-ve-upload-error-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed #ef4444;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.crm-ve-upload-error-wrap [role="status"] {
+  flex: 1 1 12rem;
+}
+
+.crm-ve-upload-retry-btn,
+.crm-ve-upload-remove-btn {
+  padding: 3px 8px;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  background: var(--crm-surface, #fff);
+  color: inherit;
+  cursor: pointer;
+}
+
 .crm-ve-toast {
   position: fixed;
   bottom: 24px;
@@ -1286,9 +1313,14 @@ details.crm-ve-spoiler[open] > summary {
   user-select: none;
 }
 
-.crm-ve-table-ctrl-btn:hover {
+.crm-ve-table-ctrl-btn:not(:disabled):hover {
   background: var(--crm-surface-alt, #f3f4f6);
   color: var(--crm-ink, #374151);
+}
+
+.crm-ve-table-ctrl-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .crm-ve-table {

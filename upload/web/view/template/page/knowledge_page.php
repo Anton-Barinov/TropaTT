@@ -1091,6 +1091,7 @@
   document.getElementById('knowledgeEditBtn').addEventListener('click', function () { showEditor(true); });
   document.getElementById('knowledgeCancelEditBtn').addEventListener('click', function () { showEditor(false); });
   document.getElementById('knowledgeSaveDraftBtn').addEventListener('click', async function () {
+    if (window.CRM.VisualEditor && window.CRM.VisualEditor.blockSaveForUploads(els.editContent)) return;
     syncHiddenContent();
     var draftBody = { title: els.editTitle.value, content_html: getTextareaVisualEditorValue(els.editContent) };
     if (els.editReviewDue) {
@@ -1250,16 +1251,7 @@
     updateFavSubButtons();
   });
   els.commentSend.addEventListener('click', async function () {
-    if (window.CRM && window.CRM.VisualEditor) {
-      if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(els.commentInput ? els.commentInput.parentNode : document.getElementById('kb-panel-comments'))) {
-        alert(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'));
-        return;
-      }
-      if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(els.commentInput ? els.commentInput.parentNode : document.getElementById('kb-panel-comments'))) {
-        alert(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'));
-        return;
-      }
-    }
+    if (window.CRM.VisualEditor && window.CRM.VisualEditor.blockSaveForUploads(els.commentInput)) return;
     var body = getTextareaVisualEditorValue(els.commentInput).trim();
     if (!body) return;
     els.commentInput.disabled = true;

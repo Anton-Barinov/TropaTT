@@ -829,6 +829,7 @@
     var title = document.getElementById('kbPageTitleInput').value.trim();
     if(!title){ alert(_t('knowledge.alert_title_required', 'Укажите название')); return; }
     var contentEl = document.getElementById('kbPageContent');
+    if (window.CRM.VisualEditor && window.CRM.VisualEditor.blockSaveForUploads(contentEl)) return;
     var contentHtml = contentEl.value;
     if(window.CRM && window.CRM.VisualEditor && typeof window.CRM.VisualEditor.getInstances === 'function'){
       window.CRM.VisualEditor.getInstances().forEach(function(editor){

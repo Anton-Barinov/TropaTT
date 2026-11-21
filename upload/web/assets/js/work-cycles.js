@@ -410,6 +410,7 @@
   };
 
   window.saveWorkCycle = function () {
+    if (window.CRM.VisualEditor && window.CRM.VisualEditor.blockSaveForUploads(document.getElementById('cycleForm'))) return;
     var publicId = document.getElementById('cycleFormPublicId').value;
     var title = document.getElementById('cycleFormTitle').value.trim();
     if (!title) {
