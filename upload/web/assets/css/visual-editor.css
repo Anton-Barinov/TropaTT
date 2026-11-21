@@ -1076,7 +1076,7 @@ details.crm-ve-spoiler[open] > summary {
   padding: 0 10px;
   width: auto;
   gap: 4px;
-  background: var(--crm-ve-surface-card, #ffffff);
+  background: var(--crm-ve-surface, #ffffff);
   border: 1px solid var(--crm-ve-border, #e5e7eb);
   border-radius: var(--crm-ve-btn-radius, 6px);
   color: var(--crm-ve-text, #374151);
@@ -1119,10 +1119,17 @@ details.crm-ve-spoiler[open] > summary {
   line-height: 1.2;
 }
 
-.crm-ve-more-item:hover,
-.crm-ve-more-item:focus-visible {
+.crm-ve-more-item:hover {
   background: var(--crm-ve-accent-light, #f0fdf4);
   color: var(--crm-ve-accent, #16a34a);
+}
+
+.crm-ve-more-btn:focus-visible,
+.crm-ve-more-item:focus-visible {
+  background: var(--crm-ve-accent-light, #f0fdf4);
+  color: var(--crm-ve-text, #374151);
+  outline: 2px solid var(--crm-ve-accent, #16a34a);
+  outline-offset: -2px;
 }
 
 .crm-ve-more-item-icon {
