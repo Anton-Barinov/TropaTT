@@ -177,19 +177,26 @@ window.CRM.VisualEditor = (function () {
 
   function notify(text, type) {
     try {
+      if (window.CRM && window.CRM.ui && typeof window.CRM.ui.showNotice === 'function' && window.CRM.ui.showNotice(text, type)) {
+        return true;
+      }
       if (window.CRM && window.CRM.pageApiBindings && typeof window.CRM.pageApiBindings.notify === 'function') {
-        return window.CRM.pageApiBindings.notify(text, type);
+        window.CRM.pageApiBindings.notify(text, type);
+        return true;
       }
       if (typeof window.notify === 'function') {
-        return window.notify(text, type);
+        window.notify(text, type);
+        return true;
       }
     } catch (e) { /* ignore */ }
+    return false;
   }
 
   function showErrorToast(editorInstance, message) {
     if (!editorInstance) return;
     var toast = document.createElement('div');
-    toast.className = 'crm-ve-toast crm-ve-toast-error';
+    toast.className = 'crm-ve-toast is-visible is-error';
+    toast.setAttribute('role', 'alert');
     toast.textContent = message;
     toast.style.cssText = (
       'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
@@ -228,7 +235,7 @@ window.CRM.VisualEditor = (function () {
       };
       img.onerror = function () {
         URL.revokeObjectURL(url);
-        reject(new Error('Failed to decode image'));
+        reject(new Error(t('visual_editor.upload_error', 'Could not upload image')));
       };
       img.src = url;
     });
@@ -581,29 +588,47 @@ window.CRM.VisualEditor = (function () {
     var pointer = -1;
     var maxSize = 100;
     var timer = null;
+    var pending = null;
 
-    function push(html, immediate) {
-      if (timer) {
+    function flush() {
+      if (timer !== null) {
         clearTimeout(timer);
         timer = null;
       }
-      var normalized = html || '';
+      if (pending !== null) {
+        commit(pending);
+        pending = null;
+      }
+    }
+
+    function push(html, immediate) {
+      var snapshot = html || '';
+      // A restored snapshot has no live request or retry handler.
+      if (/crm-ve-upload(?:ing|-error)/.test(snapshot)) {
+        var template = document.createElement('template');
+        template.innerHTML = snapshot;
+        template.content.querySelectorAll('.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-error').forEach(function (block) {
+          block.remove();
+        });
+        snapshot = template.innerHTML;
+      }
+      // Disabled state follows the selection and is recomputed on restore.
+      snapshot = snapshot.replace(/(<button\b[^>]* data-table-action="del-(?:row|col)"[^>]*?) disabled=""/g, '$1');
       if (immediate) {
-        commit(normalized);
+        flush();
+        commit(snapshot);
       } else {
-        timer = setTimeout(function () {
-          timer = null;
-          commit(normalized);
-        }, 800);
+        if (timer !== null) clearTimeout(timer);
+        pending = snapshot;
+        timer = setTimeout(flush, 800);
       }
     }
 
     function commit(html) {
+      if (html === snapshots[pointer]) return;
       if (pointer < snapshots.length - 1) {
         snapshots = snapshots.slice(0, pointer + 1);
       }
-      var last = snapshots[snapshots.length - 1];
-      if (html === last) return;
       snapshots.push(html);
       if (snapshots.length > maxSize) {
         snapshots.shift();
@@ -611,44 +636,31 @@ window.CRM.VisualEditor = (function () {
       pointer = snapshots.length - 1;
     }
 
-    function undo(currentHtml) {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      if (pointer < 0) return null;
-      if (pointer === snapshots.length - 1) {
-        snapshots[pointer] = currentHtml;
-      }
+    function undo() {
+      flush();
+      if (pointer <= 0) return null;
       pointer--;
-      if (pointer < 0) return null;
       return snapshots[pointer];
     }
 
-    function redo(currentHtml) {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
+    function redo() {
+      flush();
       if (pointer >= snapshots.length - 1) return null;
       pointer++;
       return snapshots[pointer];
     }
 
     function reset() {
-      if (timer) {
+      if (timer !== null) {
         clearTimeout(timer);
         timer = null;
       }
+      pending = null;
       snapshots = [];
       pointer = -1;
     }
 
-    function peek() {
-      return snapshots[pointer];
-    }
-
-    return { push: push, undo: undo, redo: redo, reset: reset, commit: commit, peek: peek };
+    return { push: push, undo: undo, redo: redo, reset: reset };
   }
 
   // ---------------------------------------------------------------------------
@@ -1235,60 +1247,66 @@ window.CRM.VisualEditor = (function () {
   //  Image upload
   // ---------------------------------------------------------------------------
 
-  function uploadImage(editorInstance, file, targetBlock) {
-    if (!isImageFile(file)) {
-      showErrorToast(editorInstance, t('visual_editor.invalid_file_type', 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF'));
-      return Promise.reject(new Error('Invalid file type'));
-    }
+  function ownsUploadPlaceholder(editorInstance, block) {
+    return !editorInstance._destroyed && editorInstance._content && editorInstance._content.contains(block);
+  }
 
-    if (file.size > editorInstance._options.maxImageSize) {
-      showErrorToast(editorInstance, t('visual_editor.file_too_large', 'File too large. Max size:') + ' ' + formatFileSize(editorInstance._options.maxImageSize));
-      return Promise.reject(new Error('File too large'));
-    }
-
-    editorInstance._activeUploadsCount = (editorInstance._activeUploadsCount || 0) + 1;
-
-    return getImageDimensions(file).then(function (dims) {
-      if (dims.width > 8000 || dims.height > 8000) {
-        showErrorToast(editorInstance, t('visual_editor.image_too_large', 'Image resolution too high. Max: 8000\u00D78000'));
-        throw new Error('Image too large');
+  function uploadImage(editorInstance, source, targetBlock) {
+    var uploadError = t('visual_editor.upload_error', 'Could not upload image');
+    return Promise.resolve().then(function () {
+      return typeof source === 'string' ? readPastedBlobImage(source) : source;
+    }).then(function (file) {
+      if (!isImageFile(file)) {
+        throw new Error(t('visual_editor.invalid_file_type', 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF'));
       }
-      return doUpload(editorInstance, file, targetBlock);
+      if (file.size > editorInstance._options.maxImageSize) {
+        throw new Error(t('visual_editor.file_too_large', 'File too large. Max size:') + ' ' + formatFileSize(editorInstance._options.maxImageSize));
+      }
+      return getImageDimensions(file).then(function (dims) {
+        if (dims.width > 8000 || dims.height > 8000) {
+          throw new Error(t('visual_editor.image_too_large', 'Image resolution too high. Max: 8000\u00D78000'));
+        }
+        if (!ownsUploadPlaceholder(editorInstance, targetBlock)) return null;
+        return doUpload(editorInstance, file, targetBlock);
+      });
     }).catch(function (err) {
-      if (targetBlock && targetBlock.parentNode) {
-        targetBlock.className = 'crm-ve-block crm-ve-image-block crm-ve-upload-error';
-        targetBlock.innerHTML = ''
-          + '<div class="crm-ve-upload-error-wrap" style="padding:8px 12px;border:1px dashed #ef4444;border-radius:6px;background:#fef2f2;display:flex;align-items:center;gap:8px;font-size:13px;color:#b91c1c;">'
-          + '<span style="flex:1;">' + (err.message || t('visual_editor.upload_error', 'Не удалось загрузить изображение')) + '</span>'
-          + '<button type="button" class="crm-ve-upload-retry-btn" style="padding:3px 8px;border:1px solid #ef4444;border-radius:4px;background:#fff;color:#b91c1c;cursor:pointer;font-size:12px;">' + t('visual_editor.retry', 'Повторить') + '</button>'
-          + '<button type="button" class="crm-ve-upload-remove-btn" style="padding:2px 6px;border:none;background:transparent;color:#b91c1c;cursor:pointer;font-size:14px;" title="' + t('visual_editor.delete', 'Удалить') + '">\u2715</button>'
-          + '</div>';
-        var retryBtn = targetBlock.querySelector('.crm-ve-upload-retry-btn');
-        if (retryBtn) {
-          retryBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var newPh = createUploadingPlaceholder(targetBlock.getAttribute('data-block-id') || generateId());
-            targetBlock.parentNode.replaceChild(newPh, targetBlock);
-            uploadImage(editorInstance, file, newPh).catch(function () {});
-          });
-        }
-        var removeBtn = targetBlock.querySelector('.crm-ve-upload-remove-btn');
-        if (removeBtn) {
-          removeBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            targetBlock.remove();
-            editorInstance._sync();
-          });
-        }
-      }
+      if (!ownsUploadPlaceholder(editorInstance, targetBlock)) return null;
+
+      var message = err instanceof TypeError || err instanceof SyntaxError ? uploadError : (err.message || uploadError);
+      var removeLabel = t('visual_editor.delete', 'Удалить');
+      targetBlock.className = 'crm-ve-block crm-ve-image-block crm-ve-upload-error';
+      targetBlock.innerHTML = '<div class="crm-ve-upload-error-wrap"><span role="status"></span>'
+        + '<button type="button" class="crm-ve-upload-retry-btn"></button>'
+        + '<button type="button" class="crm-ve-upload-remove-btn">\u2715</button></div>';
+      targetBlock.querySelector('[role="status"]').textContent = message;
+
+      var retryBtn = targetBlock.querySelector('.crm-ve-upload-retry-btn');
+      retryBtn.textContent = t('visual_editor.retry', 'Повторить');
+      retryBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var newPlaceholder = createUploadingPlaceholder(
+          targetBlock.getAttribute('data-block-id'),
+          targetBlock.getAttribute('data-align'),
+          targetBlock.getAttribute('data-width'),
+          { alt: targetBlock._preservedAlt, caption: targetBlock._preservedCaption, link: targetBlock._preservedLink }
+        );
+        targetBlock.replaceWith(newPlaceholder);
+        uploadImage(editorInstance, source, newPlaceholder).catch(function () {});
+      });
+
+      var removeBtn = targetBlock.querySelector('.crm-ve-upload-remove-btn');
+      removeBtn.title = removeLabel;
+      removeBtn.setAttribute('aria-label', removeLabel);
+      removeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        targetBlock.remove();
+        editorInstance._sync();
+        editorInstance._content.focus();
+      });
+
       editorInstance._sync();
-      editorInstance._updateEmptyState();
-      showErrorToast(editorInstance, err.message || t('visual_editor.upload_error', 'Upload failed'));
+      showErrorToast(editorInstance, message);
       throw err;
-    }).finally(function () {
-      editorInstance._activeUploadsCount = Math.max(0, (editorInstance._activeUploadsCount || 1) - 1);
     });
   }
 
@@ -1315,6 +1333,7 @@ window.CRM.VisualEditor = (function () {
         return data;
       });
     }).then(function (data) {
+      if (!ownsUploadPlaceholder(editorInstance, placeholderBlock)) return null;
       var src = data && (data.url || data.src || data.data && (data.data.url || data.data.src));
       if (!src) {
         throw new Error(t('visual_editor.upload_no_url', 'Upload succeeded but no URL returned'));
@@ -1352,12 +1371,7 @@ window.CRM.VisualEditor = (function () {
           a.appendChild(imgEl);
         }
       }
-      if (placeholderBlock && placeholderBlock.parentNode && editorInstance._content && editorInstance._content.contains(placeholderBlock)) {
-        placeholderBlock.parentNode.replaceChild(newBlock, placeholderBlock);
-      } else {
-        // Target placeholder was removed by user or document was reset - do NOT insert late image
-        return null;
-      }
+      placeholderBlock.replaceWith(newBlock);
 
       editorInstance._history.push(editorInstance._content.innerHTML, true);
       editorInstance._sync();
@@ -1396,19 +1410,18 @@ window.CRM.VisualEditor = (function () {
   // Upload an image that arrived as an ephemeral blob: URL in pasted HTML.
   // blob: URLs are only valid for the current document, so persisting them
   // would produce a broken image after save/reload — upload instead.
-  function uploadImageFromUrl(editorInstance, url) {
+  function readPastedBlobImage(url) {
+    var uploadError = t('visual_editor.upload_error', 'Could not upload image');
+    if (!/^blob:/i.test(url)) return Promise.reject(new Error(uploadError));
     return fetch(url).then(function (resp) {
-      if (!resp.ok) throw new Error('Failed to read pasted image');
+      if (!resp.ok) throw new Error(uploadError);
       return resp.blob();
     }).then(function (blob) {
       var type = blob && blob.type && blob.type.indexOf('image/') === 0 ? blob.type : 'image/png';
       var ext = type.split('/')[1] || 'png';
       if (ext === 'jpeg') ext = 'jpg';
-      var file = new File([blob], 'pasted_image.' + ext, { type: type });
-      var ph = createUploadingPlaceholder(generateId());
-      editorInstance._insertAtCaret(ph);
-      return uploadImage(editorInstance, file, ph);
-    }).catch(function () {});
+      return new File([blob], 'pasted_image.' + ext, { type: type });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1437,8 +1450,6 @@ window.CRM.VisualEditor = (function () {
       if (options.minImageWidth !== undefined) this._options.minImageWidth = options.minImageWidth;
       if (options.maxImageSize !== undefined) this._options.maxImageSize = options.maxImageSize;
     }
-
-    this._activeUploadsCount = 0;
 
     this._history = createHistory();
     this._selectedImageBlock = null;
@@ -2520,6 +2531,40 @@ window.CRM.VisualEditor = (function () {
   //  Table
   // ---------------------------------------------------------------------------
 
+  function createTableControls() {
+    var controls = document.createElement('div');
+    controls.className = 'crm-ve-table-controls';
+    controls.setAttribute('contenteditable', 'false');
+    controls.setAttribute('tabindex', '-1');
+    controls.innerHTML = '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-row" title="' + t('visual_editor.table_add_row', 'Добавить строку') + '">\u2795 ' + t('visual_editor.table_row', 'Строка') + '</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-col" title="' + t('visual_editor.table_add_col', 'Добавить столбец') + '">\u2795 ' + t('visual_editor.table_col', 'Столбец') + '</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-row" disabled title="' + t('visual_editor.table_del_row', 'Удалить строку') + '">\u2796 ' + t('visual_editor.table_row', 'Строка') + '</button>'
+      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" disabled title="' + t('visual_editor.table_del_col', 'Удалить столбец') + '">\u2796 ' + t('visual_editor.table_col', 'Столбец') + '</button>';
+    return controls;
+  }
+
+  function getSelectedTableCell(selection, content) {
+    if (!selection || !selection.rangeCount || !content.contains(selection.anchorNode)) return null;
+    var anchor = selection.anchorNode;
+    if (anchor.nodeType === 3) anchor = anchor.parentElement;
+    var cell = anchor.closest && anchor.closest('td, th');
+    return cell && cell.contains(selection.focusNode) ? cell : null;
+  }
+
+  function updateTableControls(content, selectedCell) {
+    var selectedTable = selectedCell && selectedCell.closest('.crm-ve-table');
+    content.querySelectorAll('.crm-ve-table-controls').forEach(function (controls) {
+      var table = controls.previousElementSibling;
+      var active = table && table === selectedTable;
+      var body = active && (table.tBodies[0] || table);
+      var firstRow = body && body.rows[0];
+      var rowButton = controls.querySelector('[data-table-action="del-row"]');
+      var colButton = controls.querySelector('[data-table-action="del-col"]');
+      if (rowButton) rowButton.disabled = !(body && body.rows.length > 1);
+      if (colButton) colButton.disabled = !(firstRow && firstRow.cells.length > 1);
+    });
+  }
+
   Editor.prototype._execTable = function (rows, cols) {
     rows = rows || 2;
     cols = cols || 2;
@@ -2545,16 +2590,7 @@ window.CRM.VisualEditor = (function () {
     wrapper.className = 'crm-ve-table-wrap';
     wrapper.appendChild(table);
 
-    // Control buttons (add row/column)
-    var controls = document.createElement('div');
-    controls.className = 'crm-ve-table-controls';
-    controls.setAttribute('contenteditable', 'false');
-    controls.setAttribute('tabindex', '-1');
-    controls.innerHTML = '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-row" title="' + t('visual_editor.table_add_row', 'Добавить строку') + '">\u2795 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-col" title="' + t('visual_editor.table_add_col', 'Добавить столбец') + '">\u2795 ' + t('visual_editor.table_col', 'Столбец') + '</button>'
-      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-row" title="' + t('visual_editor.table_del_row', 'Удалить строку') + '">\u2796 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-      + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" title="' + t('visual_editor.table_del_col', 'Удалить столбец') + '">\u2796 ' + t('visual_editor.table_col', 'Столбец') + '</button>';
-    wrapper.appendChild(controls);
+    wrapper.appendChild(createTableControls());
 
     var curP = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
     if (curP && this._content.contains(curP)) {
@@ -2594,6 +2630,7 @@ window.CRM.VisualEditor = (function () {
 
     this._sync();
     this._history.push(this._content.innerHTML, true);
+    this._updateActiveButtons();
     this._updateEmptyState();
   };
 
@@ -2602,6 +2639,7 @@ window.CRM.VisualEditor = (function () {
     var btn = e.target.closest('.crm-ve-table-ctrl-btn');
     if (!btn) return false;
     e.preventDefault();
+    if (btn.disabled) return true;
     var action = btn.getAttribute('data-table-action');
     var wrap = btn.closest('.crm-ve-table-wrap');
     if (!wrap) return false;
@@ -2611,15 +2649,12 @@ window.CRM.VisualEditor = (function () {
     if (!tbody) return false;
 
     var sel = window.getSelection();
-    var currentCell = sel && sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
-    if (currentCell && currentCell.nodeType === 3) currentCell = currentCell.parentNode;
-    var currentTd = currentCell && currentCell.closest ? currentCell.closest('td, th') : null;
+    var currentTd = getSelectedTableCell(sel, this._content);
 
     // Check if the current cell belongs specifically to THIS table
-    var isCellInThisTable = currentTd && table.contains(currentTd);
+    var isCellInThisTable = currentTd && currentTd.closest('.crm-ve-table') === table;
     var currentRow = isCellInThisTable ? currentTd.closest('tr') : null;
     var colIndex = (isCellInThisTable && currentRow) ? Array.from(currentRow.children).indexOf(currentTd) : -1;
-    var rowIndex = (isCellInThisTable && currentRow) ? Array.from(tbody.children).indexOf(currentRow) : -1;
 
     // For delete actions: user MUST have a selected cell inside THIS table
     if (action === 'del-row' || action === 'del-col') {
@@ -2714,6 +2749,7 @@ window.CRM.VisualEditor = (function () {
     }
     this._sync();
     this._history.push(this._content.innerHTML, true);
+    this._updateActiveButtons();
     return true;
   };
 
@@ -3715,7 +3751,7 @@ window.CRM.VisualEditor = (function () {
       }
       updateTodoAriaLabels(self._content);
       self._sync();
-      self._history.push(content.innerHTML, false);
+      if (!self._pasting) self._history.push(content.innerHTML, false);
       self._updateActiveButtons();
       self._updateEmptyState();
     });
@@ -3726,60 +3762,20 @@ window.CRM.VisualEditor = (function () {
 
     var parentForm = this._textarea.closest('form');
     this._parentForm = parentForm;
-    var submitGuardContainer = parentForm || this._textarea.closest('.modal, .modal-content, [role="dialog"], .crm-modal, body') || document.body;
-    this._submitGuardContainer = submitGuardContainer;
 
     var formSubmitGuard = function (e) {
-      if (self.hasPendingUploads()) {
+      if (self._blockSaveForUploads()) {
         e.preventDefault();
-        e.stopPropagation();
         e.stopImmediatePropagation();
-        notify(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'), 'warning');
-        return false;
-      }
-      if (self.hasUploadErrors()) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        notify(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'), 'warning');
-        return false;
+        return;
       }
       self._sync();
-    };
-
-    var submitBtnGuard = function (e) {
-      var btn = e.target.closest && e.target.closest('button, input[type="submit"], [data-action="save"], .crm-btn-primary');
-      if (!btn) return;
-      if (parentForm && !parentForm.contains(btn)) {
-        var btnModal = btn.closest('.modal, .crm-modal');
-        var editorModal = self._textarea.closest('.modal, .crm-modal');
-        if (!btnModal || btnModal !== editorModal) return;
-      }
-      if (self.hasPendingUploads()) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        notify(t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...'), 'warning');
-        return false;
-      }
-      if (self.hasUploadErrors()) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        notify(t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение'), 'warning');
-        return false;
-      }
     };
 
     if (parentForm) {
       parentForm.addEventListener('submit', formSubmitGuard, true);
       self._formSubmitGuard = formSubmitGuard;
     }
-    if (submitGuardContainer) {
-      submitGuardContainer.addEventListener('click', submitBtnGuard, true);
-      self._submitBtnGuard = submitBtnGuard;
-    }
-
     // Global capture-phase Escape listener: stops event immediately so parent
     // Bootstrap modal or page listeners never close host modals when dismissing popup menus!
     var escapeCaptureHandler = function (e) {
@@ -3812,13 +3808,22 @@ window.CRM.VisualEditor = (function () {
       self._sync();
     });
 
+    content.addEventListener('focusout', function (e) {
+      if (!content.contains(e.relatedTarget)) updateTableControls(content, null);
+    });
+
     content.addEventListener('focus', function () {
       self.refreshFromTextarea(false);
       self._wrapper.classList.add('is-focused');
+      self._updateActiveButtons();
     });
 
     content.addEventListener('keydown', function (e) {
       self._onKeyDown(e);
+    });
+
+    content.addEventListener('mousedown', function (e) {
+      if (e.button === 0 && e.target.closest('.crm-ve-table-ctrl-btn')) e.preventDefault();
     });
 
     content.addEventListener('click', function (e) {
@@ -3910,7 +3915,13 @@ window.CRM.VisualEditor = (function () {
     });
 
     content.addEventListener('paste', function (e) {
-      self._onPaste(e);
+      // execCommand sends a synchronous input event before paste cleanup.
+      self._pasting = true;
+      try {
+        self._onPaste(e);
+      } finally {
+        self._pasting = false;
+      }
     });
 
     content.addEventListener('drop', function (e) {
@@ -4235,22 +4246,14 @@ window.CRM.VisualEditor = (function () {
     // Spoiler: double-enter exit / ArrowDown exit
     if (self._handleSpoilerKeydown(e)) return;
 
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      self.undo();
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-      e.preventDefault();
-      self.redo();
-      return;
-    }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-      e.preventDefault();
-      self.redo();
-      return;
+    if (e.ctrlKey || e.metaKey) {
+      var key = e.key.toLowerCase();
+      if (key === 'z' || key === 'y') {
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) self.redo();
+        else self.undo();
+        return;
+      }
     }
 
     if (e.key === 'Escape') {
@@ -4322,6 +4325,7 @@ window.CRM.VisualEditor = (function () {
     var clipboard = e.clipboardData || window.clipboardData;
 
     if (!clipboard) return;
+    this._history.push(this._content.innerHTML, true);
 
     var imageFiles = getPastedImageFiles(clipboard);
     if (imageFiles.length > 0) {
@@ -4628,13 +4632,7 @@ window.CRM.VisualEditor = (function () {
 
       uploadQueue.forEach(function (task) {
         var placeholderBlock = self._content.querySelector('.crm-ve-uploading[data-block-id="' + task.id + '"]');
-        if (placeholderBlock) {
-          if (task.file) {
-            uploadImage(self, task.file, placeholderBlock).catch(function () {});
-          } else if (task.url) {
-            uploadImageFromUrl(self, task.url);
-          }
-        }
+        if (placeholderBlock) uploadImage(self, task.file || task.url, placeholderBlock).catch(function () {});
       });
 
       self._convertOrphanedImages();
@@ -4780,6 +4778,8 @@ window.CRM.VisualEditor = (function () {
     var self = this;
     if (!this._toolbar || !this._content) return;
     var sel = window.getSelection();
+    var tableCell = this._content.contains(document.activeElement) ? getSelectedTableCell(sel, this._content) : null;
+    updateTableControls(this._content, tableCell);
     var hasFocus = Boolean(sel && sel.rangeCount && this._content.contains(sel.anchorNode));
     var currentBlock = hasFocus ? self._getCurrentBlockTag() : null;
     var isParagraph = !currentBlock || currentBlock === 'p';
@@ -4979,15 +4979,7 @@ window.CRM.VisualEditor = (function () {
           existingControls[c].remove();
         }
       } else if (existingControls.length === 0) {
-        var newControls = document.createElement('div');
-        newControls.className = 'crm-ve-table-controls';
-        newControls.setAttribute('contenteditable', 'false');
-        newControls.setAttribute('tabindex', '-1');
-        newControls.innerHTML = '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-row" title="' + t('visual_editor.table_add_row', 'Добавить строку') + '">\u2795 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-col" title="' + t('visual_editor.table_add_col', 'Добавить столбец') + '">\u2795 ' + t('visual_editor.table_col', 'Столбец') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-row" title="' + t('visual_editor.table_del_row', 'Удалить строку') + '">\u2796 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" title="' + t('visual_editor.table_del_col', 'Удалить столбец') + '">\u2796 ' + t('visual_editor.table_col', 'Столбец') + '</button>';
-        wrap.appendChild(newControls);
+        wrap.appendChild(createTableControls());
       }
       if (!wrap.nextElementSibling) {
         var followP = document.createElement('p');
@@ -5248,15 +5240,7 @@ window.CRM.VisualEditor = (function () {
         }
       }
       if (!wrap.querySelector('.crm-ve-table-controls')) {
-        var controls = document.createElement('div');
-        controls.className = 'crm-ve-table-controls';
-        controls.setAttribute('contenteditable', 'false');
-        controls.setAttribute('tabindex', '-1');
-        controls.innerHTML = '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-row" title="' + t('visual_editor.table_add_row', 'Добавить строку') + '">\u2795 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="add-col" title="' + t('visual_editor.table_add_col', 'Добавить столбец') + '">\u2795 ' + t('visual_editor.table_col', 'Столбец') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-row" title="' + t('visual_editor.table_del_row', 'Удалить строку') + '">\u2796 ' + t('visual_editor.table_row', 'Строка') + '</button>'
-          + '<button type="button" class="crm-ve-table-ctrl-btn" data-table-action="del-col" title="' + t('visual_editor.table_del_col', 'Удалить столбец') + '">\u2796 ' + t('visual_editor.table_col', 'Столбец') + '</button>';
-        wrap.appendChild(controls);
+        wrap.appendChild(createTableControls());
       }
     });
 
@@ -5272,7 +5256,6 @@ window.CRM.VisualEditor = (function () {
   };
 
   Editor.prototype.hasPendingUploads = function () {
-    if ((this._activeUploadsCount || 0) > 0) return true;
     if (!this._content) return false;
     return !!this._content.querySelector('.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-progress');
   };
@@ -5280,6 +5263,18 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype.hasUploadErrors = function () {
     if (!this._content) return false;
     return !!this._content.querySelector('.crm-ve-upload-error');
+  };
+
+  Editor.prototype._blockSaveForUploads = function () {
+    var message;
+    if (this.hasPendingUploads()) {
+      message = t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...');
+    } else if (this.hasUploadErrors()) {
+      message = t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение');
+    }
+    if (!message) return false;
+    if (!notify(message, 'warning')) showErrorToast(this, message);
+    return true;
   };
 
   Editor.prototype.setValue = function (html) {
@@ -5422,11 +5417,6 @@ window.CRM.VisualEditor = (function () {
       this._parentForm.removeEventListener('submit', this._formSubmitGuard, true);
       this._formSubmitGuard = null;
     }
-    if (this._submitBtnGuard && this._submitGuardContainer) {
-      this._submitGuardContainer.removeEventListener('click', this._submitBtnGuard, true);
-      this._submitBtnGuard = null;
-    }
-
     if (this._escapeCaptureHandler) {
       window.removeEventListener('keydown', this._escapeCaptureHandler, true);
       this._escapeCaptureHandler = null;
@@ -5458,8 +5448,7 @@ window.CRM.VisualEditor = (function () {
   };
 
   Editor.prototype.undo = function () {
-    var current = this._content.innerHTML;
-    var prev = this._history.undo(current);
+    var prev = this._history.undo();
     if (prev !== null && prev !== undefined) {
       this._content.innerHTML = prev;
       this._sync();
@@ -5471,8 +5460,7 @@ window.CRM.VisualEditor = (function () {
   };
 
   Editor.prototype.redo = function () {
-    var current = this._content.innerHTML;
-    var next = this._history.redo(current);
+    var next = this._history.redo();
     if (next !== null && next !== undefined) {
       this._content.innerHTML = next;
       this._sync();
@@ -6016,27 +6004,30 @@ window.CRM.VisualEditor = (function () {
     init();
   }
 
+  function editorsInScope(scope) {
+    if (!scope) return instances;
+    return instances.filter(function (editor) {
+      return editor._textarea && (scope === editor._textarea || scope === editor._wrapper
+        || (scope.contains && (scope.contains(editor._textarea) || scope.contains(editor._wrapper))));
+    });
+  }
+
   function hasPendingUploads(scope) {
-    var list = instances;
-    if (scope) {
-      list = instances.filter(function (ed) {
-        return ed && ed._textarea && (scope === ed._textarea || scope === ed._wrapper || (scope.contains && (scope.contains(ed._textarea) || scope.contains(ed._wrapper))));
-      });
-    }
-    return list.some(function (ed) {
+    return editorsInScope(scope).some(function (ed) {
       return ed && typeof ed.hasPendingUploads === 'function' && ed.hasPendingUploads();
     });
   }
 
   function hasUploadErrors(scope) {
-    var list = instances;
-    if (scope) {
-      list = instances.filter(function (ed) {
-        return ed && ed._textarea && (scope === ed._textarea || scope === ed._wrapper || (scope.contains && (scope.contains(ed._textarea) || scope.contains(ed._wrapper))));
-      });
-    }
-    return list.some(function (ed) {
+    return editorsInScope(scope).some(function (ed) {
       return ed && typeof ed.hasUploadErrors === 'function' && ed.hasUploadErrors();
+    });
+  }
+
+  // Explicit guard for actions that save content without submitting a form.
+  function blockSaveForUploads(scope) {
+    return !!scope && editorsInScope(scope).some(function (editor) {
+      return editor._blockSaveForUploads();
     });
   }
 
@@ -6050,7 +6041,8 @@ window.CRM.VisualEditor = (function () {
     sanitizeHtml: sanitizeHtml,
     renderReadonly: renderReadonly,
     hasPendingUploads: hasPendingUploads,
-    hasUploadErrors: hasUploadErrors
+    hasUploadErrors: hasUploadErrors,
+    blockSaveForUploads: blockSaveForUploads
   };
 
 })();
