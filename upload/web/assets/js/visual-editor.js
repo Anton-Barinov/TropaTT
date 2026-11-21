@@ -2154,6 +2154,26 @@ window.CRM.VisualEditor = (function () {
       || node.querySelector('img, figure') || node.querySelectorAll('br').length > 1);
   }
 
+  function moveCaretAfterTextBlock(selection, block) {
+    if (!selection.isCollapsed) return false;
+    var tail = selection.getRangeAt(0).cloneRange();
+    tail.setEnd(block, block.childNodes.length);
+    if (hasBlockContent(tail.cloneContents())) return false;
+
+    var paragraph = block.nextElementSibling;
+    if (!paragraph || paragraph.tagName !== 'P') {
+      paragraph = document.createElement('p');
+      paragraph.appendChild(document.createElement('br'));
+      block.after(paragraph);
+    }
+    var caret = document.createRange();
+    caret.selectNodeContents(paragraph);
+    caret.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(caret);
+    return true;
+  }
+
   function extractSpoilerSelection(range) {
     var common = range.commonAncestorContainer;
     var inline = common.nodeType === Node.ELEMENT_NODE ? common : common.parentElement;
@@ -3354,8 +3374,8 @@ window.CRM.VisualEditor = (function () {
           }
         }
 
-        // Unwrap code, mark, details.crm-ve-spoiler, and strip inline styles
-        var inlines = container.querySelectorAll('code, mark, details.crm-ve-spoiler, [style]');
+        // Unwrap code, mark, spoilers, and strip inline styles
+        var inlines = container.querySelectorAll('code, mark, details, [style]');
         for (var i = 0; i < inlines.length; i++) {
           var el = inlines[i];
           if (range.collapsed || sel.containsNode(el, true)) {
@@ -3365,8 +3385,8 @@ window.CRM.VisualEditor = (function () {
                 while (el.firstChild) parentNode.insertBefore(el.firstChild, el);
                 parentNode.removeChild(el);
               }
-            } else if (el.tagName === 'DETAILS' && el.classList.contains('crm-ve-spoiler')) {
-              var summary = el.querySelector('summary');
+            } else if (el.tagName === 'DETAILS') {
+              var summary = el.querySelector(':scope > summary');
               if (summary) el.removeChild(summary);
               var parentSpoiler = el.parentNode;
               if (parentSpoiler) {
@@ -4128,30 +4148,10 @@ window.CRM.VisualEditor = (function () {
       return true;
     }
 
-    if (e.key === 'ArrowDown') {
-      var lastElem = bq.lastElementChild || bq;
-      var curB = node;
-      while (curB && curB.parentNode !== bq && curB !== bq) curB = curB.parentNode;
-      if (curB === lastElem) {
-        var rEnd = sel.getRangeAt(0);
-        var remainingAfter = (curB.textContent || '').substring(rEnd.endOffset).trim();
-        if (!remainingAfter || rEnd.endOffset >= (curB.textContent || '').length) {
-          e.preventDefault();
-          var nextBlock = bq.nextElementSibling;
-          if (!nextBlock) {
-            nextBlock = document.createElement('p');
-            nextBlock.innerHTML = '<br>';
-            bq.parentNode.appendChild(nextBlock);
-          }
-          var rNext = document.createRange();
-          rNext.selectNodeContents(nextBlock);
-          rNext.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(rNext);
-          this._updateActiveButtons();
-          return true;
-        }
-      }
+    if (e.key === 'ArrowDown' && !e.shiftKey && moveCaretAfterTextBlock(sel, bq)) {
+      e.preventDefault();
+      this._updateActiveButtons();
+      return true;
     }
 
     return false;
@@ -4244,7 +4244,7 @@ window.CRM.VisualEditor = (function () {
     if (!sel || !sel.rangeCount) return false;
     var node = sel.anchorNode;
     if (node && node.nodeType === 3) node = node.parentNode;
-    var spoiler = node ? node.closest('details.crm-ve-spoiler') : null;
+    var spoiler = node ? node.closest('details') : null;
     if (!spoiler || !this._content.contains(spoiler)) return false;
     if (node && node.closest('summary')) return false;
 
@@ -4278,40 +4278,10 @@ window.CRM.VisualEditor = (function () {
       }
     }
 
-    if (e.key === 'ArrowDown') {
-      var curBlock2 = node;
-      while (curBlock2 && curBlock2.parentNode !== spoiler && curBlock2 !== spoiler) {
-        curBlock2 = curBlock2.parentNode;
-      }
-      if (curBlock2 === spoiler.lastElementChild) {
-        var nextBlock = spoiler.nextElementSibling;
-        if (!nextBlock || nextBlock.tagName !== 'P') {
-          e.preventDefault();
-          nextBlock = document.createElement('p');
-          nextBlock.innerHTML = '<br>';
-          if (spoiler.nextSibling) {
-            spoiler.parentNode.insertBefore(nextBlock, spoiler.nextSibling);
-          } else {
-            spoiler.parentNode.appendChild(nextBlock);
-          }
-          var rNext = document.createRange();
-          rNext.selectNodeContents(nextBlock);
-          rNext.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(rNext);
-          this._updateActiveButtons();
-          return true;
-        } else {
-          e.preventDefault();
-          var rNext2 = document.createRange();
-          rNext2.selectNodeContents(nextBlock);
-          rNext2.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(rNext2);
-          this._updateActiveButtons();
-          return true;
-        }
-      }
+    if (e.key === 'ArrowDown' && !e.shiftKey && moveCaretAfterTextBlock(sel, spoiler)) {
+      e.preventDefault();
+      this._updateActiveButtons();
+      return true;
     }
 
     return false;
@@ -4865,7 +4835,7 @@ window.CRM.VisualEditor = (function () {
     if (node.closest('ul')) return 'ul';
     if (node.closest('ol')) return 'ol';
     if (node.closest('table')) return 'table';
-    if (node.closest('details.crm-ve-spoiler')) return 'spoiler';
+    if (node.closest('details')) return 'spoiler';
     if (node.closest('p')) return 'p';
     return null;
   };
