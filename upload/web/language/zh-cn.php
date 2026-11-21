@@ -10037,6 +10037,8 @@ return array (
     'comment' => '评论',
     'wait_for_uploads' => '请等待图片上传完成...',
     'resolve_upload_errors' => '请在保存前重试或删除失败的图片',
+    'task_draft_restored' => '已恢复未保存的任务草稿',
+    'task_draft_clear' => '清除',
   ),
   'admin_estimates' => 
   array (

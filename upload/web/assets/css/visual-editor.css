@@ -819,10 +819,10 @@ details.crm-ve-spoiler[open] > summary {
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px 12px;
-  border: 1px dashed #ef4444;
+  border: 1px dashed var(--crm-danger-border, #ef4444);
   border-radius: 6px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--crm-danger-soft, #fef2f2);
+  color: var(--crm-danger, #b91c1c);
   font-size: 13px;
 }
 
@@ -833,9 +833,9 @@ details.crm-ve-spoiler[open] > summary {
 .crm-ve-upload-retry-btn,
 .crm-ve-upload-remove-btn {
   padding: 3px 8px;
-  border: 1px solid #ef4444;
+  border: 1px solid currentColor;
   border-radius: 4px;
-  background: var(--crm-surface, #fff);
+  background: var(--crm-ve-surface, #fff);
   color: inherit;
   cursor: pointer;
 }
@@ -1093,7 +1093,7 @@ details.crm-ve-spoiler[open] > summary {
   top: 100%;
   right: 6px;
   z-index: 1000;
-  background: #ffffff;
+  background: var(--crm-ve-surface, #ffffff);
   border: 1px solid var(--crm-ve-border, #e5e7eb);
   border-radius: var(--crm-ve-radius, 8px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
@@ -1115,11 +1115,12 @@ details.crm-ve-spoiler[open] > summary {
   font-size: 13px;
   border-radius: 6px;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   line-height: 1.2;
 }
 
-.crm-ve-more-item:hover {
+.crm-ve-more-item:hover,
+.crm-ve-more-item:focus-visible {
   background: var(--crm-ve-accent-light, #f0fdf4);
   color: var(--crm-ve-accent, #16a34a);
 }

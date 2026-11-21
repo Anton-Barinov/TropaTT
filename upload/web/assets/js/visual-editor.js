@@ -583,6 +583,9 @@ window.CRM.VisualEditor = (function () {
   //  History (Undo / Redo)
   // ---------------------------------------------------------------------------
 
+  var historyUploadAttr = 'data-crm-ve-history-upload';
+  var uploadPlaceholderSelector = '.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-error';
+
   function createHistory() {
     var snapshots = [];
     var pointer = -1;
@@ -603,12 +606,14 @@ window.CRM.VisualEditor = (function () {
 
     function push(html, immediate) {
       var snapshot = html || '';
-      // A restored snapshot has no live request or retry handler.
+      // A history marker can use a live upload node but cannot restart a request.
       if (/crm-ve-upload(?:ing|-error)/.test(snapshot)) {
         var template = document.createElement('template');
         template.innerHTML = snapshot;
-        template.content.querySelectorAll('.crm-ve-uploading, .crm-ve-uploading-ph, .crm-ve-upload-error').forEach(function (block) {
-          block.remove();
+        template.content.querySelectorAll(uploadPlaceholderSelector).forEach(function (block) {
+          var marker = document.createElement('span');
+          marker.setAttribute(historyUploadAttr, block.getAttribute('data-block-id') || '');
+          block.replaceWith(marker);
         });
         snapshot = template.innerHTML;
       }
@@ -638,16 +643,28 @@ window.CRM.VisualEditor = (function () {
 
     function undo() {
       flush();
-      if (pointer <= 0) return null;
-      pointer--;
-      return snapshots[pointer];
+      var current = snapshots[pointer];
+      while (pointer > 0) {
+        pointer--;
+        if (snapshots[pointer] !== current) return snapshots[pointer];
+      }
+      return null;
     }
 
     function redo() {
       flush();
-      if (pointer >= snapshots.length - 1) return null;
-      pointer++;
-      return snapshots[pointer];
+      var current = snapshots[pointer];
+      while (pointer < snapshots.length - 1) {
+        pointer++;
+        if (snapshots[pointer] !== current) return snapshots[pointer];
+      }
+      return null;
+    }
+
+    function settleUpload(id, replacement) {
+      var marker = '<span ' + historyUploadAttr + '="' + id + '"></span>';
+      snapshots = snapshots.map(function (snapshot) { return snapshot.split(marker).join(replacement); });
+      if (pending !== null) pending = pending.split(marker).join(replacement);
     }
 
     function reset() {
@@ -660,7 +677,7 @@ window.CRM.VisualEditor = (function () {
       pointer = -1;
     }
 
-    return { push: push, undo: undo, redo: redo, reset: reset };
+    return { push: push, undo: undo, redo: redo, reset: reset, settleUpload: settleUpload };
   }
 
   // ---------------------------------------------------------------------------
@@ -1026,6 +1043,9 @@ window.CRM.VisualEditor = (function () {
   function deleteSelectedImage(editorInstance) {
     var block = getSelectedImageBlock(editorInstance);
     if (!block) return;
+    if (block.matches(uploadPlaceholderSelector)) {
+      editorInstance._history.settleUpload(block.getAttribute('data-block-id'), '');
+    }
     deselectImage(editorInstance);
     block.parentNode.removeChild(block);
     editorInstance._history.push(editorInstance._content.innerHTML, true);
@@ -1300,6 +1320,7 @@ window.CRM.VisualEditor = (function () {
       removeBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         targetBlock.remove();
+        editorInstance._history.settleUpload(targetBlock.getAttribute('data-block-id'), '');
         editorInstance._sync();
         editorInstance._content.focus();
       });
@@ -1373,6 +1394,7 @@ window.CRM.VisualEditor = (function () {
       }
       placeholderBlock.replaceWith(newBlock);
 
+      editorInstance._history.settleUpload(blockId, newBlock.outerHTML);
       editorInstance._history.push(editorInstance._content.innerHTML, true);
       editorInstance._sync();
       selectImageBlock(editorInstance, newBlock);
@@ -1588,6 +1610,7 @@ window.CRM.VisualEditor = (function () {
     fileInput.addEventListener('change', function () {
       var files = fileInput.files;
       if (!files || !files.length) return;
+      self2._history.push(self2._content.innerHTML, true);
       var target = self2._replaceTarget;
       self2._replaceTarget = null;
       var preservedAlign = target ? (target.getAttribute('data-align') || 'center') : 'center';
@@ -1615,11 +1638,13 @@ window.CRM.VisualEditor = (function () {
           uploadImage(self2, files[i], tBlock).catch(function () {
             if (origTarget && tBlock && tBlock.parentNode) {
               tBlock.parentNode.replaceChild(origTarget, tBlock);
+              self2._history.settleUpload(tBlock.getAttribute('data-block-id'), origTarget.outerHTML);
               self2._sync();
             }
           });
         })(placeholder, i === 0 ? target : null);
       }
+      self2._history.push(self2._content.innerHTML, true);
       fileInput.value = '';
     });
 
@@ -1657,6 +1682,19 @@ window.CRM.VisualEditor = (function () {
     initImageResize(this);
   };
 
+  Editor.prototype._runFormattingCommand = function (apply) {
+    this._history.push(this._content.innerHTML, true);
+    this._formattingCommand = true;
+    try {
+      apply();
+    } finally {
+      this._formattingCommand = false;
+    }
+    this._sync();
+    this._history.push(this._content.innerHTML, true);
+    this._updateActiveButtons();
+  };
+
   Editor.prototype._buildToolbar = function () {
     var toolbar = this._toolbar;
     var self = this;
@@ -1682,38 +1720,39 @@ window.CRM.VisualEditor = (function () {
         self._content.focus();
         if (typeof cmd === 'function') {
           cmd();
-        } else if (cmd === 'removeFormat') {
-          self._execRemoveFormat();
-        } else if (cmd === 'quote') {
-          self._execQuote();
-        } else if (cmd === 'formatBlock') {
-          var targetVal = String(value || 'p').toLowerCase();
-          var currentBlock = self._getCurrentBlockTag();
-          if (targetVal !== 'p' && currentBlock === targetVal) {
-            document.execCommand('formatBlock', false, '<p>');
-          } else {
-            document.execCommand('formatBlock', false, '<' + targetVal + '>');
-          }
-        } else if (cmd === 'createLink') {
-          self._execLink();
-        } else if (cmd === 'insertImage') {
-          self._execImageUpload();
-        } else if (cmd === 'inlineCode') {
-          self._execInlineCode();
-        } else if (cmd === 'spoiler') {
-          self._execSpoiler();
-        } else if (cmd === 'codeBlock') {
-          self._execCodeBlock();
-        } else if (cmd === 'todoList') {
-          self._execTodoList();
-        } else if (cmd === 'insertTable') {
-          self._execTable(3, 3);
-        } else {
-          document.execCommand(cmd, false, value || null);
+          return;
         }
-        self._sync();
-        self._history.push(self._content.innerHTML, false);
-        self._updateActiveButtons();
+        self._runFormattingCommand(function () {
+          if (cmd === 'removeFormat') {
+            self._execRemoveFormat();
+          } else if (cmd === 'quote') {
+            self._execQuote();
+          } else if (cmd === 'formatBlock') {
+            var targetVal = String(value || 'p').toLowerCase();
+            var currentBlock = self._getCurrentBlockTag();
+            if (targetVal !== 'p' && currentBlock === targetVal) {
+              document.execCommand('formatBlock', false, '<p>');
+            } else {
+              document.execCommand('formatBlock', false, '<' + targetVal + '>');
+            }
+          } else if (cmd === 'createLink') {
+            self._execLink();
+          } else if (cmd === 'insertImage') {
+            self._execImageUpload();
+          } else if (cmd === 'inlineCode') {
+            self._execInlineCode();
+          } else if (cmd === 'spoiler') {
+            self._execSpoiler();
+          } else if (cmd === 'codeBlock') {
+            self._execCodeBlock();
+          } else if (cmd === 'todoList') {
+            self._execTodoList();
+          } else if (cmd === 'insertTable') {
+            self._execTable(3, 3);
+          } else {
+            document.execCommand(cmd, false, value || null);
+          }
+        });
       });
       toolbar.appendChild(btn);
       return btn;
@@ -1829,7 +1868,7 @@ window.CRM.VisualEditor = (function () {
     moreBtn.innerHTML = t('visual_editor.more', 'Ещё') + ' \u25BE';
     moreBtn.title = t('visual_editor.more', 'Ещё');
     moreBtn.setAttribute('aria-label', t('visual_editor.more', 'Ещё'));
-    moreBtn.setAttribute('aria-haspopup', 'true');
+    moreBtn.setAttribute('aria-haspopup', 'menu');
     moreBtn.setAttribute('aria-expanded', 'false');
 
     var moreMenu = document.createElement('div');
@@ -1843,6 +1882,7 @@ window.CRM.VisualEditor = (function () {
       item.type = 'button';
       item.className = 'crm-ve-more-item';
       item.setAttribute('role', 'menuitem');
+      item.tabIndex = -1;
       item.innerHTML = '<span class="crm-ve-more-item-icon">' + iconHtml + '</span><span>' + text + '</span>';
       item.addEventListener('mousedown', function (e) {
         e.preventDefault();
@@ -1852,10 +1892,11 @@ window.CRM.VisualEditor = (function () {
         self._hideMoreMenu();
         self._restoreSavedSelection();
         self._content.focus();
-        actionFn();
-        self._sync();
-        self._history.push(self._content.innerHTML, false);
-        self._updateActiveButtons();
+        if (actionFn === self.undo || actionFn === self.redo) {
+          actionFn.call(self);
+        } else {
+          self._runFormattingCommand(actionFn);
+        }
       });
       moreMenu.appendChild(item);
     }
@@ -1872,8 +1913,8 @@ window.CRM.VisualEditor = (function () {
     addMoreItem('\u201C', t('visual_editor.quote', 'Цитата'), function () { self._execQuote(); });
     addMoreItem('&lt;/&gt;', t('visual_editor.code_block', 'Блок кода'), function () { self._execCodeBlock(); });
     addMoreItem('\uD83D\uDDBC', t('visual_editor.image', 'Изображение'), function () { self._execImageUpload(); });
-    addMoreItem('\u21A9', t('visual_editor.undo', 'Отменить'), function () { self.undo(); });
-    addMoreItem('\u21AA', t('visual_editor.redo', 'Повторить'), function () { self.redo(); });
+    addMoreItem('\u21A9', t('visual_editor.undo', 'Отменить'), self.undo);
+    addMoreItem('\u21AA', t('visual_editor.redo', 'Повторить'), self.redo);
 
     moreBtn.addEventListener('mousedown', function (e) {
       e.preventDefault();
@@ -1888,7 +1929,34 @@ window.CRM.VisualEditor = (function () {
       } else {
         self._saveCurrentSelection();
         self._showMoreMenu();
+        if (e.detail === 0) moreMenu.firstElementChild.focus();
       }
+    });
+
+    moreBtn.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+      if (!self._moreMenuActive) {
+        self._saveCurrentSelection();
+        self._showMoreMenu();
+      }
+      (e.key === 'ArrowDown' ? moreMenu.firstElementChild : moreMenu.lastElementChild).focus();
+    });
+
+    moreMenu.addEventListener('keydown', function (e) {
+      var items = Array.from(moreMenu.children);
+      var index = items.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') index = (index + 1) % items.length;
+      else if (e.key === 'ArrowUp') index = (index - 1 + items.length) % items.length;
+      else if (e.key === 'Home') index = 0;
+      else if (e.key === 'End') index = items.length - 1;
+      else return;
+      e.preventDefault();
+      items[index].focus();
+    });
+
+    moreMenu.addEventListener('focusout', function (e) {
+      if (e.relatedTarget !== moreBtn && !moreMenu.contains(e.relatedTarget)) self._hideMoreMenu();
     });
 
     toolbar.appendChild(moreBtn);
@@ -2053,8 +2121,52 @@ window.CRM.VisualEditor = (function () {
     this._updateActiveButtons();
   };
 
-  // Spoiler (details/summary): wraps the current selection inside the spoiler,
-  // or inserts an empty spoiler when there is no selection.
+  function insertBlockAtRange(content, range, block) {
+    if (!range || !content.contains(range.startContainer)) {
+      content.appendChild(block);
+      return;
+    }
+
+    var point = range.cloneRange();
+    point.collapse(true);
+    var node = point.startContainer;
+    var element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    var paragraph = element.closest('p, h1, h2, h3');
+    if (!paragraph || !content.contains(paragraph)) {
+      point.insertNode(block);
+      return;
+    }
+
+    var remainder = paragraph.cloneNode(false);
+    remainder.removeAttribute('id');
+    var tail = point.cloneRange();
+    tail.setEnd(paragraph, paragraph.childNodes.length);
+    remainder.appendChild(tail.extractContents());
+    paragraph.after(block);
+    if (hasBlockContent(remainder)) block.after(remainder);
+    if (!hasBlockContent(paragraph)) paragraph.remove();
+  }
+
+  function hasBlockContent(node) {
+    return !!(node.textContent.replace(/[\u200B\uFEFF]/g, '').trim()
+      || node.querySelector('img, figure') || node.querySelectorAll('br').length > 1);
+  }
+
+  function extractSpoilerSelection(range) {
+    var common = range.commonAncestorContainer;
+    var inline = common.nodeType === Node.ELEMENT_NODE ? common : common.parentElement;
+    var fragment = range.extractContents();
+    while (inline && inline.matches('a, b, strong, i, em, u, s, strike, del, sub, sup, code, mark, span:not(.crm-ve-todo-text)')) {
+      var wrapper = inline.cloneNode(false);
+      wrapper.removeAttribute('id');
+      wrapper.appendChild(fragment);
+      fragment.appendChild(wrapper);
+      inline = inline.parentElement;
+    }
+    return fragment;
+  }
+
+  // Wrap a selection or insert an empty spoiler at the caret.
   Editor.prototype._execSpoiler = function () {
     var summaryText = (window.CRM && window.CRM.i18n)
       ? window.CRM.i18n.t('visual_editor.spoiler_summary', 'Разворачивание')
@@ -2068,9 +2180,9 @@ window.CRM.VisualEditor = (function () {
     summary.textContent = summaryText;
     details.appendChild(summary);
 
-    if (range && !range.collapsed) {
+    if (range && !range.collapsed && this._content.contains(range.commonAncestorContainer)) {
       // Wrap the selected content inside the spoiler instead of replacing it.
-      var fragment = range.extractContents();
+      var fragment = extractSpoilerSelection(range);
       var body = document.createElement('div');
       body.appendChild(fragment);
       // Inline-only selections get a paragraph so the spoiler body stays a
@@ -2081,14 +2193,7 @@ window.CRM.VisualEditor = (function () {
         body.appendChild(inlineParagraph);
       }
       while (body.firstChild) details.appendChild(body.firstChild);
-      var curP = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
-      if (curP && this._content.contains(curP)) {
-        if (curP.nextSibling) curP.parentNode.insertBefore(details, curP.nextSibling);
-        else curP.parentNode.appendChild(details);
-        if (curP.textContent.trim() === '' && !curP.querySelector('img, figure')) curP.remove();
-      } else {
-        range.insertNode(details);
-      }
+      insertBlockAtRange(this._content, range, details);
       var afterRange = document.createRange();
       afterRange.setStartAfter(details);
       afterRange.collapse(true);
@@ -2099,22 +2204,7 @@ window.CRM.VisualEditor = (function () {
       emptyParagraph.innerHTML = '<br>';
       details.appendChild(emptyParagraph);
       details.open = true;
-      if (range) {
-        var curP2 = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
-        if (curP2 && this._content.contains(curP2)) {
-          var pText2 = (curP2.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
-          if (!pText2 && !curP2.querySelector('img, figure')) {
-            curP2.parentNode.replaceChild(details, curP2);
-          } else {
-            if (curP2.nextSibling) curP2.parentNode.insertBefore(details, curP2.nextSibling);
-            else curP2.parentNode.appendChild(details);
-          }
-        } else {
-          range.insertNode(details);
-        }
-      } else {
-        this._content.appendChild(details);
-      }
+      insertBlockAtRange(this._content, range, details);
       var r = document.createRange();
       r.setStart(emptyParagraph, 0);
       r.collapse(true);
@@ -2592,19 +2682,7 @@ window.CRM.VisualEditor = (function () {
 
     wrapper.appendChild(createTableControls());
 
-    var curP = range.startContainer.nodeType === 1 ? range.startContainer.closest('p') : (range.startContainer.parentNode ? range.startContainer.parentNode.closest('p') : null);
-    if (curP && this._content.contains(curP)) {
-      var pText = (curP.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
-      if (!pText && !curP.querySelector('img, figure')) {
-        curP.parentNode.replaceChild(wrapper, curP);
-      } else {
-        if (curP.nextSibling) curP.parentNode.insertBefore(wrapper, curP.nextSibling);
-        else curP.parentNode.appendChild(wrapper);
-      }
-    } else {
-      range.deleteContents();
-      range.insertNode(wrapper);
-    }
+    insertBlockAtRange(this._content, range, wrapper);
 
     // Ensure there is a following paragraph after the table for seamless typing/pasting
     var nextEl = wrapper.nextElementSibling;
@@ -3734,6 +3812,12 @@ window.CRM.VisualEditor = (function () {
     var self = this;
     var content = this._content;
 
+    content.addEventListener('beforeinput', function (e) {
+      if (!self._formattingCommand && (e.inputType || '').indexOf('format') === 0) {
+        self._history.push(content.innerHTML, true);
+      }
+    });
+
     content.addEventListener('input', function (e) {
       // Auto-convert `[] ` at start of line into a todo list
       self._convertBracketsToTodo();
@@ -3751,7 +3835,9 @@ window.CRM.VisualEditor = (function () {
       }
       updateTodoAriaLabels(self._content);
       self._sync();
-      if (!self._pasting) self._history.push(content.innerHTML, false);
+      if (!self._pasting && !self._formattingCommand) {
+        self._history.push(content.innerHTML, inputType.indexOf('format') === 0);
+      }
       self._updateActiveButtons();
       self._updateEmptyState();
     });
@@ -3785,7 +3871,11 @@ window.CRM.VisualEditor = (function () {
         e.stopImmediatePropagation();
         if (self._slashMenuActive) self._hideSlashMenu();
         if (self._mentionMenuActive) self._hideMentionMenu();
-        if (self._moreMenuActive) self._hideMoreMenu();
+        if (self._moreMenuActive) {
+          var focusInMenu = self._moreMenu.contains(document.activeElement);
+          self._hideMoreMenu();
+          if (focusInMenu) self._moreBtn.focus();
+        }
       }
     };
     window.addEventListener('keydown', escapeCaptureHandler, true);
@@ -4335,6 +4425,7 @@ window.CRM.VisualEditor = (function () {
         self._insertAtCaret(placeholder);
         uploadImage(self, imageFiles[i], placeholder).catch(function () {});
       }
+      self._history.push(self._content.innerHTML, true);
       return;
     }
 
@@ -4694,6 +4785,7 @@ window.CRM.VisualEditor = (function () {
     if (!files || !files.length) return;
 
     var self = this;
+    self._history.push(self._content.innerHTML, true);
     for (var i = 0; i < files.length; i++) {
       if (isImageFile(files[i])) {
         var placeholder = createUploadingPlaceholder(generateId());
@@ -4701,6 +4793,7 @@ window.CRM.VisualEditor = (function () {
         uploadImage(self, files[i], placeholder).catch(function () {});
       }
     }
+    self._history.push(self._content.innerHTML, true);
   };
 
   Editor.prototype._sync = function () {
@@ -4880,11 +4973,16 @@ window.CRM.VisualEditor = (function () {
   Editor.prototype._cleanPastedArtifacts = function () {
     if (!this._content) return;
 
-    // 1. Ensure no unauthorized elements have contenteditable inside the editor
-    var editables = this._content.querySelectorAll('[contenteditable]');
+    // Embedded controls and image frames are not part of the editable text.
+    var lockedNodes = '.crm-ve-table-controls, .crm-ve-image-block, .crm-ve-todo-cb';
+    var editables = this._content.querySelectorAll('[contenteditable], ' + lockedNodes);
     for (var i = 0; i < editables.length; i++) {
       var el = editables[i];
       if (el === this._content) continue;
+      if (el.matches(lockedNodes)) {
+        el.setAttribute('contenteditable', 'false');
+        continue;
+      }
       var isMention = el.classList.contains('crm-ve-mention');
       var isCaption = el.classList.contains('crm-ve-image-caption');
       var isTodoText = el.classList.contains('crm-ve-todo-text');
@@ -5447,28 +5545,43 @@ window.CRM.VisualEditor = (function () {
     this._history = null;
   };
 
+  Editor.prototype._restoreHistorySnapshot = function (html) {
+    if (html === null) return false;
+
+    var content = this._content;
+    var uploads = new Map();
+    content.querySelectorAll(uploadPlaceholderSelector).forEach(function (node) {
+      uploads.set(node.getAttribute('data-block-id'), node);
+    });
+    var template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('[' + historyUploadAttr + ']').forEach(function (marker) {
+      var id = marker.getAttribute(historyUploadAttr);
+      var liveNode = uploads.get(id);
+      if (liveNode) {
+        marker.replaceWith(liveNode);
+        uploads.delete(id);
+      } else {
+        marker.remove();
+      }
+    });
+    content.replaceChildren(template.content);
+    var history = this._history;
+    uploads.forEach(function (node, id) {
+      history.settleUpload(id, '');
+    });
+    deselectImage(this);
+    this._sync();
+    this._updateActiveButtons();
+    return true;
+  };
+
   Editor.prototype.undo = function () {
-    var prev = this._history.undo();
-    if (prev !== null && prev !== undefined) {
-      this._content.innerHTML = prev;
-      this._sync();
-      this._updateActiveButtons();
-      this._updateEmptyState();
-      return true;
-    }
-    return false;
+    return this._restoreHistorySnapshot(this._history.undo());
   };
 
   Editor.prototype.redo = function () {
-    var next = this._history.redo();
-    if (next !== null && next !== undefined) {
-      this._content.innerHTML = next;
-      this._sync();
-      this._updateActiveButtons();
-      this._updateEmptyState();
-      return true;
-    }
-    return false;
+    return this._restoreHistorySnapshot(this._history.redo());
   };
 
   // ---------------------------------------------------------------------------
