@@ -617,8 +617,10 @@ window.CRM.VisualEditor = (function () {
         });
         snapshot = template.innerHTML;
       }
-      // Disabled state follows the selection and is recomputed on restore.
-      snapshot = snapshot.replace(/(<button\b[^>]* data-table-action="del-(?:row|col)"[^>]*?) disabled=""/g, '$1');
+      // Selection decorations do not create their own editing steps.
+      snapshot = snapshot
+        .replace(/(<button\b[^>]* data-table-action="del-(?:row|col)"[^>]*?) disabled=""/g, '$1')
+        .replace(/<figure class="crm-ve-image-figure is-selected"/g, '<figure class="crm-ve-image-figure"');
       if (immediate) {
         flush();
         commit(snapshot);
