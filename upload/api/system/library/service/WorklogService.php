@@ -34,10 +34,16 @@ final class WorklogService
     ) {
     }
 
-    private function getAuthz(): AuthzService
+    private function getAuthz(): ?AuthzService
     {
         if ($this->authz === null) {
-            $this->authz = new AuthzService(new \Api\Model\Permission\RolePermissionRepository($this->worklogs->getPdo()));
+            try {
+                if (class_exists(AuthzService::class) && class_exists(\Api\Model\Permission\RolePermissionRepository::class)) {
+                    $this->authz = new AuthzService(new \Api\Model\Permission\RolePermissionRepository($this->worklogs->getPdo()));
+                }
+            } catch (\Throwable) {
+                return null;
+            }
         }
         return $this->authz;
     }
@@ -98,7 +104,16 @@ final class WorklogService
             return true;
         }
 
-        return $this->getAuthz()->hasPermissions($actor, ['worklog.manage_all', 'worklog.view_all', 'worklog.manage', 'task.manage', '*']);
+        try {
+            $authz = $this->getAuthz();
+            if ($authz !== null) {
+                return $authz->hasPermissions($actor, ['worklog.manage_all', 'worklog.view_all', 'worklog.manage', 'task.manage', '*']);
+            }
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return false;
     }
 
     private function isRootActor(array $actor): bool
@@ -555,8 +570,13 @@ final class WorklogService
             return true;
         }
 
-        if ($this->getAuthz()->hasPermissions($actor, ['worklog.manage_all', 'worklog.manage'])) {
-            return true;
+        try {
+            $authz = $this->getAuthz();
+            if ($authz !== null && $authz->hasPermissions($actor, ['worklog.manage_all', 'worklog.manage'])) {
+                return true;
+            }
+        } catch (\Throwable) {
+            // fail-closed
         }
 
         return false;
