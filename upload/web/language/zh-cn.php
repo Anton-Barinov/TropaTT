@@ -1389,6 +1389,8 @@ return array (
     'no_role' => '无角色',
     'field_team' => '团队',
     'no_team' => '无团队',
+    'field_teams' => '团队',
+    'select_teams' => '选择团队',
     'bulk_actions_aria' => '批量操作',
   ),
   'kanban' => 

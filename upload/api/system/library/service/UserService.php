@@ -192,7 +192,11 @@ final class UserService
         if ($orgId !== null && $orgId <= 0) {
             $orgId = null;
         }
-        $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
+        if (array_key_exists('team_public_ids', $input) && is_array($input['team_public_ids'])) {
+            $this->syncUserTeams($publicId, $input['team_public_ids'], $orgId);
+        } else {
+            $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
+        }
 
         $this->logger->audit([
             'action' => 'user_create',
@@ -318,7 +322,11 @@ final class UserService
         if ($orgId !== null && $orgId <= 0) {
             $orgId = null;
         }
-        $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
+        if (array_key_exists('team_public_ids', $input) && is_array($input['team_public_ids'])) {
+            $this->syncUserTeams($publicId, $input['team_public_ids'], $orgId);
+        } else {
+            $this->assignToTeam($publicId, $input['team_public_id'] ?? null, $orgId);
+        }
 
         $now = gmdate('Y-m-d H:i:s');
         $set['updated_at'] = $now;
@@ -539,13 +547,76 @@ final class UserService
         return $this->policy->canManageUser($actor, $target);
     }
 
+    public function syncUserTeams(string $userPublicId, array $teamPublicIds, ?int $organizationId = null): void
+    {
+        $user = $this->users->findByPublicId($userPublicId);
+        if (!$user) {
+            return;
+        }
+        $userIdInt = (int)$user['id'];
+        if ($userIdInt <= 0) {
+            return;
+        }
+
+        $targetPublicIds = array_values(array_unique(array_filter(
+            array_map('trim', array_map('strval', $teamPublicIds)),
+            static fn(string $id): bool => $id !== ''
+        )));
+
+        // Find teams where user is currently a member
+        $currentTeams = $this->teams->teamsByUserIds([$userIdInt], $organizationId)[$userIdInt] ?? [];
+        $currentTeamPublicIds = [];
+        foreach ($currentTeams as $ct) {
+            $currentTeamPublicIds[] = (string)$ct['public_id'];
+        }
+
+        // Teams to remove from: in current but not in target
+        $toRemove = array_diff($currentTeamPublicIds, $targetPublicIds);
+        foreach ($toRemove as $teamPubId) {
+            $team = $this->teams->findByPublicId($teamPubId, $organizationId)
+                ?? $this->teams->findByPublicId($teamPubId, null);
+            if (!$team) {
+                continue;
+            }
+            $memberIds = json_decode((string)($team['member_user_ids'] ?? '[]'), true) ?: [];
+            $newMemberIds = array_values(array_filter($memberIds, static fn($id): bool => (int)$id !== $userIdInt));
+            if (count($newMemberIds) !== count($memberIds)) {
+                $teamOrg = isset($team['organization_id']) ? (int)$team['organization_id'] : null;
+                $this->teams->updateByPublicId($teamPubId, [
+                    'member_user_ids' => json_encode($newMemberIds),
+                    'updated_at' => gmdate('Y-m-d H:i:s'),
+                ], $teamOrg);
+            }
+        }
+
+        // Teams to add to: in target
+        foreach ($targetPublicIds as $teamPubId) {
+            $team = $this->teams->findByPublicId($teamPubId, $organizationId)
+                ?? $this->teams->findByPublicId($teamPubId, null);
+            if (!$team) {
+                continue;
+            }
+            $memberIds = json_decode((string)($team['member_user_ids'] ?? '[]'), true) ?: [];
+            $memberInts = array_map('intval', $memberIds);
+            if (!in_array($userIdInt, $memberInts, true)) {
+                $memberInts[] = $userIdInt;
+                $teamOrg = isset($team['organization_id']) ? (int)$team['organization_id'] : null;
+                $this->teams->updateByPublicId($teamPubId, [
+                    'member_user_ids' => json_encode(array_values(array_unique($memberInts))),
+                    'updated_at' => gmdate('Y-m-d H:i:s'),
+                ], $teamOrg);
+            }
+        }
+    }
+
     private function assignToTeam(string $userPublicId, ?string $teamPublicId, ?int $organizationId = null): void
     {
         if ($teamPublicId === null || trim((string)$teamPublicId) === '') {
             return;
         }
 
-        $team = $this->teams->findByPublicId(trim((string)$teamPublicId), $organizationId);
+        $team = $this->teams->findByPublicId(trim((string)$teamPublicId), $organizationId)
+            ?? $this->teams->findByPublicId(trim((string)$teamPublicId), null);
         if (!$team) {
             return;
         }
@@ -562,10 +633,11 @@ final class UserService
 
         if (!in_array($userIdInt, $memberIds, true)) {
             $memberIds[] = $userIdInt;
+            $teamOrg = isset($team['organization_id']) ? (int)$team['organization_id'] : null;
             $this->teams->updateByPublicId(trim((string)$teamPublicId), [
                 'member_user_ids' => json_encode($memberIds),
                 'updated_at' => gmdate('Y-m-d H:i:s'),
-            ], $organizationId);
+            ], $teamOrg);
         }
     }
 
