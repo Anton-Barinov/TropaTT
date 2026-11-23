@@ -146,7 +146,7 @@ final class FinancialFieldPolicy
         // the external block still prevents financial field disclosure.
         $isExternal = (bool)($actor['is_external'] ?? false);
 
-        $isRoot = (bool)($actor['is_root'] ?? false);
+        $isRoot = (bool)($actor['is_root'] ?? false) || ActorPermission::isPrivileged($actor);
         if ($isRoot && !$isExternal) {
             return ['payout', 'cost', 'bill', 'config'];
         }
@@ -228,6 +228,9 @@ final class FinancialFieldPolicy
      */
     private function hasPerm(array $actor, string $code): bool
     {
+        if (ActorPermission::isPrivileged($actor)) {
+            return true;
+        }
         $codes = (array)($actor['permission_codes'] ?? []);
         // Root has ['*'] — matches everything
         return in_array('*', $codes, true) || in_array($code, $codes, true);
