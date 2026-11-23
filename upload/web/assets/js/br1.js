@@ -1693,7 +1693,11 @@ window.CRM.br1 = (function () {
           code: String(item.code || ''),
           title: String(item.title || item.code || ''),
           sort_order: Number(item.sort_order || 0),
-          color: normalizeStatusColor(item.color)
+          color: normalizeStatusColor(item.color),
+          is_closed: item.is_closed,
+          progress_percent: (item.progress_percent !== null && item.progress_percent !== undefined && item.progress_percent !== '')
+            ? Number(item.progress_percent)
+            : null
         };
       }).filter(function (item) {
         return item.code !== '';
