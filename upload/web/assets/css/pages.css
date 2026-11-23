@@ -6256,10 +6256,29 @@ body.modal-open {
 }
 
 .crm-task-detail-page .crm-task-hero {
+  position: relative;
+  z-index: 5;
   background:
     radial-gradient(circle at top right, color-mix(in srgb, var(--crm-success) 14%, transparent), transparent 38%),
     linear-gradient(180deg, var(--crm-surface) 0%, var(--crm-surface-2) 100%);
   padding: 0.95rem;
+}
+
+.crm-task-detail-page .crm-task-hero:has(.dropdown-menu.show),
+.crm-task-detail-page .crm-task-hero:has([aria-expanded="true"]),
+.crm-task-detail-page .crm-task-hero.crm-card-has-dropdown-open,
+.crm-task-detail-page .crm-task-hero:focus-within {
+  z-index: 1050 !important;
+}
+
+.crm-task-detail-page .crm-task-status-dropdown {
+  position: relative;
+  z-index: 10;
+}
+
+.crm-task-detail-page .crm-task-status-dropdown.show,
+.crm-task-detail-page .crm-task-status-dropdown:has(.dropdown-menu.show) {
+  z-index: 1060 !important;
 }
 
 .crm-task-detail-page .crm-task-hero-top {
@@ -6345,9 +6364,13 @@ body.modal-open {
 
 .crm-task-detail-page .crm-task-status-menu {
   min-width: 190px;
+  max-height: min(380px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.35rem;
   border-color: var(--crm-border);
   box-shadow: 0 12px 28px color-mix(in srgb, var(--crm-ink) 14%, transparent);
+  z-index: 1070 !important;
 }
 
 .crm-task-detail-page .crm-task-status-menu .dropdown-item {
