@@ -552,13 +552,20 @@ a.btn {
 }
 
 .form-control,
-.form-select,
 .crm-input,
-.crm-select,
 .crm-textarea {
   border: 1px solid var(--crm-border);
   border-radius: var(--crm-radius-md);
   background: var(--crm-surface);
+  color: var(--crm-text);
+  font-size: 15px;
+}
+
+.form-select,
+.crm-select {
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius-md);
+  background-color: var(--crm-surface);
   color: var(--crm-text);
   font-size: 15px;
 }
@@ -1889,9 +1896,7 @@ a.btn:active {
 }
 
 .form-control,
-.form-select,
 .crm-input,
-.crm-select,
 .crm-textarea,
 textarea.form-control {
   border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent);
@@ -1908,23 +1913,50 @@ textarea.form-control {
     transform 160ms ease;
 }
 
+.form-select,
+.crm-select {
+  border-color: color-mix(in srgb, var(--crm-ink) 12%, transparent);
+  border-radius: 14px;
+  background-color: color-mix(in srgb, var(--crm-surface) 86%, transparent);
+  color: var(--crm-text);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 78%, transparent),
+    0 1px 0 color-mix(in srgb, var(--crm-ink) 2%, transparent);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
 .form-control:hover,
-.form-select:hover,
 .crm-input:hover,
-.crm-select:hover,
 .crm-textarea:hover {
   border-color: color-mix(in srgb, var(--crm-accent) 28%, transparent);
   background: var(--crm-surface);
 }
 
+.form-select:hover,
+.crm-select:hover {
+  border-color: color-mix(in srgb, var(--crm-accent) 28%, transparent);
+  background-color: var(--crm-surface);
+}
+
 .form-control:focus,
-.form-select:focus,
 .crm-input:focus,
-.crm-select:focus,
 .crm-textarea:focus,
 textarea.form-control:focus {
   border-color: var(--crm-primary);
   background: var(--crm-surface);
+  box-shadow:
+    0 0 0 4px var(--crm-focus),
+    inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
+}
+
+.form-select:focus,
+.crm-select:focus {
+  border-color: var(--crm-primary);
+  background-color: var(--crm-surface);
   box-shadow:
     0 0 0 4px var(--crm-focus),
     inset 0 1px 0 color-mix(in srgb, var(--crm-surface) 88%, transparent);
@@ -3830,6 +3862,19 @@ select::-ms-expand,
   display: none !important;
 }
 
+select::-webkit-calendar-picker-indicator,
+.form-select::-webkit-calendar-picker-indicator,
+select::-webkit-inner-spin-button,
+.form-select::-webkit-inner-spin-button,
+select::picker-icon,
+.form-select::picker-icon {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
 .form-select:hover,
 .crm-select:hover,
 .form-select:focus,
@@ -3841,8 +3886,10 @@ select::-ms-expand,
   background-image: var(--bs-form-select-bg-img) !important;
 }
 
-.btn::after {
-  display: none;
+.btn::after,
+.form-select::after,
+select::after {
+  display: none !important;
 }
 
 .badge,

@@ -17605,6 +17605,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var badgesEl = document.getElementById(prefix + 'TeamsBadges');
       var listEl = document.getElementById(prefix + 'TeamsList');
       var countEl = document.getElementById(prefix + 'TeamsCount');
+      var summaryEl = document.getElementById(prefix + 'TeamsSummary');
       if (!listEl) return { getSelected: function () { return []; }, setSelected: function () {} };
 
       var searchHtml = teams.length > 3
@@ -17650,13 +17651,23 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           selected.push({ id: chk.value, title: chk.getAttribute('data-title') || chk.value });
         });
 
+        if (summaryEl) {
+          if (selected.length === 0) {
+            summaryEl.textContent = tp('admin_users.select_teams', 'Select teams');
+            summaryEl.classList.add('text-muted');
+          } else {
+            summaryEl.textContent = selected.map(function (item) { return item.title; }).join(', ');
+            summaryEl.classList.remove('text-muted');
+          }
+        }
+
         if (countEl) {
           countEl.textContent = selected.length > 0 ? '(' + selected.length + ')' : '';
         }
 
         if (!badgesEl) return;
         if (selected.length === 0) {
-          badgesEl.innerHTML = '<span class="text-muted small">' + safeText(tp('admin.no_team', 'No team')) + '</span>';
+          badgesEl.innerHTML = '';
           return;
         }
 
