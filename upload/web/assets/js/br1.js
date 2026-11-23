@@ -2015,9 +2015,7 @@ window.CRM.br1 = (function () {
       : Promise.resolve();
 
     var pStatuses = availableTaskStatuses.length === 0
-      ? window.CRM.api.request('api/v1/statuses', { query: { scope: 'task', is_active: 1, limit: 100 } })
-          .then(function (res) { availableTaskStatuses = window.CRM.api.items(res); })
-          .catch(function () { availableTaskStatuses = []; })
+      ? loadTaskStatusesDictionary().catch(function () {})
       : Promise.resolve();
 
     await Promise.all([pProjects, pUsers, pTags, pClients, pStatuses]);
