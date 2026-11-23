@@ -6,6 +6,34 @@ This project follows a lightweight Keep a Changelog style. Dates are added when 
 
 ## Unreleased
 
+## [v0.2.0.16] - 2026-11-24
+
+### Highlights
+
+- **Admin Users & Teams Management**:
+  - **Multi-select teams in user card**: Added ability to assign a user to multiple teams simultaneously in user creation and edit modals with interactive badge tags, live filtering, and removal controls.
+  - **User table team badges**: Updated user listing (`admin-users`) to display badges for all assigned teams per user instead of a fallback single team or "No team".
+  - **Multilingual support**: Added localized keys across locales for team badges and modal labels.
+- **Task Card UI & Workflow Improvements**:
+  - **Dropdown stacking elevation**: Fixed issue where long status dropdown menus were overlapped by subsequent cards or tabs; dynamically elevates the card stacking context (`z-index: 1055`) and sets a scrollable maximum height (`max-height: 380px`).
+  - **Status dictionary percentage preservation**: Fixed task status dictionary mapping in task card JavaScript (`loadTaskStatusesDictionary`), preserving `progress_percent` and `is_closed` attributes from funnel status configurations.
+  - **Real-time tab counters**: Added immediate counter fetching for all task detail tabs (worklogs, files, activity, knowledge, dependencies) with cache bypassing on updates.
+  - **Scoped worklog visibility**: Hardened worklog access checks so root actors, superadmins, task managers, and authors retain proper visibility across scoped organizational contexts.
+- **Rich Visual Editor (VE-01 – VE-17)**:
+  - **Native Lightbox & Image Viewer**: Implemented independent zoomable lightbox image viewer for images in task descriptions, comments, and knowledge base pages without external library dependencies.
+  - **Formatting & History**: Added dedicated Clear Formatting (`removeFormat`) action with instant undo registration and keyboard redo shortcuts.
+  - **Block Handling & Exits**: Improved empty trailing line handling for code blocks, spoilers, and block quotes, and lifted improperly nested paragraph blocks to root.
+  - **Theme Readability**: Ensured full contrast and readability of toolbar controls, icons, and menus across dark, graphite, contrast, and sepia themes.
+  - **HTML Sanitizer**: Hardened sanitizer rules to preserve checklist checkboxes, spans, and checked states.
+- **Integrations & Modules**:
+  - **Telegram Bot Module**: Deduplicated MySQL PDO parameters, refined intake ticket routing by organization, enhanced client dialogues messenger, quick replies, and CRM task creation.
+  - **Corporate Mail Module**: Added mailbox management interface, config defaults, and intake tickets.
+  - **Centralized Modules Updates**: Centralized marketplace update management with sequential update queue and readback verification.
+  - **Knowledge Base Export**: Fixed Markdown export using safe callback replacement.
+- **Security & Reliability**:
+  - Hardened `AuthzService` and `WorklogService` with fail-closed error handling.
+  - Improved retry and resumption for package downloads in shared hosting environments.
+
 ## [v0.2.0.15] - 2026-10-16
 
 ### Highlights
