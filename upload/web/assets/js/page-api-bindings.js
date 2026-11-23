@@ -17607,16 +17607,35 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       var countEl = document.getElementById(prefix + 'TeamsCount');
       if (!listEl) return { getSelected: function () { return []; }, setSelected: function () {} };
 
-      listEl.innerHTML = teams.length === 0
+      var searchHtml = teams.length > 3
+        ? '<div class="px-1 pb-2 border-bottom mb-2"><input type="text" class="form-control form-control-sm team-search-input" placeholder="' + safeText(tp('page.search', 'Search')) + '..."></div>'
+        : '';
+
+      var itemsHtml = teams.length === 0
         ? '<div class="text-muted small p-2">' + safeText(tp('admin.no_team', 'No team')) + '</div>'
-        : teams.map(function (team) {
-            return '<div class="form-check mb-1">'
+        : '<div class="team-items-scroll" style="max-height: 180px; overflow-y: auto;">' + teams.map(function (team) {
+            return '<div class="form-check mb-1 team-item-check">'
               + '<input class="form-check-input team-multi-chk" type="checkbox" value="' + safeText(team.public_id) + '" id="' + prefix + 'Team_' + safeText(team.public_id) + '" data-title="' + safeText(team.title) + '">'
               + '<label class="form-check-label small user-select-none" for="' + prefix + 'Team_' + safeText(team.public_id) + '">'
               + safeText(team.title)
               + '</label>'
               + '</div>';
-          }).join('');
+          }).join('') + '</div>';
+
+      listEl.innerHTML = searchHtml + itemsHtml;
+
+      var searchInput = listEl.querySelector('.team-search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', function () {
+          var val = (this.value || '').toLowerCase().trim();
+          listEl.querySelectorAll('.team-item-check').forEach(function (fc) {
+            var label = (fc.querySelector('label') ? fc.querySelector('label').textContent : '').toLowerCase();
+            fc.style.display = !val || label.indexOf(val) !== -1 ? '' : 'none';
+          });
+        });
+        searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+        searchInput.addEventListener('keydown', function (e) { e.stopPropagation(); });
+      }
 
       function getSelected() {
         var checked = listEl.querySelectorAll('.team-multi-chk:checked');
