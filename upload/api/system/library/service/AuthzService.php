@@ -48,7 +48,11 @@ final class AuthzService
             return [];
         }
 
-        return $this->rolePermissions->permissionCodesByUserId($userId);
+        try {
+            return $this->rolePermissions->permissionCodesByUserId($userId);
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     public function hasPermissions(array $user, array $requiredPermissions): bool
