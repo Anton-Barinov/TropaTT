@@ -96,7 +96,7 @@ final class UserController extends BaseController
         // asks for an inactive account must not silently receive an active one —
         // the create path used to drop the flag and hard-code `is_active = 1`,
         // while MCP keeps advertising `is_active` on `crm_people`.
-        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'token', 'role_public_ids', 'team_public_id']);
+        $input = $this->validatedInput(['login', 'password', 'email', 'full_name', 'locale', 'is_active', 'is_root', 'token', 'role_public_ids', 'team_public_id', 'team_public_ids']);
 
         // SEC-002: is_root is NEVER settable via API (seed/migration/DB only).
         // role_public_ids may be set by root actors; non-root actors cannot
@@ -111,14 +111,34 @@ final class UserController extends BaseController
             ->require($input, 'password', $this->t('common/messages.field_required'))
             ->maxLen($input, 'login', 120, $this->t('user/messages.max_120'));
 
-        if (!empty($input['team_public_id'])) {
+        if (array_key_exists('team_public_ids', $input)) {
+            if (!is_array($input['team_public_ids'])) {
+                $v->addError('team_public_ids', $this->t('common/messages.validation_error'));
+            } else {
+                /** @var \Api\Model\Team\TeamRepository $teamRepo */
+                $teamRepo = $this->container->get('repository.team');
+                $teamOrgId = isset($scopedActor['organization_id']) ? (int)$scopedActor['organization_id'] : null;
+                if ($teamOrgId !== null && $teamOrgId <= 0) {
+                    $teamOrgId = null;
+                }
+                foreach ($input['team_public_ids'] as $teamPubId) {
+                    $foundTeam = $teamRepo->findByPublicId(trim((string)$teamPubId), $teamOrgId)
+                        ?? $teamRepo->findByPublicId(trim((string)$teamPubId), null);
+                    if (!$foundTeam) {
+                        $v->addError('team_public_ids', $this->t('common/messages.validation_error'));
+                        break;
+                    }
+                }
+            }
+        } elseif (!empty($input['team_public_id'])) {
             /** @var \Api\Model\Team\TeamRepository $teamRepo */
             $teamRepo = $this->container->get('repository.team');
             $teamOrgId = isset($scopedActor['organization_id']) ? (int)$scopedActor['organization_id'] : null;
             if ($teamOrgId !== null && $teamOrgId <= 0) {
                 $teamOrgId = null;
             }
-            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId);
+            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId)
+                ?? $teamRepo->findByPublicId(trim((string)$input['team_public_id']), null);
             if (!$foundTeam) {
                 $v->addError('team_public_id', $this->t('common/messages.validation_error'));
             }
@@ -182,7 +202,7 @@ final class UserController extends BaseController
         }
         $actor = $this->organizationScopedActor((array)$auth['user']);
 
-        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id', 'external_role']);
+        $input = $this->validatedInput(['email', 'full_name', 'locale', 'cost_rate', 'bill_rate', 'payout_rate', 'is_active', 'password', 'token', 'is_root', 'role_public_ids', 'team_public_id', 'team_public_ids', 'external_role']);
 
         // External guest role (observer/executor) may only be set to the two
         // known portal roles; anything else is rejected instead of silently
@@ -209,14 +229,36 @@ final class UserController extends BaseController
             unset($input['cost_rate'], $input['bill_rate'], $input['payout_rate']);
         }
 
-        if (array_key_exists('team_public_id', $input) && !empty($input['team_public_id'])) {
+        if (array_key_exists('team_public_ids', $input)) {
+            if (!is_array($input['team_public_ids'])) {
+                return $this->error('VALIDATION_ERROR', $this->t('user/messages.update_failed'), 422, [
+                    'team_public_ids' => [$this->t('common/messages.validation_error')],
+                ]);
+            }
             /** @var \Api\Model\Team\TeamRepository $teamRepo */
             $teamRepo = $this->container->get('repository.team');
             $teamOrgId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
             if ($teamOrgId !== null && $teamOrgId <= 0) {
                 $teamOrgId = null;
             }
-            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId);
+            foreach ($input['team_public_ids'] as $teamPubId) {
+                $foundTeam = $teamRepo->findByPublicId(trim((string)$teamPubId), $teamOrgId)
+                    ?? $teamRepo->findByPublicId(trim((string)$teamPubId), null);
+                if (!$foundTeam) {
+                    return $this->error('VALIDATION_ERROR', $this->t('user/messages.update_failed'), 422, [
+                        'team_public_ids' => [$this->t('common/messages.validation_error')],
+                    ]);
+                }
+            }
+        } elseif (array_key_exists('team_public_id', $input) && !empty($input['team_public_id'])) {
+            /** @var \Api\Model\Team\TeamRepository $teamRepo */
+            $teamRepo = $this->container->get('repository.team');
+            $teamOrgId = isset($actor['organization_id']) ? (int)$actor['organization_id'] : null;
+            if ($teamOrgId !== null && $teamOrgId <= 0) {
+                $teamOrgId = null;
+            }
+            $foundTeam = $teamRepo->findByPublicId(trim((string)$input['team_public_id']), $teamOrgId)
+                ?? $teamRepo->findByPublicId(trim((string)$input['team_public_id']), null);
             if (!$foundTeam) {
                 return $this->error('VALIDATION_ERROR', $this->t('user/messages.update_failed'), 422, [
                     'team_public_id' => [$this->t('common/messages.validation_error')],

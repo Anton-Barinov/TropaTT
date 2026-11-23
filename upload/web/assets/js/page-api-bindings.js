@@ -17601,12 +17601,106 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       }).join('');
     });
 
+    function setupTeamsMultiSelect(prefix) {
+      var badgesEl = document.getElementById(prefix + 'TeamsBadges');
+      var listEl = document.getElementById(prefix + 'TeamsList');
+      var countEl = document.getElementById(prefix + 'TeamsCount');
+      if (!listEl) return { getSelected: function () { return []; }, setSelected: function () {} };
+
+      listEl.innerHTML = teams.length === 0
+        ? '<div class="text-muted small p-2">' + safeText(tp('admin.no_team', 'No team')) + '</div>'
+        : teams.map(function (team) {
+            return '<div class="form-check mb-1">'
+              + '<input class="form-check-input team-multi-chk" type="checkbox" value="' + safeText(team.public_id) + '" id="' + prefix + 'Team_' + safeText(team.public_id) + '" data-title="' + safeText(team.title) + '">'
+              + '<label class="form-check-label small user-select-none" for="' + prefix + 'Team_' + safeText(team.public_id) + '">'
+              + safeText(team.title)
+              + '</label>'
+              + '</div>';
+          }).join('');
+
+      function getSelected() {
+        var checked = listEl.querySelectorAll('.team-multi-chk:checked');
+        var ids = [];
+        checked.forEach(function (c) { ids.push(c.value); });
+        return ids;
+      }
+
+      function updateBadges() {
+        var selected = [];
+        listEl.querySelectorAll('.team-multi-chk:checked').forEach(function (chk) {
+          selected.push({ id: chk.value, title: chk.getAttribute('data-title') || chk.value });
+        });
+
+        if (countEl) {
+          countEl.textContent = selected.length > 0 ? '(' + selected.length + ')' : '';
+        }
+
+        if (!badgesEl) return;
+        if (selected.length === 0) {
+          badgesEl.innerHTML = '<span class="text-muted small">' + safeText(tp('admin.no_team', 'No team')) + '</span>';
+          return;
+        }
+
+        badgesEl.innerHTML = selected.map(function (item) {
+          return '<span class="badge bg-light text-dark border d-inline-flex align-items-center gap-1 py-1 px-2">'
+            + '<span>' + safeText(item.title) + '</span>'
+            + '<button type="button" class="btn-close btn-close-sm" style="font-size:0.65rem;" data-remove-team="' + safeText(item.id) + '" aria-label="Remove"></button>'
+            + '</span>';
+        }).join('');
+
+        badgesEl.querySelectorAll('[data-remove-team]').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var teamId = btn.getAttribute('data-remove-team');
+            var chk = listEl.querySelector('.team-multi-chk[value="' + teamId + '"]');
+            if (chk) {
+              chk.checked = false;
+              updateBadges();
+            }
+          });
+        });
+      }
+
+      listEl.querySelectorAll('.team-multi-chk').forEach(function (chk) {
+        chk.addEventListener('change', updateBadges);
+      });
+
+      function setSelected(ids) {
+        var set = {};
+        (ids || []).forEach(function (id) { if (id) set[String(id)] = true; });
+        listEl.querySelectorAll('.team-multi-chk').forEach(function (chk) {
+          chk.checked = !!set[chk.value];
+        });
+        updateBadges();
+      }
+
+      updateBadges();
+
+      return {
+        getSelected: getSelected,
+        setSelected: setSelected
+      };
+    }
+
+    var createTeamsMS = setupTeamsMultiSelect('userCreate');
+    var editTeamsMS = setupTeamsMultiSelect('userEdit');
+
+    var userCreateModalEl = document.getElementById('userCreateModal');
+    if (userCreateModalEl && userCreateModalEl.dataset.bound !== '1') {
+      userCreateModalEl.addEventListener('show.bs.modal', function () {
+        createTeamsMS.setSelected([]);
+      });
+      userCreateModalEl.dataset.bound = '1';
+    }
+
     // Bind create form
     var createForm = document.getElementById('adminUserCreateForm');
     if (createForm && createForm.dataset.bound !== '1') {
       createForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var formData = new FormData(createForm);
+        var selectedTeams = createTeamsMS.getSelected();
         var data = {
           login: formData.get('login'),
           password: formData.get('password'),
@@ -17614,13 +17708,15 @@ tableBody.innerHTML = counterparties.map(function (cp) {
           email: formData.get('email'),
           locale: formData.get('locale') || 'ru-ru',
           role_public_ids: formData.get('role_public_ids') ? [formData.get('role_public_ids')] : [],
-          team_public_id: formData.get('team_public_id') || null
+          team_public_ids: selectedTeams,
+          team_public_id: selectedTeams[0] || null
         };
         var result = await tryRequest('api/v1/users', { method: 'POST', body: data });
         if (result && result.success) {
           notify(tp('admin.user_created', 'User created'));
           bootstrap.Modal.getInstance(document.getElementById('userCreateModal')).hide();
           createForm.reset();
+          createTeamsMS.setSelected([]);
           renderAdminUsersPage(); // Reload
         }
       });
@@ -17744,6 +17840,11 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         form.querySelector('[name="locale"]').value = user.locale || 'ru-ru';
         form.querySelector('[name="is_active"]').value = user.is_active ? '1' : '0';
         form.querySelector('[name="role_public_ids"]').value = (user.role_public_ids || [])[0] || '';
+        var userTeamIds = user.team_public_ids || [];
+        if (userTeamIds.length === 0 && user.team_public_id) {
+          userTeamIds = [user.team_public_id];
+        }
+        editTeamsMS.setSelected(userTeamIds);
         var teamSelect = form.querySelector('[name="team_public_id"]');
         if (teamSelect) {
           teamSelect.value = user.team_public_id || (user.team_public_ids && user.team_public_ids[0]) || '';
@@ -18024,13 +18125,15 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         e.preventDefault();
         var formData = new FormData(editForm);
         var publicId = formData.get('public_id');
+        var selectedTeams = editTeamsMS.getSelected();
         var data = {
           full_name: formData.get('full_name'),
           email: formData.get('email'),
           locale: formData.get('locale'),
           is_active: formData.get('is_active') === '1',
           role_public_ids: formData.get('role_public_ids') ? [formData.get('role_public_ids')] : [],
-          team_public_id: formData.get('team_public_id') || null,
+          team_public_ids: selectedTeams,
+          team_public_id: selectedTeams[0] || null,
           cost_rate: formData.get('cost_rate') || null,
           bill_rate: formData.get('bill_rate') || null
         };

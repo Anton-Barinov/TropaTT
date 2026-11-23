@@ -1398,6 +1398,8 @@ return array (
     'no_role' => 'Без роли',
     'field_team' => 'Команда',
     'no_team' => 'Без команды',
+    'field_teams' => 'Команды',
+    'select_teams' => 'Выбрать команды',
     'bulk_actions_aria' => 'Массовые действия',
   ),
   'kanban' => 
