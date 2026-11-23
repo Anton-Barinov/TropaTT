@@ -79,12 +79,42 @@ final class WorklogService
         return $id > 0 ? $id : null;
     }
 
+    private function isPrivilegedWorklogActor(array $actor): bool
+    {
+        if (!empty((int)($actor['is_external'] ?? 0))) {
+            return false;
+        }
+
+        if (!empty($actor['is_root']) || ActorPermission::isPrivileged($actor) || ActorPermission::canManageTasks($actor)) {
+            return true;
+        }
+
+        $roles = (array)($actor['roles'] ?? []);
+        if (isset($actor['role']) && is_string($actor['role'])) {
+            $roles[] = $actor['role'];
+        }
+        $normalizedRoles = array_map('strtolower', array_map('strval', $roles));
+        if (array_intersect($normalizedRoles, ['admin', 'administrator', 'super_admin', 'superadmin', 'super_administrator', 'root']) !== []) {
+            return true;
+        }
+
+        return $this->getAuthz()->hasPermissions($actor, ['worklog.manage_all', 'worklog.view_all', 'worklog.manage', 'task.manage', '*']);
+    }
+
+    private function isRootActor(array $actor): bool
+    {
+        if ((int)($actor['organization_id'] ?? 0) > 0) {
+            return false;
+        }
+        return $this->isPrivilegedWorklogActor($actor);
+    }
+
     private function getVisibleUserIds(array $actor): array
     {
         $actorId = $this->resolveActorId($actor);
         $organizationId = $this->organizationId($actor);
 
-        if ((bool)($actor['is_root'] ?? false)) {
+        if ($this->isPrivilegedWorklogActor($actor)) {
             if ($organizationId !== null) {
                 $orgMembers = $this->userManagement->organizationMemberIds($organizationId);
                 if ($actorId > 0 && !in_array($actorId, $orgMembers, true)) {
@@ -119,7 +149,7 @@ final class WorklogService
     public function list(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $isRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $isRoot = $this->isRootActor($actor);
         [$items, $total, $page, $limit] = $this->worklogs->list(
             $filters,
             $visibleUserIds,
@@ -240,7 +270,7 @@ final class WorklogService
                 'payout_source_type' => $resolution['payout']['source_type'] ?? null,
                 'payout_source_ref' => $resolution['payout']['source_ref'] ?? null,
                 'rate_resolved_at' => $now,
-                'rate_ambiguous' => $resolution['ambiguous'] ? 1 : 0,
+                'rate_ambiguous' => !empty($resolution['ambiguous']) ? 1 : 0,
                 'client_public_id' => $resolution['client_public_id'] ?? null,
                 'project_public_id' => $resolution['project_public_id'] ?? null,
             ];
@@ -404,7 +434,7 @@ final class WorklogService
                         'payout_source_type' => $resolution['payout']['source_type'] ?? null,
                         'payout_source_ref' => $resolution['payout']['source_ref'] ?? null,
                         'rate_resolved_at' => gmdate('Y-m-d H:i:s'),
-                        'rate_ambiguous' => $resolution['ambiguous'] ? 1 : 0,
+                        'rate_ambiguous' => !empty($resolution['ambiguous']) ? 1 : 0,
                         'client_public_id' => $resolution['client_public_id'] ?? null,
                         'project_public_id' => $resolution['project_public_id'] ?? null,
                     ];
@@ -510,7 +540,7 @@ final class WorklogService
 
     private function canModifyWorklog(array $worklog, array $actor): bool
     {
-        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+        if ($this->isRootActor($actor) || ActorPermission::isPrivileged($actor)) {
             return true;
         }
 
@@ -525,7 +555,7 @@ final class WorklogService
             return true;
         }
 
-        if ($this->getAuthz()->hasPermissions($actor, ['worklog.manage_all'])) {
+        if ($this->getAuthz()->hasPermissions($actor, ['worklog.manage_all', 'worklog.manage'])) {
             return true;
         }
 
@@ -534,7 +564,7 @@ final class WorklogService
 
     private function canAccessWorklog(array $worklog, array $actor): bool
     {
-        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+        if ($this->isRootActor($actor) || ActorPermission::isPrivileged($actor)) {
             return true;
         }
 
@@ -550,7 +580,7 @@ final class WorklogService
 
     private function canAccessTask(array $task, array $actor): bool
     {
-        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+        if ($this->isRootActor($actor) || ActorPermission::isPrivileged($actor)) {
             return true;
         }
 
@@ -599,7 +629,7 @@ final class WorklogService
             return false;
         }
 
-        if (((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0)) {
+        if ($this->isRootActor($actor) || ActorPermission::isPrivileged($actor)) {
             return true;
         }
 
@@ -636,11 +666,7 @@ final class WorklogService
 
     private function isWorklogOnClosedAllowed(array $actor): bool
     {
-        if (!empty($actor['is_root'])) {
-            return true;
-        }
-        $roles = (array)($actor['roles'] ?? []);
-        if (in_array('super_admin', $roles, true)) {
+        if (!empty($actor['is_root']) || ActorPermission::isPrivileged($actor)) {
             return true;
         }
 
@@ -674,7 +700,7 @@ final class WorklogService
 
         // Root without an active workspace keeps the historical behaviour;
         // task.manage is the same right expressed for a workspace-bound admin.
-        $isRootWithoutScope = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $isRootWithoutScope = $this->isRootActor($actor);
         if (!$isRootWithoutScope && !ActorPermission::canManageTasks($actor)) {
             return null;
         }
@@ -694,6 +720,9 @@ final class WorklogService
     /** Workspace boundary for a user: an actor without one reaches anyone. */
     private function userInActorOrganization(array $actor, int $userId): bool
     {
+        if (ActorPermission::isPrivileged($actor)) {
+            return true;
+        }
         $organizationId = $this->organizationId($actor);
         if ($organizationId === null) {
             return true;
@@ -862,7 +891,7 @@ final class WorklogService
     public function summary(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
         $rows = $this->worklogs->summaryByDay($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
         $aggregates = $this->aggregateIntervals(
@@ -879,7 +908,7 @@ final class WorklogService
         }
 
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
 
         // Fetch per-row data with snapshot rates (TZ 2.9)
@@ -1049,7 +1078,7 @@ final class WorklogService
     public function earningsExpanded(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         $teamPublicId = (string)($filters['team_public_id'] ?? '');
 
         $rows = $this->worklogs->earningsRowsForPeriod($filters, $visibleUserIds, $actorIsRoot, $teamPublicId ?: null);
@@ -1243,14 +1272,14 @@ final class WorklogService
             return $this->worklogs->taskSummary($taskPublicId, [], true);
         }
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         return $this->worklogs->taskSummary($taskPublicId, $visibleUserIds, $actorIsRoot);
     }
 
     public function matrix(array $filters, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         $from = (string)($filters['from'] ?? '');
         $to = (string)($filters['to'] ?? '');
         $userPublicId = (string)($filters['user_public_id'] ?? '');
@@ -1551,7 +1580,7 @@ final class WorklogService
     public function detail(string $day, string $userPublicId, ?string $projectPublicId, array $actor): array
     {
         $visibleUserIds = $this->getVisibleUserIds($actor);
-        $actorIsRoot = ((bool)($actor['is_root'] ?? false) && (int)($actor['organization_id'] ?? 0) <= 0);
+        $actorIsRoot = $this->isRootActor($actor);
         $rows = $this->worklogs->detailByDayUser($day, $userPublicId, $projectPublicId, $visibleUserIds, $actorIsRoot);
 
         $recorded = 0;

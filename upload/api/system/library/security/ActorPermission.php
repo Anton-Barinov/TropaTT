@@ -37,7 +37,11 @@ final class ActorPermission
         }
 
         $roles = (array)($actor['roles'] ?? []);
-        return in_array('admin', $roles, true) || in_array('superadmin', $roles, true);
+        if (isset($actor['role']) && is_string($actor['role'])) {
+            $roles[] = $actor['role'];
+        }
+        $normalizedRoles = array_map('strtolower', array_map('strval', $roles));
+        return array_intersect($normalizedRoles, ['admin', 'administrator', 'super_admin', 'superadmin', 'super_administrator', 'root']) !== [];
     }
 
     /** True when the internal actor may perform task-management operations. */
