@@ -940,11 +940,23 @@
 }
 
 .form-control,
-.form-select,
 .input-group-text {
   border-color: var(--color-neutral-200);
   border-radius: var(--radius-md);
   background: var(--crm-control-bg);
+}
+
+.form-select {
+  border-color: var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  background-color: var(--crm-control-bg);
+  background-image: var(--bs-form-select-bg-img);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .form-control,
@@ -957,10 +969,15 @@
   color: var(--crm-text-muted);
 }
 
-.form-control:focus,
-.form-select:focus {
+.form-control:focus {
   border-color: var(--color-primary-500);
   background: var(--crm-surface);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
+}
+
+.form-select:focus {
+  border-color: var(--color-primary-500);
+  background-color: var(--crm-surface);
   box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
 }
 
@@ -1025,11 +1042,23 @@
 }
 
 .form-control,
-.form-select,
 .input-group-text {
   border-color: var(--color-neutral-200);
   border-radius: var(--radius-md);
   background: var(--crm-control-bg);
+}
+
+.form-select {
+  border-color: var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  background-color: var(--crm-control-bg);
+  background-image: var(--bs-form-select-bg-img);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .form-control,
@@ -1042,10 +1071,15 @@
   color: var(--crm-text-muted);
 }
 
-.form-control:focus,
-.form-select:focus {
+.form-control:focus {
   border-color: var(--color-primary-500);
   background: var(--crm-surface);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
+}
+
+.form-select:focus {
+  border-color: var(--color-primary-500);
+  background-color: var(--crm-surface);
   box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--crm-success) 15%, transparent);
 }
 
