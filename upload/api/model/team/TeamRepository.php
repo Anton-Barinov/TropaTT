@@ -381,6 +381,78 @@ final class TeamRepository
         return $result;
     }
 
+    /**
+     * Return all teams mapped by user id.
+     * For each user id, returns an array of team info:
+     * [
+     *   'id' => int,
+     *   'public_id' => string,
+     *   'title' => string,
+     *   'is_manager' => bool,
+     * ]
+     *
+     * @param int[] $userIds
+     * @param int|null $organizationId
+     * @return array<int, list<array{id: int, public_id: string, title: string, is_manager: bool}>>
+     */
+    public function teamsByUserIds(array $userIds, ?int $organizationId = null): array
+    {
+        $normalized = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
+        if ($normalized === []) {
+            return [];
+        }
+
+        try {
+            $qb = (new QueryBuilder($this->pdo))
+                ->from('teams')
+                ->select(['id', 'public_id', 'title', 'manager_user_id', 'member_user_ids']);
+
+            if ($organizationId !== null && $organizationId > 0 && $this->hasOrganizationColumn()) {
+                $qb->whereRaw('(organization_id = ? OR organization_id IS NULL)', [$organizationId]);
+            }
+
+            $teams = $qb->get();
+        } catch (\Throwable) {
+            return [];
+        }
+        $map = [];
+
+        foreach ($teams as $team) {
+            $teamId = (int)$team['id'];
+            $teamPublicId = (string)$team['public_id'];
+            $teamTitle = (string)$team['title'];
+            $mgrId = (int)($team['manager_user_id'] ?? 0);
+            $members = $this->decodeMemberIds($team['member_user_ids'] ?? null);
+            $memberSet = array_flip($members);
+
+            $teamData = [
+                'id' => $teamId,
+                'public_id' => $teamPublicId,
+                'title' => $teamTitle,
+            ];
+
+            foreach ($normalized as $uid) {
+                $isMgr = ($uid === $mgrId);
+                $isMember = isset($memberSet[$uid]);
+                if ($isMgr || $isMember) {
+                    $map[$uid][] = $teamData + ['is_manager' => $isMgr];
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    private function hasOrganizationColumn(): bool
+    {
+        try {
+            $this->pdo->query('SELECT organization_id FROM teams LIMIT 0');
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function hydrateTeamRow(array $row): array
     {
         $memberIds = $this->decodeMemberIds($row['member_user_ids'] ?? null);

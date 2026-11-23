@@ -17477,7 +17477,13 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     if (tbody) {
       tbody.innerHTML = users.map(function (user) {
         var roleTitles = (user.role_public_ids || []).map(function (rid) { return roleMap[rid] || tp('admin.unknown_role', 'Unknown'); }).join(', ');
-        var teamTitle = teamMap[user.team_public_id] || tp('admin.no_team', 'No team');
+        var userTeamTitles = (user.team_titles && user.team_titles.length > 0)
+          ? user.team_titles
+          : (user.team_public_ids || []).map(function (tid) { return teamMap[tid]; }).filter(Boolean);
+        if (userTeamTitles.length === 0 && user.team_public_id && teamMap[user.team_public_id]) {
+          userTeamTitles = [teamMap[user.team_public_id]];
+        }
+        var teamTitle = userTeamTitles.length > 0 ? userTeamTitles.join(', ') : tp('admin.no_team', 'No team');
         var statusText = user.is_active ? tp('common.active', 'Active') : tp('common.inactive', 'Inactive');
         var statusBadge = user.is_active ? '<span class="crm-badge success">' + safeText(statusText) + '</span>' : '<span class="crm-badge archived">' + safeText(statusText) + '</span>';
         var lastLogin = user.last_login_at ? formatDate(user.last_login_at) : '—';
@@ -17738,7 +17744,24 @@ tableBody.innerHTML = counterparties.map(function (cp) {
         form.querySelector('[name="locale"]').value = user.locale || 'ru-ru';
         form.querySelector('[name="is_active"]').value = user.is_active ? '1' : '0';
         form.querySelector('[name="role_public_ids"]').value = (user.role_public_ids || [])[0] || '';
-        form.querySelector('[name="team_public_id"]').value = user.team_public_id || '';
+        var teamSelect = form.querySelector('[name="team_public_id"]');
+        if (teamSelect) {
+          teamSelect.value = user.team_public_id || (user.team_public_ids && user.team_public_ids[0]) || '';
+          var teamHelp = form.querySelector('#userEditTeamHelp');
+          if (!teamHelp) {
+            teamHelp = document.createElement('small');
+            teamHelp.id = 'userEditTeamHelp';
+            teamHelp.className = 'text-muted d-block mt-1';
+            teamSelect.parentNode.appendChild(teamHelp);
+          }
+          if (user.team_titles && user.team_titles.length > 1) {
+            teamHelp.textContent = tp('nav.teams', 'Teams') + ': ' + user.team_titles.join(', ');
+            teamHelp.style.display = '';
+          } else {
+            teamHelp.textContent = '';
+            teamHelp.style.display = 'none';
+          }
+        }
         var costInput = form.querySelector('[name="cost_rate"]');
         var billInput = form.querySelector('[name="bill_rate"]');
         if (costInput) costInput.value = user.cost_rate != null ? user.cost_rate : '';
