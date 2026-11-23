@@ -827,11 +827,25 @@
   font-weight: 700;
 }
 
+/* Elevate any card or container hosting an open dropdown menu so it is never occluded by siblings or tabs */
+.crm-card:has(.dropdown-menu.show),
+.crm-card:has([data-bs-toggle="dropdown"][aria-expanded="true"]),
+.crm-card:has(.show > .dropdown-menu),
+.crm-card.crm-card-has-dropdown-open,
+.crm-section-card:has(.dropdown-menu.show),
+.crm-section-card.crm-card-has-dropdown-open,
+.dropdown:has(.dropdown-menu.show),
+.dropdown.show {
+  position: relative;
+  z-index: 1050 !important;
+}
+
 .dropdown-menu {
   border: 1px solid var(--crm-border);
   border-radius: 0.7rem;
   box-shadow: var(--shadow-md);
   padding: 0.4rem;
+  z-index: 1060;
 }
 
 .dropdown-item {

@@ -356,6 +356,31 @@
         }
       }
     });
+
+    /* Elevate stacking context of cards and containers when any dropdown opens so it is never occluded by lower panels or tabs */
+    document.addEventListener('show.bs.dropdown', function (e) {
+      var toggle = e.target;
+      var dropdown = toggle.closest ? toggle.closest('.dropdown, .dropup, .dropend, .dropstart') : toggle.parentElement;
+      if (dropdown) {
+        dropdown.classList.add('crm-card-has-dropdown-open');
+      }
+      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card') : null;
+      if (card) {
+        card.classList.add('crm-card-has-dropdown-open');
+      }
+    });
+
+    document.addEventListener('hidden.bs.dropdown', function (e) {
+      var toggle = e.target;
+      var dropdown = toggle.closest ? toggle.closest('.dropdown, .dropup, .dropend, .dropstart') : toggle.parentElement;
+      if (dropdown) {
+        dropdown.classList.remove('crm-card-has-dropdown-open');
+      }
+      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card') : null;
+      if (card && !card.querySelector('.dropdown-menu.show')) {
+        card.classList.remove('crm-card-has-dropdown-open');
+      }
+    });
     try { if (window.CRM.notifications) window.CRM.notifications.init(); } catch (error) { /* notification init failed */ }
     try { if (window.CRM.richtext) window.CRM.richtext.init(); } catch (error) { /* richtext init failed */ }
 
