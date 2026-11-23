@@ -31,13 +31,34 @@ final class UserService
     {
         [$items, $total, $page, $limit] = $this->users->list($filters);
 
-        // Enrich each user with role_public_ids so the admin UI can populate
-        // the role select in the edit modal.
+        // Enrich each user with role_public_ids and team data so the admin UI can populate
+        // the role and team selects in modals and display team columns.
         if ($items !== []) {
             $userIds = array_map(static fn(array $u): int => (int)$u['id'], $items);
             $rolesMap = $this->users->rolePublicIdsByUserIds($userIds);
+            $teamsMap = $this->teams->teamsByUserIds($userIds);
             foreach ($items as &$item) {
-                $item['role_public_ids'] = $rolesMap[(int)$item['id']] ?? [];
+                $uid = (int)$item['id'];
+                $item['role_public_ids'] = $rolesMap[$uid] ?? [];
+
+                $userTeams = $teamsMap[$uid] ?? [];
+                usort($userTeams, static function (array $a, array $b): int {
+                    $mgrDiff = ($b['is_manager'] ? 1 : 0) <=> ($a['is_manager'] ? 1 : 0);
+                    if ($mgrDiff !== 0) {
+                        return $mgrDiff;
+                    }
+                    return strcmp((string)$a['title'], (string)$b['title']);
+                });
+
+                $teamPublicIds = array_values(array_map(static fn($t): string => (string)$t['public_id'], $userTeams));
+                $teamTitles = array_values(array_map(static fn($t): string => (string)$t['title'], $userTeams));
+
+                $item['teams'] = $userTeams;
+                $item['team_public_ids'] = $teamPublicIds;
+                $item['team_titles'] = $teamTitles;
+                $item['team_public_id'] = $teamPublicIds[0] ?? null;
+                $item['team_title'] = $teamTitles[0] ?? null;
+
                 unset($item['id']); // internal ID not exposed to client
             }
             unset($item);
@@ -563,12 +584,36 @@ final class UserService
         if ($userId <= 0) {
             $user['roles'] = [];
             $user['role_public_ids'] = [];
+            $user['teams'] = [];
+            $user['team_public_ids'] = [];
+            $user['team_titles'] = [];
+            $user['team_public_id'] = null;
+            $user['team_title'] = null;
             return $user;
         }
 
         $user['roles'] = $this->users->roleCodesByUserId($userId);
         $roleIdsMap = $this->users->rolePublicIdsByUserIds([$userId]);
         $user['role_public_ids'] = $roleIdsMap[$userId] ?? [];
+
+        $teamsMap = $this->teams->teamsByUserIds([$userId]);
+        $userTeams = $teamsMap[$userId] ?? [];
+        usort($userTeams, static function (array $a, array $b): int {
+            $mgrDiff = ($b['is_manager'] ? 1 : 0) <=> ($a['is_manager'] ? 1 : 0);
+            if ($mgrDiff !== 0) {
+                return $mgrDiff;
+            }
+            return strcmp((string)$a['title'], (string)$b['title']);
+        });
+
+        $teamPublicIds = array_values(array_map(static fn($t): string => (string)$t['public_id'], $userTeams));
+        $teamTitles = array_values(array_map(static fn($t): string => (string)$t['title'], $userTeams));
+
+        $user['teams'] = $userTeams;
+        $user['team_public_ids'] = $teamPublicIds;
+        $user['team_titles'] = $teamTitles;
+        $user['team_public_id'] = $teamPublicIds[0] ?? null;
+        $user['team_title'] = $teamTitles[0] ?? null;
 
         return $user;
     }
