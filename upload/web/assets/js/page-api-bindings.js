@@ -17755,7 +17755,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
             teamSelect.parentNode.appendChild(teamHelp);
           }
           if (user.team_titles && user.team_titles.length > 1) {
-            teamHelp.textContent = tp('admin.all_user_teams', 'Команды: ') + user.team_titles.join(', ');
+            teamHelp.textContent = tp('nav.teams', 'Teams') + ': ' + user.team_titles.join(', ');
             teamHelp.style.display = '';
           } else {
             teamHelp.textContent = '';
