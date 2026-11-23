@@ -17608,7 +17608,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
       if (!listEl) return { getSelected: function () { return []; }, setSelected: function () {} };
 
       var searchHtml = teams.length > 3
-        ? '<div class="px-1 pb-2 border-bottom mb-2"><input type="text" class="form-control form-control-sm team-search-input" placeholder="' + safeText(tp('common.search', 'Поиск...')) + '"></div>'
+        ? '<div class="px-1 pb-2 border-bottom mb-2"><input type="text" class="form-control form-control-sm team-search-input" placeholder="' + safeText(tp('page.search', 'Search')) + '..."></div>'
         : '';
 
       var itemsHtml = teams.length === 0
