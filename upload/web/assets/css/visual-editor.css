@@ -151,6 +151,42 @@
   word-break: break-word;
 }
 
+/* Tables rendered outside the editor (knowledge, tasks, comments, ideas) */
+.crm-ve-rendered table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.crm-ve-rendered table td,
+.crm-ve-rendered table th {
+  border: 1px solid var(--crm-ve-rule);
+  color: var(--crm-ve-text);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.crm-ve-rendered table th {
+  background: var(--crm-ve-surface-soft);
+  font-weight: 600;
+}
+
+.crm-ve-rendered .crm-ve-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0;
+  border: 1px solid var(--crm-ve-rule);
+  border-radius: 6px;
+  background: var(--crm-ve-surface);
+}
+
+.crm-ve-rendered .crm-ve-table-wrap > table {
+  margin: 0;
+  border: none;
+}
+
 .crm-ve-toolbar {
   position: sticky;
   top: var(--crm-topbar-height, 56px);

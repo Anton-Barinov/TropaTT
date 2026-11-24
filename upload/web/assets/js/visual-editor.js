@@ -391,6 +391,15 @@ window.CRM.VisualEditor = (function () {
           if (name !== 'style' && name !== 'class') {
             el.removeAttribute(attr.name);
           }
+        } else if (tag === 'DIV') {
+          var divCls = el.getAttribute('class') || '';
+          if (divCls.indexOf('crm-ve-table-wrap') !== -1) {
+            if (name !== 'class') {
+              el.removeAttribute(attr.name);
+            }
+          } else {
+            el.removeAttribute(attr.name);
+          }
         } else {
           el.removeAttribute(attr.name);
         }
@@ -502,6 +511,16 @@ window.CRM.VisualEditor = (function () {
         }
 
         if (!ALLOWED_TAGS[tag]) {
+          if (tag === 'DIV' && node.classList && node.classList.contains('crm-ve-table-wrap')) {
+            sanitizeAttributes(node, tag);
+            var divChild = node.firstChild;
+            while (divChild) {
+              var nextDivChild = divChild.nextSibling;
+              cleanNode(divChild);
+              divChild = nextDivChild;
+            }
+            return;
+          }
           var parent = node.parentNode;
           if (!parent) return;
           var moved = [];
@@ -5409,6 +5428,18 @@ window.CRM.VisualEditor = (function () {
         var itemLabel2 = (t('visual_editor.todo_item', 'Пункт чек-листа') + ': ' + (spanEl.textContent || '').trim()).trim();
         cb.setAttribute('aria-label', itemLabel2);
       });
+    });
+
+    // Render tables: ensure .crm-ve-table class and responsive .crm-ve-table-wrap wrapper
+    root.querySelectorAll('table').forEach(function (table) {
+      table.classList.add('crm-ve-table');
+      var wrap = table.closest('.crm-ve-table-wrap');
+      if (!wrap && table.parentNode) {
+        wrap = document.createElement('div');
+        wrap.className = 'crm-ve-table-wrap';
+        table.parentNode.insertBefore(wrap, table);
+        wrap.appendChild(table);
+      }
     });
 
     var figures = root.querySelectorAll('figure[data-width], figure[data-align]');
