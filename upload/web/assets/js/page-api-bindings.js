@@ -1320,7 +1320,7 @@ window.CRM.pageApiBindings = (function () {
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td class="crm-cell-state">'
       + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
-      + '<div class="crm-state-line">' + taskStatusBadgeHtml(item.status_code) + '</div>'
+      + '<div class="crm-state-line">' + (typeof taskStatusBadgeHtml === 'function' ? taskStatusBadgeHtml(item.status_code) : ('<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span>')) + '</div>'
       + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(window.CRM.i18n.t('tasks.th_priority', 'Приоритет')) + ':</span> <span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
       + '</td>'
       + '<td>'
