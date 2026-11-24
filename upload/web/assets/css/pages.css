@@ -19316,6 +19316,45 @@ body[data-page="admin-settings"] [data-settings-group] {
   text-decoration: underline;
 }
 
+/* ── Tables in Knowledge Base Articles ── */
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+  border: 1px solid var(--crm-border, #d9e1ec);
+  border-radius: 6px;
+}
+
+.article-content td,
+.article-content th {
+  border: 1px solid var(--crm-border, #d9e1ec);
+  color: var(--crm-text);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.article-content th {
+  background: var(--crm-surface-2, #f8fafc);
+  font-weight: 600;
+  color: var(--crm-text);
+}
+
+.article-content .crm-ve-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--crm-border, #d9e1ec);
+  border-radius: 6px;
+  background: var(--crm-surface);
+}
+
+.article-content .crm-ve-table-wrap > table {
+  margin: 0;
+  border: none;
+}
+
 /* ── Side Stack ── */
 .kb-side-stack {
   display: flex;
