@@ -605,6 +605,19 @@ window.CRM.br1 = (function () {
     statusBadge.style.setProperty('color', statusTextColor(color), 'important');
   }
 
+  function taskStatusBadgeHtml(code, extraClass, options) {
+    var codeKey = String(code || '').trim();
+    var color = statusColor(codeKey);
+    var label = statusLabel(codeKey);
+    var opt = options || {};
+    var tag = opt.tag || 'span';
+    var idAttr = opt.id ? (' id="' + escapeHtml(opt.id) + '"') : '';
+    var customAttrs = opt.attrs ? (' ' + opt.attrs) : '';
+    var cls = 'crm-badge ' + (color ? 'has-custom-color' : statusBadgeClass(codeKey)) + (extraClass ? (' ' + extraClass) : '');
+    var style = color ? (' style="background-color:' + escapeHtml(color) + ' !important;border-color:' + escapeHtml(color) + ' !important;color:' + escapeHtml(statusTextColor(color)) + ' !important;"') : '';
+    return '<' + tag + idAttr + ' class="' + cls + '"' + style + customAttrs + '>' + escapeHtml(label) + '</' + tag + '>';
+  }
+
   function statusLabel(code) {
     var codeKey = String(code || '').trim();
     if (!codeKey) {
@@ -4252,7 +4265,7 @@ window.CRM.br1 = (function () {
       + '<div class="col-lg-6">'
       + '<article class="border rounded-3 p-3 h-100">'
       + window.CRM.i18n.t('js.br1.div_class_d_flex_justify_content_between_align_items_ce_3', '<div class="d-flex justify-content-between align-items-center mb-2"><h4 class="h6 mb-0">Статус и приоритет</h4><button type="button" class="btn btn-sm crm-btn-secondary" data-task-edit-toggle="workflow"') + (canEditWorkflow ? '' : ' disabled') + ' aria-label="Edit"><i class="fa-solid fa-pen" aria-hidden="true"></i></button></div>'
-      + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_status_div_div_class_mb', '<div class="small text-muted mb-1">Статус</div><div class="mb-2"><span class="crm-badge ') + statusBadgeClass(currentTask && currentTask.status_code || 'new') + '">' + escapeHtml(statusLabel(currentTask && currentTask.status_code || 'new')) + '</span></div>'
+      + '<div class="small text-muted mb-1">' + escapeHtml(window.CRM.i18n.t('js.pab.status', 'Статус')) + '</div><div class="mb-2">' + taskStatusBadgeHtml(currentTask && currentTask.status_code || 'new') + '</div>'
       + window.CRM.i18n.t('js.br1.div_class_small_text_muted_mb_1_prioritet_div_div_class', '<div class="small text-muted mb-1">Приоритет</div><div class="mb-2">') + escapeHtml(priorityLabel(currentTask && currentTask.priority_code || 'normal')) + '</div>'
       + '<form class="row g-2 d-none" data-task-manage-form="workflow">'
       + window.CRM.i18n.t('js.br1.div_class_col_6_label_class_form_label_status_label_sel', '<div class="col-6"><label class="form-label">Статус</label><select class="form-select" name="status">') + statusOptions + '</select></div>'
@@ -10698,6 +10711,8 @@ window.CRM.br1 = (function () {
     statusColor: statusColor,
     statusTextColor: statusTextColor,
     statusLabel: statusLabel,
+    taskStatusBadgeHtml: taskStatusBadgeHtml,
+    applyTaskStatusBadgeColor: applyTaskStatusBadgeColor,
     formatDate: formatDate,
     escapeHtml: escapeHtml,
     getProjectPublicIdFromUrl: getProjectPublicIdFromUrl,
