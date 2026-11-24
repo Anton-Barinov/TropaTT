@@ -672,6 +672,28 @@ window.CRM.pageApiBindings = (function () {
     return luminance > 0.45 ? '#0f172a' : '#ffffff';
   }
 
+  function taskStatusBadgeHtml(code, extraClass, options) {
+    var codeKey = String(code || '').trim();
+    if (window.CRM && window.CRM.br1 && typeof window.CRM.br1.taskStatusBadgeHtml === 'function') {
+      return window.CRM.br1.taskStatusBadgeHtml(codeKey, extraClass, options);
+    }
+    var customColor = (window.CRM && window.CRM.br1 && typeof window.CRM.br1.statusColor === 'function')
+      ? window.CRM.br1.statusColor(codeKey)
+      : null;
+    var textColor = (customColor && window.CRM && window.CRM.br1 && typeof window.CRM.br1.statusTextColor === 'function')
+      ? window.CRM.br1.statusTextColor(customColor)
+      : (customColor ? contrastTextColor(customColor) : '');
+    var opt = options || {};
+    var tag = opt.tag || 'span';
+    var idAttr = opt.id ? (' id="' + safeText(opt.id) + '"') : '';
+    var customAttrs = opt.attrs ? (' ' + opt.attrs) : '';
+    var badgeStyle = customColor
+      ? ' style="background-color:' + safeText(customColor) + ' !important;border-color:' + safeText(customColor) + ' !important;color:' + safeText(textColor) + ' !important;"'
+      : '';
+    var badgeClass = 'crm-badge ' + (customColor ? 'has-custom-color' : statusClass(codeKey)) + (extraClass ? (' ' + extraClass) : '');
+    return '<' + tag + idAttr + ' class="' + badgeClass + '"' + badgeStyle + customAttrs + '>' + safeText(statusLabel(codeKey)) + '</' + tag + '>';
+  }
+
   function activityActorLabel(item) {
     if (!item || typeof item !== 'object') return window.CRM.i18n.t('js.pab.system', 'System');
     return resolveUserLabel(
@@ -1298,12 +1320,7 @@ window.CRM.pageApiBindings = (function () {
       + '<td class="crm-cell-people">' + taskPeopleColumnHtml(item) + '</td>'
       + '<td class="crm-cell-state">'
       + '<div class="crm-state-line"><span class="crm-task-due">' + safeText(formatDate(item.due_at)) + '</span></div>'
-      + (function() {
-          var customColor = (window.CRM.br1 && typeof window.CRM.br1.statusColor === 'function') ? window.CRM.br1.statusColor(item.status_code) : null;
-          var badgeStyle = customColor ? ' style="background-color:' + safeText(customColor) + ' !important;border-color:' + safeText(customColor) + ' !important;color:' + safeText(window.CRM.br1.statusTextColor(customColor)) + ' !important;"' : '';
-          var badgeClass = 'crm-badge ' + (customColor ? 'has-custom-color' : statusClass(item.status_code));
-          return '<div class="crm-state-line"><span class="' + badgeClass + '"' + badgeStyle + '>' + safeText(statusLabel(item.status_code)) + '</span></div>';
-        })()
+      + '<div class="crm-state-line">' + taskStatusBadgeHtml(item.status_code) + '</div>'
       + '<div class="crm-state-line"><span class="crm-state-label">' + safeText(window.CRM.i18n.t('tasks.th_priority', 'Приоритет')) + ':</span> <span class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</span></div>'
       + '</td>'
       + '<td>'
@@ -1462,7 +1479,7 @@ window.CRM.pageApiBindings = (function () {
     return '<div class="' + metaClass + '">'
       + (config.showProject === false ? '' : '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.project', 'Project') + '</span><a href="' + projectLink(item.project_public_id) + '">' + safeText(item.project_title || '—') + '</a></span>')
       + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.task_deadline', 'Task deadline') + '</span><strong>' + safeText(formatDate(item.due_at)) + '</strong></span>'
-      + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.status', 'Status') + '</span><b class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</b></span>'
+      + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.status', 'Status') + '</span>' + taskStatusBadgeHtml(item.status_code) + '</span>'
       + '<span class="crm-task-tree-meta-item"><span>' + window.CRM.i18n.t('js.pab.priority', 'Priority') + '</span><b class="crm-chip">' + safeText(priorityLabel(item.priority_code || 'normal')) + '</b></span>'
       + '</div>';
   }
@@ -1653,7 +1670,7 @@ window.CRM.pageApiBindings = (function () {
         + (item.task_key ? '<span class="crm-task-key-badge">' + safeText(item.task_key) + '</span> ' : '')
         + '<a class="crm-task-card-title" href="' + taskLink(taskId) + '">' + safeText(item.title || window.CRM.i18n.t('js.pab.untitled', 'Untitled')) + '</a>'
         + '</div>'
-        + '<span class="crm-badge ' + statusClass(item.status_code) + '">' + safeText(statusLabel(item.status_code)) + '</span>'
+        + taskStatusBadgeHtml(item.status_code)
         + blockedChip
         + '</div>'
         + '<div class="crm-task-row-meta">' + taskHierarchyLabel(item) + '</div>'
@@ -4150,7 +4167,7 @@ window.CRM.pageApiBindings = (function () {
             return '<tr>'
               + '<td><a href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(item.public_id) + '">' + safeText(item.title) + '</a></td>'
               + '<td><span class="crm-pr-who">' + avatar + '<span>' + safeText(assigneeName) + '</span></span></td>'
-              + '<td><span class="crm-badge ' + statusClass(item.status_code) + '"><span class="crm-pr-dot" aria-hidden="true"></span>' + safeText(statusLabel(item.status_code)) + '</span></td>'
+              + '<td>' + taskStatusBadgeHtml(item.status_code) + '</td>'
               + '<td>' + safeText(formatDate(item.due_at)) + '</td>'
               + '</tr>';
           }).join('');
@@ -5478,7 +5495,7 @@ window.CRM.pageApiBindings = (function () {
     var taskLink = 'index.php?route=task-detail&task_public_id=' + encodeURIComponent(task.public_id || '');
     body.innerHTML = '<h6 class="mb-2">' + safeText(task.title || task.public_id || window.CRM.i18n.t('js.pab.task', 'Task')) + '</h6>'
       + '<p class="text-muted mb-2">' + safeText(stripHtmlText(task.description) || window.CRM.i18n.t('js.pab.no_description', 'No description')) + '</p>'
-      + '<div class="mb-2"><span class="crm-badge ' + statusClass(task.status_code) + '">' + safeText(statusLabel(task.status_code)) + '</span>'
+      + '<div class="mb-2">' + taskStatusBadgeHtml(task.status_code)
       + ' <span class="crm-chip">' + safeText(priorityLabel(task.priority_code || 'normal')) + '</span></div>'
       + '<ul class="small ps-3 mb-3">'
       + '<li>' + window.CRM.i18n.t('js.pab.project_label', 'Project:') + ' ' + safeText(task.project_title || '—') + '</li>'
@@ -6182,10 +6199,7 @@ window.CRM.pageApiBindings = (function () {
         tr.appendChild(dueTd);
 
         var statusTd = document.createElement('td');
-        var status = document.createElement('span');
-        status.className = 'crm-badge ' + statusClass(item.status_code);
-        status.textContent = statusLabel(item.status_code);
-        statusTd.appendChild(status);
+        statusTd.innerHTML = taskStatusBadgeHtml(item.status_code);
         tr.appendChild(statusTd);
         tbody.appendChild(tr);
       });
@@ -6259,10 +6273,11 @@ window.CRM.pageApiBindings = (function () {
         deadlineMeta.textContent = window.CRM.i18n.t('js.pab.deadline_short', 'Deadline:') + ' ' + String(formatDate(item.due_at));
         article.appendChild(deadlineMeta);
 
-        var badge = document.createElement('span');
-        badge.className = 'crm-badge ' + statusClass(item.status_code);
-        badge.textContent = statusLabel(item.status_code);
-        article.appendChild(badge);
+        var badgeWrap = document.createElement('div');
+        badgeWrap.innerHTML = taskStatusBadgeHtml(item.status_code);
+        if (badgeWrap.firstElementChild) {
+          article.appendChild(badgeWrap.firstElementChild);
+        }
         container.appendChild(article);
       });
     }
@@ -6826,7 +6841,7 @@ window.CRM.pageApiBindings = (function () {
             : '<span class="small text-muted">—</span>';
           return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
             + '<a class="small text-truncate text-reset text-decoration-none" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a>'
-            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + '<span class="crm-badge ' + statusClass(t.status_code) + '">' + safeText(statusLabel(t.status_code)) + '</span></span>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
             + '</div>';
         }).join('')
           + (mine.length > shown.length
@@ -7206,7 +7221,7 @@ window.CRM.pageApiBindings = (function () {
             + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="' + taskLink(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a></div>'
             + (project ? project : '')
             + '</div>'
-            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + '<span class="crm-badge ' + statusClass(t.status_code) + '">' + safeText(statusLabel(t.status_code)) + '</span></span>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
             + '</div>';
         }).join('')
           + (openUnassigned.length > shown.length
@@ -18885,7 +18900,7 @@ tableBody.innerHTML = counterparties.map(function (cp) {
     var assigneeName = task.assignee_name ? String(task.assignee_name).trim() : '';
     var whoHtml = '<div class="crm-planner-who"><span class="crm-planner-avatar" style="background-color:' + plannerAvatarColor(assigneeName) + '">' + safeText(plannerInitials(assigneeName)) + '</span><span class="crm-planner-who-name">' + safeText(assigneeName || pt('my_week.assignee_none', 'Не назначен')) + '</span></div>';
     var time = plannerTime(task.due_at);
-    var statusHtml = '<span class="crm-badge ' + statusClass(task.status_code) + ' crm-planner-status">' + safeText(statusLabel(task.status_code)) + '</span>'
+    var statusHtml = taskStatusBadgeHtml(task.status_code, 'crm-planner-status')
       + (time ? '<span class="crm-planner-time">' + time + '</span>' : '');
     var doneTitle = pt('my_day.done_title', 'Отметить выполненной');
     var openTitle = pt('my_day.open_title', 'Открыть задачу');
