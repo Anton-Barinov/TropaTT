@@ -633,6 +633,10 @@ window.CRM.pageApiBindings = (function () {
 
   function normalizeHexColor(value) {
     var raw = String(value || '').trim();
+    if (!raw) return null;
+    if (raw.charAt(0) !== '#') {
+      raw = '#' + raw;
+    }
     var match = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
     if (!match) return null;
     var hex = match[1];
@@ -643,6 +647,10 @@ window.CRM.pageApiBindings = (function () {
   }
 
   function contrastTextColor(backgroundColor) {
+    if (window.CRM && window.CRM.br1 && typeof window.CRM.br1.statusTextColor === 'function') {
+      var tc = window.CRM.br1.statusTextColor(backgroundColor);
+      if (tc) return tc;
+    }
     var hex = normalizeHexColor(backgroundColor);
     if (!hex) return '#0f172a';
 
@@ -658,10 +666,10 @@ window.CRM.pageApiBindings = (function () {
     var lg = linearize(g);
     var lb = linearize(b);
     var luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-
-    var contrastWhite = 1.05 / (luminance + 0.05);
-    var contrastDark = (luminance + 0.05) / 0.05;
-    return contrastWhite >= contrastDark ? '#ffffff' : '#0f172a';
+    // Saturated or medium/dark badge backgrounds (orange, green, red, blue, purple,
+    // slate) require crisp white text for high contrast. Only truly light or bright/pastel
+    // backgrounds (yellows, limes, light grays, light pastels) with luminance > 0.45 get dark text.
+    return luminance > 0.45 ? '#0f172a' : '#ffffff';
   }
 
   function activityActorLabel(item) {
