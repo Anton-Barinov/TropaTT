@@ -6465,6 +6465,24 @@ body.modal-open {
   z-index: 2;
 }
 
+.crm-task-detail-page .crm-task-tabs-head:has(.dropdown-menu.show),
+.crm-task-detail-page .crm-task-tabs-head:has([data-bs-toggle="dropdown"][aria-expanded="true"]),
+.crm-task-detail-page .crm-task-tabs-head:has([aria-expanded="true"]),
+.crm-task-detail-page .crm-task-tabs-head.crm-card-has-dropdown-open,
+.crm-task-detail-page .crm-task-tabs-head:focus-within {
+  z-index: 1060 !important;
+}
+
+.crm-task-detail-page .crm-task-tabs-overflow {
+  position: relative;
+}
+
+.crm-task-detail-page .crm-task-tabs-overflow.show,
+.crm-task-detail-page .crm-task-tabs-overflow:has(.dropdown-menu.show),
+.crm-task-detail-page .crm-task-tabs-overflow.crm-card-has-dropdown-open {
+  z-index: 1065 !important;
+}
+
 .crm-task-detail-page .crm-task-tabs-nav {
   gap: 0.3rem;
   border-bottom: none;
@@ -6501,11 +6519,12 @@ body.modal-open {
 
 .crm-task-detail-page .crm-task-tabs-overflow .dropdown-menu {
   min-width: 14rem;
-  margin-top: -1px;
+  margin-top: 4px;
   padding: 0.35rem;
   border-color: var(--crm-border);
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--crm-ink) 12%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--crm-ink) 16%, transparent);
+  z-index: 1070 !important;
 }
 
 .crm-task-detail-page .crm-task-tabs-overflow .dropdown-item {

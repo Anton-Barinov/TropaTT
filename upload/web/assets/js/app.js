@@ -364,7 +364,7 @@
       if (dropdown) {
         dropdown.classList.add('crm-card-has-dropdown-open');
       }
-      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card') : null;
+      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card, .crm-task-tabs-head, .crm-task-tabs-nav') : null;
       if (card) {
         card.classList.add('crm-card-has-dropdown-open');
       }
@@ -376,7 +376,7 @@
       if (dropdown) {
         dropdown.classList.remove('crm-card-has-dropdown-open');
       }
-      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card') : null;
+      var card = toggle.closest ? toggle.closest('.crm-card, .crm-task-hero, .crm-section-card, .crm-task-tabs-head, .crm-task-tabs-nav') : null;
       if (card && !card.querySelector('.dropdown-menu.show')) {
         card.classList.remove('crm-card-has-dropdown-open');
       }
