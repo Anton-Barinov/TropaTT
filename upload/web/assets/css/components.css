@@ -834,10 +834,15 @@
 .crm-card.crm-card-has-dropdown-open,
 .crm-section-card:has(.dropdown-menu.show),
 .crm-section-card.crm-card-has-dropdown-open,
+.crm-task-tabs-head:has(.dropdown-menu.show),
+.crm-task-tabs-head:has([data-bs-toggle="dropdown"][aria-expanded="true"]),
+.crm-task-tabs-head.crm-card-has-dropdown-open,
+.crm-task-tabs-overflow:has(.dropdown-menu.show),
+.crm-task-tabs-overflow.crm-card-has-dropdown-open,
 .dropdown:has(.dropdown-menu.show),
 .dropdown.show {
   position: relative;
-  z-index: 1050 !important;
+  z-index: 1060 !important;
 }
 
 .dropdown-menu {
