@@ -126,6 +126,7 @@ final class MigrationManager
             new IdempotencyClaimHardeningMigration(),
             new StatusProgressPercentMigration(),
             new CounterpartyRequisitesExpansionMigration(),
+            new TaskDescriptionRepairMigration(),
         ];
     }
 

@@ -3076,7 +3076,7 @@ window.CRM.br1 = (function () {
 
     var inlineInput = document.getElementById('taskDescriptionInlineInput');
     if (inlineInput) {
-      inlineInput.value = currentTask && currentTask.description ? String(currentTask.description) : '';
+      setVisualEditorTextareaValue(inlineInput, currentTask && currentTask.description ? String(currentTask.description) : '');
     }
 
   }
@@ -3740,7 +3740,7 @@ window.CRM.br1 = (function () {
       if (!descForm) return;
       var input = document.getElementById('taskDescriptionInlineInput');
       if (input) {
-        input.value = currentTask && currentTask.description ? String(currentTask.description) : '';
+        setVisualEditorTextareaValue(input, currentTask && currentTask.description ? String(currentTask.description) : '');
       }
       if (descContent) descContent.classList.add('d-none');
       descForm.classList.remove('d-none');
@@ -8845,10 +8845,11 @@ window.CRM.br1 = (function () {
       if (assigneeSelect) assigneeSelect.value = currentTask.assignee_user_public_id || '';
       if (startInput) startInput.value = toDateInputValue(currentTask.start_at);
       if (dueInput) dueInput.value = toDateInputValue(currentTask.due_at);
-      if (endInput) endInput.value = toDateInputValue(currentTask.end_at);       if (descInput) {
-         descInput.value = currentTask.description || '';
-         refreshVisualEditors(form, true);
-       }
+      if (endInput) endInput.value = toDateInputValue(currentTask.end_at);
+      if (descInput) {
+        setVisualEditorTextareaValue(descInput, currentTask.description || '');
+        refreshVisualEditors(form, true);
+      }
 
       // Sync searchable-select widgets (page-api-bindings.js makeSelectSearchable):
       // they hide the native <select> and mirror the value into a visible input
@@ -8902,6 +8903,19 @@ window.CRM.br1 = (function () {
     }
 
     form.addEventListener('submit', async function (e) {
+      if (e.defaultPrevented) return;
+      if (window.CRM && window.CRM.VisualEditor) {
+        if (typeof window.CRM.VisualEditor.hasPendingUploads === 'function' && window.CRM.VisualEditor.hasPendingUploads(form)) {
+          e.preventDefault();
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.wait_for_uploads', 'Пожалуйста, дождитесь окончания загрузки изображений...') : 'Пожалуйста, дождитесь окончания загрузки изображений...', 'warning');
+          return;
+        }
+        if (typeof window.CRM.VisualEditor.hasUploadErrors === 'function' && window.CRM.VisualEditor.hasUploadErrors(form)) {
+          e.preventDefault();
+          notify(window.CRM.i18n ? window.CRM.i18n.t('visual_editor.resolve_upload_errors', 'Пожалуйста, повторите загрузку или удалите ошибочное изображение') : 'Пожалуйста, повторите загрузку или удалите ошибочное изображение', 'warning');
+          return;
+        }
+      }
       e.preventDefault();
       if (!currentTask) return;
 

@@ -309,15 +309,11 @@ final class FileService
             return ['ok' => false, 'error' => 'FILE_NOT_FOUND'];
         }
         $path = (string)($file['storage_path'] ?? '');
-        if ($path === '' || !is_file($path)) {
-            // SEC-001: Backward compatibility — try .bin path as fallback
-            $fallbackPath = $this->resolveStoragePath((string)($file['public_id'] ?? ''), $path);
-            if ($fallbackPath === null || !is_file($fallbackPath)) {
-                return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
-            }
-            $path = $fallbackPath;
+        $resolvedPath = $this->resolveStoragePath((string)($file['public_id'] ?? ''), $path);
+        if ($resolvedPath === null || !is_file($resolvedPath)) {
+            return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
         }
-        $safeStoragePath = $this->validatedStoragePath($path);
+        $safeStoragePath = $this->validatedStoragePath($resolvedPath);
         if ($safeStoragePath === null) {
             return ['ok' => false, 'error' => 'FILE_NOT_ON_STORAGE'];
         }
@@ -837,55 +833,84 @@ final class FileService
     /** Resolve only regular files below the configured CRM upload/quarantine roots. */
     private function validatedStoragePath(string $path): ?string
     {
-        if ($path === '' || preg_match('/[\x00-\x1F\x7F]/', $path)) return null;
-        $input = str_replace('\\', DIRECTORY_SEPARATOR, $path);
-        if (!str_starts_with($input, DIRECTORY_SEPARATOR)) return null;
-        foreach (explode(DIRECTORY_SEPARATOR, $input) as $segment) {
-            if ($segment === '.' || $segment === '..') return null;
+        if ($path === '' || preg_match('/[\x00-\x1F\x7F]/', $path)) {
+            return null;
         }
-        $real = realpath($input);
-        if ($real === false || !is_file($real) || is_link($input)) return null;
+
+        $real = realpath($path);
+        if ($real === false || !is_file($real)) {
+            return null;
+        }
+
         foreach ([$this->uploadsDir, $this->quarantineDir] as $directory) {
-            $rootLexical = rtrim(str_replace('\\', DIRECTORY_SEPARATOR, $directory), DIRECTORY_SEPARATOR);
-            $root = realpath($directory);
-            if ($root === false || !is_dir($root)) continue;
-            $lexicalPrefix = $rootLexical . DIRECTORY_SEPARATOR;
-            $realPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            if (!str_starts_with($input, $lexicalPrefix) || !str_starts_with($real, $realPrefix)) continue;
-            $relative = substr($input, strlen($lexicalPrefix));
-            $cursor = $rootLexical;
-            foreach (explode(DIRECTORY_SEPARATOR, $relative) as $segment) {
-                if ($segment === '' || $segment === '.' || $segment === '..') return null;
-                $cursor .= DIRECTORY_SEPARATOR . $segment;
-                clearstatcache(true, $cursor);
-                if (is_link($cursor)) return null;
+            if ($directory === '') {
+                continue;
             }
-            clearstatcache(true, $input);
-            $after = realpath($input);
-            if ($after !== $real || !str_starts_with($after, $realPrefix)) return null;
-            return $real;
+
+            $realRoot = realpath($directory);
+            if ($realRoot === false || !is_dir($realRoot)) {
+                continue;
+            }
+
+            $realPrefix = rtrim($realRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (str_starts_with($real, $realPrefix)) {
+                return $real;
+            }
         }
+
         return null;
     }
 
     /**
      * Resolve the storage path for a file, with backward compatibility fallback.
      * 1. Try the path from DB (authoritative source)
-     * 2. Fallback to <dir>/<publicId>.bin (new naming scheme)
-     * Returns null if neither exists.
+     * 2. Candidate paths in configured uploads and quarantine roots (<dir>/<publicId>.bin)
+     * 3. Candidate relative paths against storage roots
+     * Returns null if none exist on disk.
      */
     private function resolveStoragePath(string $publicId, string $dbPath): ?string
     {
-        // If DB path exists, use it
-        if ($dbPath !== '' && is_file($dbPath)) {
-            return $dbPath;
+        $candidates = [];
+
+        // 1. Direct path from DB if valid
+        if ($dbPath !== '') {
+            $candidates[] = $dbPath;
         }
 
-        // Try .bin path — compute from DB path's directory + publicId
-        $dir = dirname($dbPath);
-        $binPath = $dir . '/' . $publicId . '.bin';
-        if (is_file($binPath)) {
-            return $binPath;
+        $uploadsDir = rtrim($this->uploadsDir, '/\\');
+        $quarantineDir = rtrim($this->quarantineDir, '/\\');
+
+        // 2. Candidate paths in current configured uploads and quarantine roots
+        if ($publicId !== '') {
+            $candidates[] = $uploadsDir . '/' . $publicId . '.bin';
+            $candidates[] = $quarantineDir . '/' . $publicId . '.bin';
+        }
+
+        if ($dbPath !== '') {
+            $baseName = basename(str_replace('\\', '/', $dbPath));
+            $candidates[] = $uploadsDir . '/' . $baseName;
+            $candidates[] = $quarantineDir . '/' . $baseName;
+
+            // Also check dirname($dbPath)
+            $dir = dirname($dbPath);
+            if ($publicId !== '') {
+                $candidates[] = $dir . '/' . $publicId . '.bin';
+            }
+            $candidates[] = $dir . '/' . $baseName;
+
+            // If dbPath is relative, check relative to storage root and uploadsDir
+            $cleanDb = ltrim(str_replace('\\', '/', $dbPath), '/');
+            $storageRoot = dirname($uploadsDir);
+            $candidates[] = $storageRoot . '/' . $cleanDb;
+            $candidates[] = $storageRoot . '/uploads/' . $cleanDb;
+            $candidates[] = $storageRoot . '/quarantine/' . $cleanDb;
+            $candidates[] = $uploadsDir . '/' . $cleanDb;
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && is_file($candidate)) {
+                return $candidate;
+            }
         }
 
         return null;
