@@ -204,10 +204,41 @@ switch ($command) {
         $deleted = $scheduler->cleanupOldExecutions($days);
         out("Cleaned up {$deleted} old execution records.");
         $runUpdaterRetention($projectRoot);
+        try {
+            $logRotation = new \Api\System\Library\Service\LogRotationService($pdo, $config);
+            $logResult = $logRotation->run();
+            $rotatedCount = count($logResult['files']['rotated'] ?? []);
+            $deletedFilesCount = count($logResult['files']['deleted'] ?? []);
+            out("Log rotation: {$rotatedCount} file(s) rotated, {$deletedFilesCount} old archive(s) purged.");
+            out("Database logs pruned: requests=" . ($logResult['database']['request_logs'] ?? 0)
+                . ", security=" . ($logResult['database']['security_logs'] ?? 0)
+                . ", audit=" . ($logResult['database']['audit_logs'] ?? 0) . ".");
+        } catch (\Throwable $e) {
+            AppLog::error('[scheduler] Log rotation/cleanup failed: ' . $e->getMessage());
+        }
+        break;
+
+    case 'rotate-logs':
+    case 'logs-rotate':
+        try {
+            $logRotation = new \Api\System\Library\Service\LogRotationService($pdo, $config);
+            $logResult = $logRotation->run();
+            $rotated = $logResult['files']['rotated'] ?? [];
+            $purged = $logResult['files']['deleted'] ?? [];
+            out("Log rotation complete.");
+            out("Files rotated: " . ($rotated === [] ? 'none' : implode(', ', $rotated)));
+            out("Old archives purged: " . ($purged === [] ? 'none' : implode(', ', $purged)));
+            out("Database logs pruned: requests=" . ($logResult['database']['request_logs'] ?? 0)
+                . ", security=" . ($logResult['database']['security_logs'] ?? 0)
+                . ", audit=" . ($logResult['database']['audit_logs'] ?? 0) . ".");
+        } catch (\Throwable $e) {
+            err("Log rotation failed: " . $e->getMessage());
+            exit(1);
+        }
         break;
 
     default:
         err("Unknown command: {$command}");
-        err("Available: run, list, run-task, history, cleanup");
+        err("Available: run, list, run-task, history, cleanup, rotate-logs");
         exit(1);
 }

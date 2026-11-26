@@ -2302,6 +2302,18 @@ final class App
             AppLog::error('[FinanceCron] Task registration failed: ' . $e->getMessage());
         }
 
+        try {
+            $cronScheduler->registerTask('system', new \Api\System\Library\Module\ScheduledTask(
+                name: 'logs.rotate',
+                description: 'Rotate and compress application log files and prune expired database logs by retention policy',
+                schedule: '0 * * * *',
+                handler: [\Api\System\Library\Service\LogRotationCronTaskHandler::class, 'rotateLogs'],
+                timeout: 300,
+            ));
+        } catch (\Throwable $e) {
+            AppLog::error('[LogRotationCron] Task registration failed: ' . $e->getMessage());
+        }
+
         $jobDispatcher = new ModuleJobDispatcher($pdo);
         try { $jobDispatcher->ensureTable($driver); } catch (\Throwable $e) {
             AppLog::error('[App::initModuleSystem] ensureTable failed for module.job_dispatcher: ' . $e->getMessage());

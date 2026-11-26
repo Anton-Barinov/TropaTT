@@ -19,4 +19,11 @@ return [
         'install' => $storageBase . '/logs/install.log',
     ],
     'mask_keys' => ['password', 'token', 'authorization', 'secret', 'api_key', 'cookie', 'set-cookie', 'refresh_token', 'invitation_token', 'reset_token', 'accept_token', 'user_token'],
+    'rotation' => [
+        'enabled' => (bool)(getenv('CRM_LOG_ROTATION_ENABLED') !== 'false'),
+        'max_file_size_bytes' => (int)(getenv('CRM_LOG_MAX_FILE_SIZE') ?: 10 * 1024 * 1024),
+        'max_files' => (int)(getenv('CRM_LOG_MAX_FILES') ?: 5),
+        'compress' => (bool)(getenv('CRM_LOG_COMPRESS') !== 'false'),
+        'retention_days' => (int)(getenv('CRM_LOG_RETENTION_DAYS') ?: 14),
+    ],
 ];
