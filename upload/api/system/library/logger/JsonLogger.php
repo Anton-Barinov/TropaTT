@@ -46,6 +46,12 @@ final class JsonLogger
         ];
 
         @file_put_contents($path, json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+
+        // Safeguard: if a log file exceeds 25 MB between cron runs, rotate it inline.
+        // Sampled check (1 in 50 writes) prevents checking filesize on every single log write.
+        if (mt_rand(1, 50) === 1 && @filesize($path) > 26214400) {
+            \Api\System\Library\Service\LogRotationService::rotateSingleFile($path, 20971520, 5, true);
+        }
     }
 
     /** @param array<string,mixed> $context */

@@ -39,6 +39,7 @@ final class ModuleCronScheduler
         'freshnessScan', 'draftsCleanup', 'versionsCleanup', 'reindexSearch',
         'purgeTrash',
         'captureDaily', 'autoClosePeriods', 'dispatchQueue',
+        'rotateLogs',
     ];
 
     public function __construct(PDO $pdo)
