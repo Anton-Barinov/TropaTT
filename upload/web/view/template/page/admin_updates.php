@@ -1789,12 +1789,11 @@ $auJs = [
         const responseStatus = Number(result && (result.http_status || (result.meta && result.meta.status)) || 0);
         const responseCode = String(result && result.code || '').toUpperCase();
         if (result && result.success === false
-          && responseCode === 'INVALID_JSON'
-          && retryableHttpStatuses.has(responseStatus)
+          && (responseCode === 'INVALID_JSON' || retryableHttpStatuses.has(responseStatus))
           && networkRetries < maxNetworkRetries) {
           networkRetries++;
           showNotice(tr('retry_in_progress', 'Временная ошибка HTTP {status}, повторяем запрос… ({attempt} из {max})', {
-            status: responseStatus, attempt: networkRetries, max: maxNetworkRetries
+            status: responseStatus || 500, attempt: networkRetries, max: maxNetworkRetries
           }), 'info');
           await sleep(Math.min(5000, 1200 * networkRetries));
           continue;

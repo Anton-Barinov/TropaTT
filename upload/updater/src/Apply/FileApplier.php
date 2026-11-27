@@ -83,12 +83,21 @@ final class FileApplier
                     }
                 }
                 if (!@copy($source, $target)) {
-                    $err = error_get_last();
-                    throw new \RuntimeException(
-                        'Unable to apply file: ' . $relative
-                        . ($err ? ' (' . $err['message'] . ')' : '')
-                    );
+                    if (is_file($target) && is_writable($targetDir)) {
+                        @unlink($target);
+                    }
+                    if (!@copy($source, $target)) {
+                        $content = @file_get_contents($source);
+                        if ($content === false || @file_put_contents($target, $content) === false) {
+                            $err = error_get_last();
+                            throw new \RuntimeException(
+                                'Unable to apply file: ' . $relative
+                                . ($err ? ' (' . $err['message'] . ')' : '')
+                            );
+                        }
+                    }
                 }
+                @chmod($target, 0664);
                 $expected = is_array($hashes[$relative] ?? null) ? (string)($hashes[$relative]['sha256'] ?? '') : '';
                 $actual = hash_file('sha256', $target) ?: '';
                 if ($expected !== '' && !hash_equals($expected, $actual)) {
