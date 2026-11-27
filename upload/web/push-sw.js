@@ -177,29 +177,27 @@ function pageRetryFallbackHtml(request, offline) {
     + 'button:hover{background:#1d4ed8}button:disabled{opacity:.6;cursor:default}</style></head>'
     + '<body><div class="card"><h1>' + messages.heading + '</h1><p>' + messages.body + '</p>'
     + '<button id="retryBtn" type="button">' + messages.button + '</button></div>'
-    + '<script>document.getElementById("retryBtn").addEventListener("click",function(){'
-    + 'document.getElementById("retryBtn").disabled=true;window.location.href="' + retryUrl + '";});</script>'
+    + '<script>(function(){'
+    + 'function retry(){var btn=document.getElementById("retryBtn");if(btn){btn.disabled=true;}window.location.reload();}'
+    + 'var btn=document.getElementById("retryBtn");if(btn){btn.addEventListener("click",retry);}'
+    + 'window.addEventListener("online",retry);'
+    + '})();</script>'
     + '</body></html>';
 }
 
 function pageRetryNavigation(request) {
-  // If the browser already reports that we are offline, do not burn the retry
-  // budget (and the user's time): serve the offline page right away. The
-  // server-retry path below is for transient server failures, not for a
-  // missing network connection.
-  if (self.navigator && self.navigator.onLine === false) {
-    return Promise.resolve(new Response(pageRetryFallbackHtml(request, true), {
-      status: 503,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    }));
-  }
+  // If navigator reports offline, attempt exactly one fast probe request
+  // instead of burning the full 16-second retry backoff. Browsers often lag
+  // in updating navigator.onLine inside ServiceWorkerGlobalScope; never block
+  // the navigation without giving the network a chance to respond.
+  var isReportedOffline = !!(self.navigator && self.navigator.onLine === false);
 
   var attempt = 0;
 
   function attemptOnce() {
     attempt += 1;
     return fetch(request).then(function (response) {
-      if (pageRetryIsServerError(response.status) && attempt < PAGE_RETRY_ATTEMPTS) {
+      if (pageRetryIsServerError(response.status) && !isReportedOffline && attempt < PAGE_RETRY_ATTEMPTS) {
         return pageRetrySleep(PAGE_RETRY_DELAYS_MS[attempt - 1]).then(attemptOnce);
       }
       // After exhausting the retries we pass the real 5xx response through:
@@ -212,7 +210,7 @@ function pageRetryNavigation(request) {
       // response body to show, so fall back to the retry page. Re-try a few
       // times first; the fetch() inside a service worker never auto-follows
       // the original request's redirect mode, so this is a clean re-request.
-      if (attempt < PAGE_RETRY_ATTEMPTS) {
+      if (!isReportedOffline && attempt < PAGE_RETRY_ATTEMPTS) {
         return pageRetrySleep(PAGE_RETRY_DELAYS_MS[attempt - 1]).then(attemptOnce);
       }
       var offline = !!(self.navigator && self.navigator.onLine === false);
