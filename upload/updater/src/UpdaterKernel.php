@@ -1051,7 +1051,7 @@ final class UpdaterKernel
                 || (getmyuid() !== false && (int)$stat['uid'] === (int)getmyuid()));
             if (!is_array($stat) || is_link($cursor) || !$validOwner) { return false; }
             if ($index < count(explode('/', $relative)) - 1 && ($stat['mode'] & 0170000) !== 0040000) { return false; }
-            if ($index === count(explode('/', $relative)) - 1 && (($stat['mode'] & 0170000) !== 0100000 || $stat['nlink'] !== 1 || $stat['size'] > 512 * 1024 * 1024)) { return false; }
+            if ($index === count(explode('/', $relative)) - 1 && (($stat['mode'] & 0170000) !== 0100000 || $stat['nlink'] !== 1 || $stat['size'] > 4096 * 1024 * 1024)) { return false; }
         }
         return true;
     }
