@@ -787,10 +787,22 @@ $auJs = [
     }
     if (code === 'PREFLIGHT_REQUIRED') return tr('errPreflightRequired', 'Сначала успешно выполните проверку безопасности.');
     if (code === 'NO_PACKAGE') return tr('errNoPackage', 'Для этой операции пакет обновления недоступен.');
-    if (code === 'PREFLIGHT_FAILED') return tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
-    if (code === 'DOWNLOAD_FAILED') return tr('errDownload', 'Не удалось подготовить архив.');
-    if (code === 'APPLY_FAILED') return tr('errApply', 'Не удалось установить обновление.');
-    if (code === 'ROLLBACK_FAILED') return tr('errRollback', 'Не удалось восстановить backup.');
+    if (code === 'PREFLIGHT_FAILED') {
+      const msg = String(payload && payload.message || '').trim();
+      return msg ? tr('errPreflight', 'Не удалось выполнить безопасную проверку.') + ' (' + msg + ')' : tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
+    }
+    if (code === 'DOWNLOAD_FAILED') {
+      const msg = String(payload && payload.message || '').trim();
+      return msg ? tr('errDownload', 'Не удалось подготовить архив.') + ' (' + msg + ')' : tr('errDownload', 'Не удалось подготовить архив.');
+    }
+    if (code === 'APPLY_FAILED') {
+      const msg = String(payload && payload.message || '').trim();
+      return msg ? tr('errApply', 'Не удалось установить обновление.') + ' (' + msg + ')' : tr('errApply', 'Не удалось установить обновление.');
+    }
+    if (code === 'ROLLBACK_FAILED') {
+      const msg = String(payload && payload.message || '').trim();
+      return msg ? tr('errRollback', 'Не удалось восстановить backup.') + ' (' + msg + ')' : tr('errRollback', 'Не удалось восстановить backup.');
+    }
     if (code === 'UPDATER_ERROR') {
       const msg = String(payload && payload.message || '').trim();
       const safeDiagnostics = {
@@ -837,7 +849,11 @@ $auJs = [
       HOST_RELEASE_BUSY: 'errHostReleaseBusy',
       HOST_LEASE_PERMISSIONS_ERROR: 'errHostLeasePermissions'
     };
-    if (knownByCode[code]) return tr(knownByCode[code], 'Не удалось выполнить действие.');
+    if (knownByCode[code]) {
+      const errDetail = String(job.error_message || job.error || '').trim();
+      const baseMsg = tr(knownByCode[code], 'Не удалось выполнить действие.');
+      return errDetail && errDetail !== baseMsg ? baseMsg + ' (' + errDetail + ')' : baseMsg;
+    }
     const legacy = String(job.error || '');
     if (legacy === 'Preflight checks failed.') return tr('errPreflight', 'Не удалось выполнить безопасную проверку.');
     if (legacy === 'Package download failed.') return tr('errDownload', 'Не удалось подготовить архив.');
