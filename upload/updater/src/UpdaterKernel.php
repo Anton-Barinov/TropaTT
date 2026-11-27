@@ -1171,7 +1171,19 @@ final class UpdaterKernel
         $health = (new HealthChecker($this->basePath))->check(is_array($manifest) && $manifest !== [] ? $manifest : null);
         $state->writeFile('health.json', $health);
         if (($health['ok'] ?? false) !== true) {
-            throw new \RuntimeException('Post-apply health check failed.');
+            $details = [];
+            foreach (($health['checks'] ?? []) as $checkName => $checkData) {
+                if (($checkData['ok'] ?? false) !== true) {
+                    if ($checkName === 'package_php_syntax' && !empty($checkData['errors'])) {
+                        $first = $checkData['errors'][0];
+                        $details[] = 'PHP syntax error in ' . ($first['file'] ?? 'package') . ': ' . ($first['error'] ?? 'syntax error');
+                    } else {
+                        $details[] = $checkName . ' failed' . (!empty($checkData['error']) ? ': ' . $checkData['error'] : (!empty($checkData['reason']) ? ': ' . $checkData['reason'] : ''));
+                    }
+                }
+            }
+            $reason = !empty($details) ? implode('; ', $details) : 'syntax verification failed';
+            throw new \RuntimeException('Post-apply health check failed: ' . $reason);
         }
         $backup = $state->readFile('backup.json');
         $dbBackup = $state->readFile('db_backup.json');
@@ -2356,6 +2368,10 @@ final class UpdaterKernel
             }
         }
         if (str_contains($value, 'Permission denied')) {
+            $sanitized = str_replace([$this->basePath . '/', $this->basePath], '', $value);
+            if (strlen($sanitized) < 300 && !preg_match('/(password|secret|bearer|token\s*=\s*[a-f0-9]{16})/i', $sanitized)) {
+                return $sanitized;
+            }
             return 'Permission denied: web server cannot access updater files. Check ownership and permissions.';
         }
         if (str_contains($value, 'No space left on device') || str_contains($value, 'disk full')) {
