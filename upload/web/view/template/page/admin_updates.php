@@ -73,6 +73,8 @@ $auJs = [
   'autoRecoverRunning' => $au('auto_recover_running', 'Обновление не удалось продолжить — очищаем прерванное состояние и готовим обновление заново…'),
   'autoRecoverDone' => $au('auto_recover_done', 'Прерванное обновление очищено автоматически; обновление запущено заново.'),
   'recoverFailed' => $au('recover_failed', 'Не удалось очистить прерванное обновление.'),
+  'recoverSuccess' => $au('recover_success', 'Режим обслуживания успешно снят. Можно проверить и запустить обновление заново.'),
+  'btnClearMaintenance' => $au('btn_clear_maintenance', 'Снять режим обслуживания'),
   'progressTables' => $au('progress_tables', 'таблиц {done} из {total}'),
   'progressRows' => $au('progress_rows', 'строк {done}'),
   'preflightFailedChecks' => $au('preflight_failed_checks', 'не пройдены проверки: {list}'),
@@ -513,6 +515,7 @@ $auJs = [
               <p class="updates-muted mb-1" style="font-size:.82rem"><strong><?= htmlspecialchars($au('recovery_alt_title', 'Альтернативный способ:'), ENT_QUOTES, 'UTF-8') ?></strong> <?= htmlspecialchars($au('recovery_alt_text', 'Если ключ восстановления утерян, в rescue.php можно войти с помощью APP_KEY из файла .env на сервере ( cat .env | grep APP_KEY ).'), ENT_QUOTES, 'UTF-8') ?></p>
               <div class="updates-actions mt-0">
                 <button class="btn crm-btn-secondary" type="button" data-update-action="recovery-key"><?= htmlspecialchars($au('recovery_key_btn', 'Показать ключ восстановления'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button class="btn crm-btn-secondary text-danger" type="button" data-update-action="recover"><?= htmlspecialchars($au('btn_clear_maintenance', 'Снять режим обслуживания'), ENT_QUOTES, 'UTF-8') ?></button>
               </div>
               <pre id="recoveryKeyValue" class="updates-recovery-key d-none"></pre>
               <div id="recoveryKeyWarn" class="updates-recovery-warn d-none"><?= htmlspecialchars($au('recovery_key_warn', 'Сохраните ключ — после перезагрузки страницы он больше не будет показан. Ключ скопирован в буфер обмена.'), ENT_QUOTES, 'UTF-8') ?></div>
@@ -1128,6 +1131,7 @@ $auJs = [
         $('nextTitle').textContent = tr('maintenanceHeldTitle', 'Обновление не завершено: CRM в режиме обслуживания');
         $('nextText').textContent = tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.');
         showNotice(tr('maintenanceHeldText', 'Обновление прервалось после изменения файлов или базы данных, поэтому CRM остаётся в режиме обслуживания, чтобы не отдавать сломанное состояние. Откатитесь из backup или повторите обновление.'), 'danger');
+        setPrimary('recover', tr('btnClearMaintenance', 'Снять режим обслуживания'));
       } else {
         $('nextTitle').textContent = tr('recommendFailedTitle', 'Последняя операция завершилась ошибкой');
         $('nextText').textContent = tr('recommendFailedText', 'Проверьте детали операции. Если CRM работает нестабильно, используйте восстановление из backup.');
@@ -1136,8 +1140,8 @@ $auJs = [
         } else {
           clearNotice();
         }
+        setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
       }
-      setPrimary('refresh', tr('primaryRefresh', 'Обновить статус'));
     } else if (centerChannelEmpty()) {
       $('nextTitle').textContent = tr('recommendChannelEmptyTitle', 'Сервер обновлений не отдал ни одной сборки');
       $('nextText').textContent = tr('recommendChannelEmptyText', 'CRM не может проверить обновления: в канале {channel} на сервере обновлений нет ни одной опубликованной сборки, поэтому обновлений не получает ни одна установка — и старая, и новая. Это не значит, что ваша версия актуальна: проверьте публикацию сборок на сервере обновлений (scan-github / process-builds / publish-channels).', {channel: centerChannelName()});
@@ -2222,9 +2226,22 @@ $auJs = [
     const btn = event.target.closest && event.target.closest('[data-update-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-update-action');
-    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey, 'migration-check': migrationCheck, 'migration-up': migrationUp, 'force-unlock': forceUnlock };
+    const actions = { refresh, check, changes, install: installUpdate, preflight, download, apply: applyUpdate, rollback, 'recovery-key': showRecoveryKey, 'migration-check': migrationCheck, 'migration-up': migrationUp, 'force-unlock': forceUnlock, recover: clearMaintenance };
     if (actions[action]) withAction(action, actions[action]);
   });
+
+  async function clearMaintenance() {
+    const latest = state.status && state.status.latest_job;
+    const jobId = String((latest && latest.job_id) || '');
+    showNotice(tr('autoRecoverRunning', 'Очищаем прерванное состояние и снимаем режим обслуживания…'), 'info');
+    try {
+      await recoverInterrupted(jobId);
+      await loadStatus();
+      showNotice(tr('recoverSuccess', 'Режим обслуживания успешно снят. Можно проверить и запустить обновление заново.'), 'success');
+    } catch (err) {
+      showNotice(String(err && err.message ? err.message : err), 'danger');
+    }
+  }
 
   // Phase progress bar for initial load
   function showPhaseProgress(phases) {

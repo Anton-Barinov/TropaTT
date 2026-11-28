@@ -131,6 +131,8 @@ final class JobRetention
                 'job_id' => $jobId,
                 'mtime' => (int)@filemtime($file),
                 'timestamp' => JobState::resolveJobTimestamp($file, $state),
+                'can_rollback' => (bool)($state['can_rollback'] ?? false),
+                'maintenance_held' => (bool)($state['maintenance_held'] ?? false),
             ];
         }
         // Newest first by job creation/start timestamp so "keep the most recent" is well defined.
@@ -145,7 +147,8 @@ final class JobRetention
         $now = time();
         $removed = [];
         foreach ($terminal as $index => $job) {
-            $isProtected = ($protectJobId !== null && $job['job_id'] === $protectJobId);
+            $hasRollbackCapability = ($job['can_rollback'] ?? false) || ($job['maintenance_held'] ?? false);
+            $isProtected = ($protectJobId !== null && $job['job_id'] === $protectJobId) || $hasRollbackCapability;
 
             if ($index < max(1, $this->keepJobs) || $isProtected) {
                 // Job metadata is kept inside keepJobs (or if protected).
@@ -282,7 +285,8 @@ final class JobRetention
             $stateFile = $this->storageDir . '/jobs/' . $jobId . '/state.json';
             $state = is_file($stateFile) ? json_decode((string)@file_get_contents($stateFile), true) : null;
             $status = is_array($state) ? (string)($state['state'] ?? '') : '';
-            if (!in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
+            $canRollback = is_array($state) && ((bool)($state['can_rollback'] ?? false) || (bool)($state['maintenance_held'] ?? false));
+            if ($canRollback || !in_array($status, ['applied', 'rolled_back', 'failed'], true)) {
                 $validBackupJobIds[$jobId] = true;
             }
         }
