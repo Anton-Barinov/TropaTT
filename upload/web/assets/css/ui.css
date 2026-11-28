@@ -2404,8 +2404,13 @@ textarea.form-control:focus {
   min-height: 150px;
 }
 
+.min-w-0 {
+  min-width: 0 !important;
+}
+
 .crm-dashboard-page .crm-dashboard-widget {
   padding: 20px;
+  overflow: hidden;
 }
 
 .crm-dashboard-page .crm-dashboard-widget h2,
