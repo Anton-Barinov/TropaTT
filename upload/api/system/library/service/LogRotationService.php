@@ -237,9 +237,40 @@ final class LogRotationService
     }
 
     /**
+     * Opportunistic probabilistic database log prune for shared hosting where system cron is absent.
+     * Runs with small batch and time limits so web requests are never visibly delayed.
+     */
+    public static function maybeOpportunisticPrune(PDO $pdo, ?Config $config = null): void
+    {
+        // Sampled execution: 1 in 100 web requests
+        if (mt_rand(1, 100) !== 1) {
+            return;
+        }
+
+        $channels = $config !== null ? (array)$config->get('logging.channels', []) : [];
+        $requestLog = (string)($channels['request'] ?? '');
+        $storageBase = $requestLog !== '' ? dirname($requestLog) : (string)(getenv('CRM_STORAGE_BASE') ?: dirname(__DIR__, 4) . '/storage_api/logs');
+        $markerFile = $storageBase . '/.last_db_prune';
+
+        // Check if pruned in the last 12 hours
+        if (@file_exists($markerFile) && (time() - (int)@filemtime($markerFile)) < 43200) {
+            return;
+        }
+
+        @touch($markerFile);
+
+        try {
+            $service = new self($pdo, $config);
+            $service->pruneDatabaseLogs(['max_batches' => 4, 'max_seconds' => 2.0]);
+        } catch (\Throwable $e) {
+            AppLog::warning('[LogRotationService::maybeOpportunisticPrune] ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Prune database log tables by retention policy.
      *
-     * @param array<string, mixed> $options Optional retention day overrides
+     * @param array<string, mixed> $options Optional retention day overrides and execution limits
      * @return array{request_logs: int, security_logs: int, audit_logs: int, executions: int}
      */
     public function pruneDatabaseLogs(array $options = []): array
@@ -264,8 +295,8 @@ final class LogRotationService
             $driver = (string)$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
             $tables = [
-                'request_logs' => (int)($options['request_logs_days'] ?? ($retentionConfig['request_logs_days'] ?? 90)),
-                'security_logs' => (int)($options['security_logs_days'] ?? ($retentionConfig['security_logs_days'] ?? 180)),
+                'request_logs' => (int)($options['request_logs_days'] ?? ($retentionConfig['request_logs_days'] ?? 14)),
+                'security_logs' => (int)($options['security_logs_days'] ?? ($retentionConfig['security_logs_days'] ?? 30)),
                 'audit_logs' => (int)($options['audit_logs_days'] ?? ($retentionConfig['audit_logs_days'] ?? 365)),
             ];
 
@@ -274,15 +305,27 @@ final class LogRotationService
                     continue;
                 }
                 $cutoff = gmdate('Y-m-d H:i:s', time() - ($days * 86400));
-                $deleted = $this->deleteOlderThan($table, 'created_at', $cutoff, $driver);
+                $deleted = $this->deleteOlderThan($table, 'created_at', $cutoff, $driver, $options);
                 $result[$table] = $deleted;
+            }
+
+            // Cap maximum row count to prevent runaway table size on high-volume shared hosting
+            $rowCaps = [
+                'request_logs' => (int)($options['request_logs_max_rows'] ?? 100000),
+                'security_logs' => (int)($options['security_logs_max_rows'] ?? 50000),
+            ];
+            foreach ($rowCaps as $table => $maxRows) {
+                if ($maxRows > 0) {
+                    $capped = $this->capTableRows($table, $maxRows, $driver, $options);
+                    $result[$table] = ($result[$table] ?? 0) + $capped;
+                }
             }
 
             // Also prune module task executions older than 30 days
             $schedulerExecutionsDays = (int)($options['module_task_executions_days'] ?? 30);
             if ($schedulerExecutionsDays > 0) {
                 $cutoff = gmdate('Y-m-d H:i:s', time() - ($schedulerExecutionsDays * 86400));
-                $result['executions'] = $this->deleteOlderThan('module_task_executions', 'started_at', $cutoff, $driver);
+                $result['executions'] = $this->deleteOlderThan('module_task_executions', 'started_at', $cutoff, $driver, $options);
             }
         } catch (\Throwable $e) {
             AppLog::error('[LogRotationService::pruneDatabaseLogs] ' . $e->getMessage());
@@ -291,7 +334,7 @@ final class LogRotationService
         return $result;
     }
 
-    private function deleteOlderThan(string $table, string $column, string $cutoff, string $driver): int
+    private function deleteOlderThan(string $table, string $column, string $cutoff, string $driver, array $options = []): int
     {
         try {
             if (!$this->tableExists($table)) {
@@ -304,18 +347,85 @@ final class LogRotationService
                 return $stmt->rowCount();
             }
 
+            $maxBatches = isset($options['max_batches']) ? (int)$options['max_batches'] : null;
+            $maxSeconds = isset($options['max_seconds']) ? (float)$options['max_seconds'] : null;
+            $startTime = microtime(true);
+
             // MySQL: batch deletes in chunks of 5000 to avoid table-lock latency
             $total = 0;
+            $batch = 0;
             do {
+                if ($maxSeconds !== null && (microtime(true) - $startTime) >= $maxSeconds) {
+                    break;
+                }
+                if ($maxBatches !== null && $batch >= $maxBatches) {
+                    break;
+                }
+
                 $stmt = $this->pdo->prepare("DELETE FROM {$table} WHERE {$column} < :cutoff LIMIT 5000");
                 $stmt->execute(['cutoff' => $cutoff]);
                 $count = $stmt->rowCount();
                 $total += $count;
+                $batch++;
             } while ($count >= 5000);
 
             return $total;
         } catch (\Throwable $e) {
             AppLog::error("[LogRotationService::deleteOlderThan] {$table}.{$column}: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function capTableRows(string $table, int $maxRows, string $driver, array $options = []): int
+    {
+        try {
+            if (!$this->tableExists($table)) {
+                return 0;
+            }
+
+            $maxBatches = isset($options['max_batches']) ? (int)$options['max_batches'] : null;
+            $maxSeconds = isset($options['max_seconds']) ? (float)$options['max_seconds'] : null;
+            $startTime = microtime(true);
+
+            // Fast check: find id at offset $maxRows from the newest record
+            $stmt = $this->pdo->query("SELECT id FROM {$table} ORDER BY id DESC LIMIT 1 OFFSET {$maxRows}");
+            if (!$stmt) {
+                return 0;
+            }
+            $thresholdId = $stmt->fetchColumn();
+            if (!$thresholdId) {
+                return 0; // Table within cap
+            }
+
+            $thresholdId = (int)$thresholdId;
+
+            if ($driver === 'sqlite') {
+                $delStmt = $this->pdo->prepare("DELETE FROM {$table} WHERE id <= :threshold_id");
+                $delStmt->execute(['threshold_id' => $thresholdId]);
+                return $delStmt->rowCount();
+            }
+
+            $total = 0;
+            $batch = 0;
+
+            do {
+                if ($maxSeconds !== null && (microtime(true) - $startTime) >= $maxSeconds) {
+                    break;
+                }
+                if ($maxBatches !== null && $batch >= $maxBatches) {
+                    break;
+                }
+
+                $delStmt = $this->pdo->prepare("DELETE FROM {$table} WHERE id <= :threshold_id LIMIT 5000");
+                $delStmt->execute(['threshold_id' => $thresholdId]);
+                $count = $delStmt->rowCount();
+                $total += $count;
+                $batch++;
+            } while ($count >= 5000);
+
+            return $total;
+        } catch (\Throwable $e) {
+            AppLog::warning("[LogRotationService::capTableRows] {$table}: " . $e->getMessage());
             return 0;
         }
     }
@@ -338,8 +448,8 @@ final class LogRotationService
     {
         $defaults = [
             'enabled' => true,
-            'request_logs_days' => 90,
-            'security_logs_days' => 180,
+            'request_logs_days' => 14,
+            'security_logs_days' => 30,
             'audit_logs_days' => 365,
         ];
 

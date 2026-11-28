@@ -52,6 +52,19 @@ final class AuthRepository
             ->update(['expires_at' => $expiresAt]) > 0;
     }
 
+    public function updateDeviceFingerprintByTokenHash(string $hash, string $fingerprint, ?string $userAgent = null): bool
+    {
+        $payload = ['device_fingerprint' => $fingerprint];
+        if ($userAgent !== null && $userAgent !== '') {
+            $payload['user_agent'] = $userAgent;
+        }
+        return (new QueryBuilder($this->pdo))
+            ->from('user_sessions')
+            ->where('token_hash', '=', $hash)
+            ->whereNull('revoked_at')
+            ->update($payload) > 0;
+    }
+
     /** @return string[] */
     public function roleCodesByUserId(int $userId): array
     {

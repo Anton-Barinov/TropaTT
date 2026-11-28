@@ -807,6 +807,16 @@ final class App
                 'execution_time_ms' => $duration,
                 'success' => $statusCode < 400,
             ]);
+
+            // Opportunistic database log rotation for shared hosting (probabilistic, non-blocking)
+            if ($this->container->has('db.pdo')) {
+                try {
+                    $pdo = $this->container->get('db.pdo');
+                    \Api\System\Library\Service\LogRotationService::maybeOpportunisticPrune($pdo, $this->config);
+                } catch (\Throwable) {
+                    // Non-blocking
+                }
+            }
         }
     }
 
@@ -1074,6 +1084,19 @@ final class App
             $repo = new \Api\Model\Logs\LogsRepository($pdo);
 
             if ($channel === 'request') {
+                $route = trim((string)($context['route'] ?? ''), '/');
+                $statusCode = (int)($context['response_status'] ?? 0);
+                $skipRoutes = (array)$this->config->get('logging.db_skip_routes_on_success', [
+                    'api/v1/notifications/counters',
+                    'api/v1/chats/unread-count',
+                    'api/v1/notifications',
+                    'api/v1/telemetry/heartbeat',
+                    'api/v1/health',
+                ]);
+                // Routine 200 OK polling requests are omitted from the database to prevent gigabytes of table bloat
+                if ($statusCode < 400 && in_array($route, $skipRoutes, true)) {
+                    return;
+                }
                 $repo->insertRequest($context);
                 return;
             }
