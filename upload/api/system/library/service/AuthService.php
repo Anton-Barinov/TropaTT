@@ -295,6 +295,10 @@ final class AuthService
                         'stored_fingerprint' => $storedFingerprint,
                         'current_fingerprint' => $currentFingerprint,
                     ]);
+                    // Update stored fingerprint to avoid logging tens of thousands of duplicate
+                    // security events on every subsequent polling and API request for this session.
+                    $session['device_fingerprint'] = $currentFingerprint;
+                    $this->auth->updateDeviceFingerprintByTokenHash($hash, $currentFingerprint, $userAgent);
                 }
             }
         }
