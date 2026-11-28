@@ -29,6 +29,24 @@ use Updater\Db\Connection;
  */
 final class DatabaseBackupManager extends BackupManager
 {
+    /**
+     * Ephemeral or telemetry tables whose historical data is not part of CRM business state.
+     * Their DDL schema (DROP + CREATE TABLE) is always preserved in schema.sql so the tables
+     * exist and have all columns and indices. Data is omitted to protect shared-hosting disk
+     * quotas and avoid gigantic dumps (e.g. request_logs with millions of rows).
+     */
+    private const SCHEMA_ONLY_TABLES = [
+        'request_logs',
+    ];
+
+    /**
+     * High-volume log tables whose data is capped to the most recent rows to prevent
+     * runaway backup sizes while keeping recent audit trail for troubleshooting.
+     */
+    private const CAPPED_DATA_TABLES = [
+        'security_logs' => 5000,
+    ];
+
     public function __construct(private readonly string $basePath)
     {
     }
@@ -672,7 +690,37 @@ final class DatabaseBackupManager extends BackupManager
 
     private function dumpTableData(PDO $pdo, $handle, string $table, int $offset, int $rowLimit, ?\Updater\Util\WorkBudget $budget): array
     {
-        $stmt = $pdo->query('SELECT * FROM `' . $table . '` LIMIT ' . max(1, $rowLimit) . ' OFFSET ' . max(0, $offset));
+        if (in_array($table, self::SCHEMA_ONLY_TABLES, true)) {
+            if ($offset === 0) {
+                $this->writeStatement($handle, '-- Data omitted for ephemeral telemetry table (' . $table . ') to preserve shared-hosting disk quota');
+            }
+            return ['fetched' => 0, 'done' => true];
+        }
+
+        $isCapped = isset(self::CAPPED_DATA_TABLES[$table]);
+        $cappedMax = $isCapped ? self::CAPPED_DATA_TABLES[$table] : PHP_INT_MAX;
+        if ($offset >= $cappedMax) {
+            return ['fetched' => 0, 'done' => true];
+        }
+        $effectiveLimit = min($rowLimit, $cappedMax - $offset);
+        if ($effectiveLimit <= 0) {
+            return ['fetched' => 0, 'done' => true];
+        }
+
+        $hasIdColumn = false;
+        if ($isCapped) {
+            try {
+                $colCheck = $pdo->query("SHOW COLUMNS FROM `{$table}` LIKE 'id'")->fetch();
+                $hasIdColumn = !empty($colCheck);
+            } catch (\Throwable) {
+                $hasIdColumn = false;
+            }
+        }
+        $query = ($isCapped && $hasIdColumn)
+            ? 'SELECT * FROM `' . $table . '` ORDER BY `id` DESC LIMIT ' . max(1, $effectiveLimit) . ' OFFSET ' . max(0, $offset)
+            : 'SELECT * FROM `' . $table . '` LIMIT ' . max(1, $effectiveLimit) . ' OFFSET ' . max(0, $offset);
+
+        $stmt = $pdo->query($query);
         if ($stmt === false) {
             return ['fetched' => 0, 'done' => true];
         }
@@ -710,7 +758,8 @@ final class DatabaseBackupManager extends BackupManager
             $this->writeStatement($handle, 'INSERT INTO `' . $table . '` VALUES ' . implode(', ', $batch) . ';');
         }
 
-        return ['fetched' => $rows, 'done' => $budget !== null && $budget->exhausted() ? false : true];
+        $done = ($budget !== null && $budget->exhausted()) ? false : ($rows < $effectiveLimit || ($isCapped && ($offset + $rows) >= $cappedMax));
+        return ['fetched' => $rows, 'done' => $done];
     }
 
     private function stripDefiner(string $sql): string

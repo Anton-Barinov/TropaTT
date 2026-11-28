@@ -852,30 +852,29 @@ final class UpdaterKernel
             }
             return JsonResponse::success($response);
         } catch (\Throwable $e) {
-            // Guard 3: maintenance stays ON when it was already held before
-            // this run (previous failed attempt) or when the failure happened
-            // after the file tree / DB was mutated. Only a clean pre-mutation
-            // failure with maintenance we enabled ourselves may turn it off.
+            // Guard 3: maintenance stays ON only when the file tree / DB was actually mutated
+            // (after apply_files started writing, or during health/migrate/finalize).
+            // Pre-mutation failures (preflight, download, backup_files, backup_db) leave
+            // the system 100% untouched and original, so maintenance is safely disabled.
             $stored = $state->readFile('state.json') ?: [];
             $progress = is_array($stored['progress'] ?? null) ? $stored['progress'] : [];
             $phase = (string)($progress['phase'] ?? '');
-            $systemMutated = $phase === '' || in_array($phase, ['apply_files', 'health', 'migrate', 'finalize'], true);
+            $cursor = (int)($progress['cursor'] ?? 0);
+            $systemMutated = in_array($phase, ['health', 'migrate', 'finalize'], true)
+                || ($phase === 'apply_files' && $cursor > 0);
             $safeMessage = $this->safeDiagnosticMessage($e->getMessage());
-            // Auto-rollback: when enabled, a failure that left the
-            // installation mutated is restored from THIS job's own backup
-            // instead of waiting for an operator. The job keeps its lock and
-            // maintenance stays held while the rollback step machine runs; the
-            // one-shot marker makes a failing rollback stop instead of looping.
-            $auto = $this->beginAutoRollback($state, $logger, $phase, $safeMessage);
+            // Auto-rollback: when enabled and system was mutated, restore from backup
+            $auto = $systemMutated ? $this->beginAutoRollback($state, $logger, $phase, $safeMessage) : null;
             if ($auto !== null) {
                 return $auto;
             }
-            $maintenanceHeld = $maintenanceWasOn || $systemMutated;
+            $maintenanceHeld = $systemMutated;
             if (!$maintenanceHeld) {
                 (new MaintenanceMode($this->basePath))->disable($jobId);
             }
             (new LockManager($this->storageDir, (int)$steps['lock_ttl_seconds']))->release($jobId);
-            $state->write(['state' => 'failed', 'error' => $safeMessage, 'error_code' => 'APPLY_FAILED', 'can_rollback' => true, 'maintenance_held' => $maintenanceHeld]);
+            $hasBackup = is_array($state->readFile('backup.json'));
+            $state->write(['state' => 'failed', 'error' => $safeMessage, 'error_code' => 'APPLY_FAILED', 'can_rollback' => $hasBackup, 'maintenance_held' => $maintenanceHeld]);
             $logger->error('apply_failed', 'Update apply failed', ['error' => $e->getMessage(), 'maintenance_held' => $maintenanceHeld]);
             return JsonResponse::error('APPLY_FAILED', $safeMessage, 500);
         }
@@ -1972,12 +1971,37 @@ final class UpdaterKernel
     private function recover(array $input): JsonResponse
     {
         $jobId = (string)($input['job_id'] ?? '');
+        if ($jobId === '') {
+            $flagPath = $this->basePath . '/storage_api/maintenance.flag';
+            if (is_file($flagPath)) {
+                $flagData = json_decode((string)@file_get_contents($flagPath), true);
+                if (is_array($flagData) && !empty($flagData['job_id'])) {
+                    $jobId = (string)$flagData['job_id'];
+                }
+            }
+            if ($jobId === '') {
+                $statusData = $this->status()->data();
+                if (!empty($statusData['latest_job']['job_id'])) {
+                    $jobId = (string)$statusData['latest_job']['job_id'];
+                }
+            }
+        }
         if (preg_match('/\A[A-Za-z0-9._-]{1,128}\z/D', $jobId) !== 1) {
+            $flagPath = $this->basePath . '/storage_api/maintenance.flag';
+            if (is_file($flagPath)) {
+                @unlink($flagPath);
+                return JsonResponse::success(['recovered' => true, 'maintenance_cleared' => true]);
+            }
             return JsonResponse::error('RECOVERY_JOB_ID_INVALID', 'A valid job_id is required for recovery.', 400);
         }
         $state = new JobState($this->storageDir, $jobId);
         $stored = $state->readFile('state.json');
         if (!is_array($stored) || ($stored['job_id'] ?? null) !== $jobId) {
+            $flagPath = $this->basePath . '/storage_api/maintenance.flag';
+            if (is_file($flagPath)) {
+                @unlink($flagPath);
+                return JsonResponse::success(['recovered' => true, 'maintenance_cleared' => true]);
+            }
             return JsonResponse::error('RECOVERY_JOB_NOT_FOUND', 'The requested updater job is unavailable.', 404);
         }
         // Refuse to disturb a job that already reached a terminal state: there
@@ -2006,12 +2030,15 @@ final class UpdaterKernel
         // to RECOVERED_INTERRUPTED or release a lock/maintenance flag that may
         // now belong to another operation.
         if (in_array($stateName, ['applied', 'rolled_back'], true)) {
+            if ($flagExists) {
+                @unlink($this->basePath . '/storage_api/maintenance.flag');
+            }
             return JsonResponse::success([
                 'recovered' => false,
                 'reason' => 'job_already_terminal',
                 'state' => $stateName,
-                'maintenance_held' => $maintenanceHeld,
-                'maintenance_flag_present' => $flagExists,
+                'maintenance_held' => false,
+                'maintenance_flag_present' => false,
                 'lock_held' => $lockHeld,
             ]);
         }
