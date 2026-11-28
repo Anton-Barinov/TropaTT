@@ -6839,9 +6839,11 @@ window.CRM.pageApiBindings = (function () {
           var due = t.due_at
             ? '<span class="small ' + (isMyTaskOverdue(t) ? 'text-danger' : 'text-muted') + '">' + safeText(formatDate(t.due_at)) + '</span>'
             : '<span class="small text-muted">—</span>';
-          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
-            + '<a class="small text-truncate text-reset text-decoration-none" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a>'
-            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
+          return '<div class="d-flex align-items-center justify-content-between gap-3 mb-2" style="min-width: 0;">'
+            + '<div class="flex-grow-1 overflow-hidden" style="min-width: 0;">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" title="' + safeText(String(t.title || '')) + '" href="index.php?route=task-detail&task_public_id=' + encodeURIComponent(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a></div>'
+            + '</div>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
             + '</div>';
         }).join('')
           + (mine.length > shown.length
@@ -7214,14 +7216,14 @@ window.CRM.pageApiBindings = (function () {
             ? '<span class="small ' + (toTimestamp(t.due_at) < nowMs ? 'text-danger' : 'text-muted') + '">' + safeText(formatDate(t.due_at)) + '</span>'
             : '<span class="small text-muted">—</span>';
           var project = t.project_title
-            ? '<span class="small text-muted text-truncate"><i class="fa-regular fa-folder-open me-1" aria-hidden="true"></i>' + safeText(String(t.project_title)) + '</span>'
+            ? '<div class="small text-muted text-truncate" title="' + safeText(String(t.project_title)) + '"><i class="fa-regular fa-folder-open me-1" aria-hidden="true"></i>' + safeText(String(t.project_title)) + '</div>'
             : '';
-          return '<div class="d-flex align-items-center justify-content-between gap-2 mb-2">'
-            + '<div class="min-w-0">'
-            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" href="' + taskLink(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a></div>'
-            + (project ? project : '')
+          return '<div class="d-flex align-items-center justify-content-between gap-3 mb-2" style="min-width: 0;">'
+            + '<div class="flex-grow-1 overflow-hidden" style="min-width: 0;">'
+            + '<div class="small text-truncate"><a class="text-reset text-decoration-none" title="' + safeText(String(t.title || '')) + '" href="' + taskLink(t.public_id) + '">' + safeText(String(t.title || window.CRM.i18n.t('js.pab.task', 'Task'))) + '</a></div>'
+            + project
             + '</div>'
-            + '<span class="d-flex align-items-center gap-2 flex-shrink-0">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
+            + '<span class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">' + due + taskStatusBadgeHtml(t.status_code) + '</span>'
             + '</div>';
         }).join('')
           + (openUnassigned.length > shown.length
